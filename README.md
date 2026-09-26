@@ -1,5 +1,7 @@
 # 100 TIMES AI WORLD BUILDING
 
+[![Tests](https://github.com/masa-san-jp/100-times-ai-world-building/actions/workflows/tests.yml/badge.svg)](https://github.com/masa-san-jp/100-times-ai-world-building/actions/workflows/tests.yml)
+
 ## Overview
 
 This project provides an AI-assisted world-building workflow for generating rich narrative universes.
@@ -165,6 +167,10 @@ ignored by Git; reviewed packages belong under [`examples/`](examples/README.md)
 
 ## Running Tests
 
+Install the lightweight development dependencies and run the default test suite. Tests that
+require external services are marked as `integration` and excluded by default.
+
 ```bash
-pytest tests/ -v
+python -m pip install -r requirements-dev.txt
+python -m pytest tests/ -q
 ```

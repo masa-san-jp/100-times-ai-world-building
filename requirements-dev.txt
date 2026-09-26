@@ -1,0 +1,7 @@
+# Runtime dependencies
+-r requirements.txt
+
+# Test and fatal-error static checks
+pytest>=7.4.0
+pytest-cov>=4.1.0
+flake8>=6.1.0
