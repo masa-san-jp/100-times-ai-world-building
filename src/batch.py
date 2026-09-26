@@ -10,7 +10,7 @@ import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 from loguru import logger
 
@@ -127,8 +127,13 @@ class BatchRunner:
                     context_images=context_images,
                     extract_context=extract_context,
                 )
-                if not result or pipeline.manifest.data.get("status") != "completed":
-                    raise RuntimeError("pipeline did not complete successfully")
+                if (
+                    not result
+                    or pipeline.manifest.data.get("status") != "completed"
+                ):
+                    raise RuntimeError(
+                        "pipeline did not complete successfully"
+                    )
                 record["status"] = "completed"
             except KeyboardInterrupt:
                 record["status"] = "cancelled"
@@ -150,7 +155,9 @@ class BatchRunner:
                     _atomic_write_json(summary_path, summary)
                     raise
             finally:
-                record["duration_seconds"] = round(time.monotonic() - started, 3)
+                record["duration_seconds"] = round(
+                    time.monotonic() - started, 3
+                )
                 if record not in summary["runs"]:
                     summary["runs"].append(record)
                 summary["completed_runs"] = sum(
@@ -165,10 +172,32 @@ class BatchRunner:
                 _atomic_write_json(summary_path, summary)
 
         summary["status"] = (
-            "completed" if summary.get("failed_runs", 0) == 0 else "completed_with_errors"
+            "completed"
+            if summary.get("failed_runs", 0) == 0
+            else "completed_with_errors"
         )
         summary["finished_at"] = _utc_now()
         _atomic_write_json(summary_path, summary)
+
+        if runs >= 2:
+            try:
+                from .compare import create_comparison_report
+
+                world_dirs = [
+                    Path(record["output_dir"])
+                    for record in summary["runs"]
+                    if record.get("status") == "completed"
+                    and record.get("output_dir")
+                ]
+                if world_dirs:
+                    _, comparison_path = create_comparison_report(
+                        world_dirs, batch_dir / "comparison.md"
+                    )
+                    summary["comparison_path"] = str(comparison_path)
+                    _atomic_write_json(summary_path, summary)
+            except Exception as exc:
+                logger.warning(f"Batch comparison generation failed: {exc}")
+
         return summary
 
 
