@@ -62,7 +62,8 @@ def normalize_item(value: Any) -> str:
     )
 
 
-def _character_ngrams(value: str, size: int = 3) -> Set[str]:
+def character_ngrams(value: str, size: int = 3) -> Set[str]:
+    """Return the character n-grams used by duplicate checks."""
     if len(value) < size:
         return set()
     return {
@@ -70,7 +71,8 @@ def _character_ngrams(value: str, size: int = 3) -> Set[str]:
     }
 
 
-def _jaccard(left: Set[str], right: Set[str]) -> float:
+def jaccard(left: Set[str], right: Set[str]) -> float:
+    """Return the Jaccard similarity of two n-gram sets."""
     union = left | right
     return len(left & right) / len(union) if union else 0.0
 
@@ -87,14 +89,14 @@ def analyze_duplicates(
 
     near_duplicate_pair_count = 0
     for index, left in enumerate(normalized):
-        left_grams = _character_ngrams(left)
+        left_grams = character_ngrams(left)
         if not left_grams:
             continue
         for right in normalized[index + 1:]:
             if left == right:
                 continue
-            right_grams = _character_ngrams(right)
-            if right_grams and _jaccard(left_grams, right_grams) >= threshold:
+            right_grams = character_ngrams(right)
+            if right_grams and jaccard(left_grams, right_grams) >= threshold:
                 near_duplicate_pair_count += 1
 
     return {
@@ -133,7 +135,7 @@ def _read_text(path: Path) -> Tuple[Optional[str], Optional[str]]:
         return None, str(exc)
 
 
-def _quality_config(
+def get_quality_config(
     config_path: str = "config/ollama_config.yaml",
     config: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
@@ -503,7 +505,7 @@ def generate_quality_report(
     if not world_path.is_dir():
         raise ValueError(f"World directory does not exist: {world_path}")
 
-    quality_config = _quality_config(config_path=config_path, config=config)
+    quality_config = get_quality_config(config_path=config_path, config=config)
     threshold = quality_config["near_duplicate_threshold"]
     if not 0.0 <= threshold <= 1.0:
         raise ValueError(

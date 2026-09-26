@@ -5,8 +5,10 @@ from pathlib import Path
 
 from src.quality import (
     analyze_duplicates,
+    character_ngrams,
     create_quality_reports,
     generate_quality_report,
+    jaccard,
     normalize_item,
 )
 
@@ -77,6 +79,12 @@ def _write_world(
 
 def test_normalization_removes_nfkc_whitespace_punctuation_and_symbols():
     assert normalize_item(" ＡＢ！　") == "ab"
+
+
+def test_ngram_helpers_are_public():
+    grams = character_ngrams("abcd")
+    assert grams == {"abc", "bcd"}
+    assert jaccard(grams, grams) == 1.0
 
 
 def test_duplicate_metrics_include_exact_normalized_and_near_duplicates():

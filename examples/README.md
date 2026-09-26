@@ -70,6 +70,18 @@ python example_run.py --choice 2 --runs 10 --yes \
 
 10回バッチの実機検証はまだ行っていません。所要時間はモデルとハードウェアに依存します。
 
+## 複数の世界を比べる
+
+バッチが完了すると、成功した世界を横並びにした `comparison.md` がバッチディレクトリに自動生成されます。既存の世界を直接指定して比較することもできます。
+
+```bash
+python -m src.compare --batch output/batch_<batch_id>
+python -m src.compare examples/world_a examples/world_b examples/world_c \
+  --out comparison.md
+```
+
+`--batch` の場合は `batch_manifest.json` に記録された成功済みの世界だけが対象です。レポートの上段では、実行条件、プロット、キャラクター、社会構造、未来シナリオ、章タイトル、品質サマリを世界ごとに確認できます。下段の分岐度では、願望・能力・役割の100件リストについて、正規化後の完全一致率と設定したしきい値以上の3-gram近似一致率を行列で示します。率が低いほど、同じ入力から大きく分岐した世界です。
+
 同じ入力から再実行したい場合は `--seed` を追加します。生成後の
 `output/world_*/run_manifest.json` に記録されたモデル・設定ハッシュも確認できます。
 作例として残す場合は、内容を確認した出力パッケージを人間が読める名前で
