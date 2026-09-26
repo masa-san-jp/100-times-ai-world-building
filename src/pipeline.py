@@ -409,6 +409,25 @@ class Pipeline:
         self.checkpoint_manager.mark_phase(phase_name, status, error=error)
         self.manifest.set_phase_status(phase_name, status, error=error)
 
+    def _generate_quality_report(self) -> None:
+        """Generate quality reports after a complete pipeline run."""
+        try:
+            from .quality import create_quality_reports
+
+            report, json_path, markdown_path = create_quality_reports(
+                self.base_dir_path,
+                config=self.config,
+            )
+            self.manifest.update(
+                quality_report={
+                    "status": report["status"],
+                    "json_path": str(json_path.relative_to(self.base_dir_path)),
+                    "markdown_path": str(markdown_path.relative_to(self.base_dir_path)),
+                }
+            )
+        except Exception as exc:
+            logger.warning(f"Quality report generation failed: {exc}")
+
     def _validate_json_output(
         self,
         artifact: str,
@@ -1161,6 +1180,7 @@ class Pipeline:
         self.manifest.update(
             user_context_sha256=hashlib.sha256(user_context.encode("utf-8")).hexdigest()
         )
+        self._generate_quality_report()
 
         logger.info("=" * 60)
         logger.info("Pipeline Execution Complete")
@@ -1223,6 +1243,7 @@ class Pipeline:
             self.manifest.update(
                 user_context_sha256=hashlib.sha256(user_context.encode("utf-8")).hexdigest()
             )
+            self._generate_quality_report()
             return results
         finally:
             self._resume_mode = False

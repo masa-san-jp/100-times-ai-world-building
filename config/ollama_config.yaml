@@ -118,6 +118,12 @@ phases:
     format: ""  # Markdown output
     think: false
 
+# Quality report thresholds
+# ----------------------------------------
+quality:
+  near_duplicate_threshold: 0.8
+  min_chapter_characters: 2000
+
 # Performance Optimization
 # ----------------------------------------
 performance:

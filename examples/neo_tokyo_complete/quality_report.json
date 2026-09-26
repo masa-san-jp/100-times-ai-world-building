@@ -1,0 +1,286 @@
+{
+  "world_dir": "examples/neo_tokyo_complete",
+  "status": "warn",
+  "overall_status": "warn",
+  "config": {
+    "near_duplicate_threshold": 0.8,
+    "min_chapter_characters": 2000
+  },
+  "checks": {
+    "duplicates": {
+      "status": "warn",
+      "threshold": 0.8,
+      "lists": {
+        "01_desire_list": {
+          "status": "warn",
+          "item_count": 100,
+          "exact_duplicate_count": 2,
+          "normalized_duplicate_count": 2,
+          "near_duplicate_pair_count": 0,
+          "exact_unique_count": 98,
+          "normalized_unique_count": 98,
+          "unique_count": 98,
+          "valid_count": 98
+        },
+        "02_ability_list": {
+          "status": "pass",
+          "item_count": 100,
+          "exact_duplicate_count": 0,
+          "normalized_duplicate_count": 0,
+          "near_duplicate_pair_count": 0,
+          "exact_unique_count": 100,
+          "normalized_unique_count": 100,
+          "unique_count": 100,
+          "valid_count": 100
+        },
+        "03_role_list": {
+          "status": "warn",
+          "item_count": 100,
+          "exact_duplicate_count": 1,
+          "normalized_duplicate_count": 1,
+          "near_duplicate_pair_count": 0,
+          "exact_unique_count": 99,
+          "normalized_unique_count": 99,
+          "unique_count": 99,
+          "valid_count": 99
+        },
+        "18_people_list": {
+          "status": "pass",
+          "item_count": 100,
+          "exact_duplicate_count": 0,
+          "normalized_duplicate_count": 0,
+          "near_duplicate_pair_count": 0,
+          "exact_unique_count": 100,
+          "normalized_unique_count": 100,
+          "unique_count": 100,
+          "valid_count": 100
+        }
+      }
+    },
+    "character_consistency": {
+      "status": "warn",
+      "characters": [
+        {
+          "name": "カエデ・アキラ (19歳)",
+          "plot_chapters": [],
+          "novel_chapters": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "plot_chapter_count": 0,
+          "novel_chapter_count": 10,
+          "status": "warn"
+        },
+        {
+          "name": "ミドリ (実年齢非公開)",
+          "plot_chapters": [],
+          "novel_chapters": [
+            2,
+            3,
+            4,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "plot_chapter_count": 0,
+          "novel_chapter_count": 8,
+          "status": "warn"
+        },
+        {
+          "name": "レン (24歳)",
+          "plot_chapters": [],
+          "novel_chapters": [
+            2,
+            3,
+            4,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "plot_chapter_count": 0,
+          "novel_chapter_count": 8,
+          "status": "warn"
+        },
+        {
+          "name": "ノア (AI人格/実体不明)",
+          "plot_chapters": [],
+          "novel_chapters": [
+            2,
+            3,
+            4,
+            6,
+            7,
+            9,
+            10
+          ],
+          "plot_chapter_count": 0,
+          "novel_chapter_count": 7,
+          "status": "warn"
+        }
+      ],
+      "unseen_in_plot": [
+        "カエデ・アキラ (19歳)",
+        "ミドリ (実年齢非公開)",
+        "レン (24歳)",
+        "ノア (AI人格/実体不明)"
+      ],
+      "unseen_in_novel": [],
+      "errors": []
+    },
+    "novel_text": {
+      "status": "pass",
+      "minimum_character_count": 2000,
+      "chapters": {
+        "01": {
+          "status": "pass",
+          "character_count": 2585,
+          "warnings": [],
+          "errors": []
+        },
+        "02": {
+          "status": "pass",
+          "character_count": 3119,
+          "warnings": [],
+          "errors": []
+        },
+        "03": {
+          "status": "pass",
+          "character_count": 3286,
+          "warnings": [],
+          "errors": []
+        },
+        "04": {
+          "status": "pass",
+          "character_count": 2791,
+          "warnings": [],
+          "errors": []
+        },
+        "05": {
+          "status": "pass",
+          "character_count": 2678,
+          "warnings": [],
+          "errors": []
+        },
+        "06": {
+          "status": "pass",
+          "character_count": 3423,
+          "warnings": [],
+          "errors": []
+        },
+        "07": {
+          "status": "pass",
+          "character_count": 2611,
+          "warnings": [],
+          "errors": []
+        },
+        "08": {
+          "status": "pass",
+          "character_count": 3745,
+          "warnings": [],
+          "errors": []
+        },
+        "09": {
+          "status": "pass",
+          "character_count": 3018,
+          "warnings": [],
+          "errors": []
+        },
+        "10": {
+          "status": "pass",
+          "character_count": 2833,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "summary": {
+        "chapter_count": 10,
+        "min_character_count": 2585,
+        "max_character_count": 3745,
+        "average_character_count": 3008.9,
+        "below_minimum_chapters": [],
+        "truncated_suspected_chapters": []
+      },
+      "errors": []
+    },
+    "chapter_structure": {
+      "status": "pass",
+      "expected_chapter_count": 10,
+      "plot_chapter_count": 10,
+      "novel_chapter_count": 10,
+      "chapters": {
+        "01": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "02": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "03": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "04": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "05": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "06": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "07": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "08": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "09": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        },
+        "10": {
+          "status": "pass",
+          "plot_present": true,
+          "novel_present": true,
+          "errors": []
+        }
+      }
+    }
+  }
+}
