@@ -1,0 +1,5 @@
+# Runtime dependencies for the local pipeline
+requests>=2.31.0
+PyYAML>=6.0
+tqdm>=4.66.0
+loguru>=0.7.0

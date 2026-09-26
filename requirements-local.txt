@@ -1,79 +1,20 @@
-# ========================================
-# 100 TIMES AI WORLD BUILDING - Local Version
-# Python Dependencies
-# ========================================
+# Compatibility requirements for the full local and notebook setup
+-r requirements-dev.txt
 
-# Core Dependencies
-# ----------------------------------------
-
-# Ollama Python client
+# Ollama SDK and local convenience packages
 ollama>=0.3.0
-
-# HTTP requests (fallback for direct API calls)
-requests>=2.31.0
-
-# YAML processing
-pyyaml>=6.0
-
-# Progress bars
-tqdm>=4.66.0
-
-# System resource monitoring
 psutil>=5.9.0
+numpy>=1.24.0
+pandas>=2.0.0
+rich>=13.5.0
 
 # Jupyter and Notebook
-# ----------------------------------------
 jupyter>=1.0.0
 jupyterlab>=4.0.0
 notebook>=7.0.0
 ipykernel>=6.25.0
 ipywidgets>=8.1.0
 
-# Data handling
-# ----------------------------------------
-# JSON is part of standard library
-numpy>=1.24.0
-pandas>=2.0.0  # Optional: for data analysis
-
-# Development and Testing
-# ----------------------------------------
-pytest>=7.4.0
-pytest-cov>=4.1.0
-pytest-asyncio>=0.21.0
-black>=23.7.0
-flake8>=6.1.0
-mypy>=1.5.0
-
-# Logging and Debugging
-# ----------------------------------------
-loguru>=0.7.0  # Better logging than standard library
-rich>=13.5.0   # Rich text and formatting in terminal
-
-# Type hints
-# ----------------------------------------
+# Type stubs used by the local development environment
 types-PyYAML>=6.0.0
 types-requests>=2.31.0
-
-# Optional: Performance
-# ----------------------------------------
-# uvloop>=0.17.0  # Faster event loop (Linux/macOS only)
-
-# Optional: Database (if implementing DB backend)
-# ----------------------------------------
-# sqlalchemy>=2.0.0
-# alembic>=1.11.0
-
-# Optional: API server (future feature)
-# ----------------------------------------
-# fastapi>=0.100.0
-# uvicorn>=0.23.0
-
-# Optional: Web UI (future feature)
-# ----------------------------------------
-# streamlit>=1.25.0
-# gradio>=3.40.0
-
-# Optional: Parallel processing
-# ----------------------------------------
-# ray>=2.6.0
-# dask>=2023.8.0
