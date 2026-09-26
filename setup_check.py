@@ -4,6 +4,8 @@ Setup Check Script
 Verify that all prerequisites are met for running the local version
 """
 
+import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -54,6 +56,9 @@ def check_required_files():
         "example_run.py",
         "src/__init__.py",
         "src/ollama_client.py",
+        "src/llm/__init__.py",
+        "src/llm/factory.py",
+        "src/llm/anthropic_client.py",
         "src/checkpoint_manager.py",
         "src/utils.py",
         "src/pipeline.py",
@@ -80,7 +85,7 @@ def check_required_files():
     return all_exist
 
 
-def check_dependencies():
+def check_dependencies(backend="ollama"):
     """Check if required Python packages are installed"""
     required_packages = [
         "yaml",
@@ -93,6 +98,8 @@ def check_dependencies():
         "psutil",  # Optional notebook/system-monitoring support.
         "jupyter",
     ]
+    if backend != "anthropic":
+        optional_packages.append("anthropic")
 
     print("\nChecking Python packages required by the CLI...")
     all_installed = True
@@ -117,6 +124,87 @@ def check_dependencies():
             print(f"⚠ {package} (optional; install for notebook/system extras)")
 
     return all_installed
+
+
+def check_anthropic(config):
+    """Check SDK/auth and retrieve configured model capabilities."""
+    try:
+        import anthropic
+    except ImportError:
+        print("✗ anthropic (not installed; install requirements-cloud.txt)")
+        return False
+
+    print("✓ anthropic SDK")
+    try:
+        # Construction performs only local credential/profile resolution.
+        client = anthropic.Anthropic()
+        print("✓ Anthropic authentication information found")
+    except Exception as exc:
+        if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+            print(f"✗ Anthropic authentication could not be initialized: {exc}")
+        else:
+            print("✗ Anthropic authentication information not found")
+            print("  Set ANTHROPIC_API_KEY or configure the SDK auth profile.")
+        return False
+
+    llm_config = config.get("llm", {})
+    anthropic_config = llm_config.get("anthropic", {}) or config.get(
+        "anthropic", {}
+    )
+    model = anthropic_config.get("model")
+    if not model:
+        print("✗ Anthropic model is not configured")
+        print("  Set anthropic.model in the selected configuration file.")
+        return False
+
+    request_options = anthropic_config.get("request_options", {})
+    try:
+        model_info = client.models.retrieve(model)
+    except Exception as exc:
+        status_code = getattr(exc, "status_code", None)
+        if status_code in {401, 403}:
+            print(f"✗ Anthropic authentication failed while retrieving model {model}: {exc}")
+        elif status_code == 404:
+            print(f"✗ Anthropic model does not exist or is unavailable: {model}")
+        else:
+            print(f"✗ Could not retrieve Anthropic model {model}: {exc}")
+        return False
+
+    def field(name):
+        if isinstance(model_info, dict):
+            return model_info.get(name)
+        return getattr(model_info, name, None)
+
+    max_input_tokens = field("max_input_tokens")
+    model_max_tokens = field("max_tokens")
+    print(f"✓ Anthropic model: {model}")
+    print(f"  max_input_tokens: {max_input_tokens}")
+    print(f"  max_tokens: {model_max_tokens}")
+
+    configured_max_tokens = request_options.get("max_tokens")
+    if (
+        configured_max_tokens is not None
+        and model_max_tokens is not None
+        and configured_max_tokens > model_max_tokens
+    ):
+        print(
+            "⚠ request_options.max_tokens exceeds the model max_tokens "
+            f"({configured_max_tokens} > {model_max_tokens})"
+        )
+    return True
+
+
+def selected_backend(cli_backend=None, config_path="config/ollama_config.yaml"):
+    """Resolve the setup check backend from CLI first, then configuration."""
+    if cli_backend:
+        return cli_backend
+    try:
+        import yaml
+
+        config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8")) or {}
+        return config.get("backend", config.get("llm", {}).get("backend", "ollama"))
+    except Exception:
+        return "ollama"
 
 
 def check_ollama_server():
@@ -179,9 +267,16 @@ def check_ollama_models():
 
 def main():
     """Main check routine"""
+    parser = argparse.ArgumentParser(description="Check pipeline setup")
+    parser.add_argument("--backend", choices=("ollama", "anthropic"))
+    parser.add_argument("--config", default="config/ollama_config.yaml")
+    args = parser.parse_args()
+    backend = selected_backend(args.backend, args.config)
+
     print("=" * 60)
     print("100 TIMES AI WORLD BUILDING - Setup Check")
     print("=" * 60)
+    print(f"Backend: {backend}")
     print()
 
     checks = {
@@ -201,13 +296,28 @@ def main():
     print("\n" + "=" * 60)
     print("Python Dependencies")
     print("=" * 60)
-    checks["Dependencies"] = check_dependencies()
+    checks["Dependencies"] = check_dependencies(backend)
 
-    print("\n" + "=" * 60)
-    print("Ollama Setup")
-    print("=" * 60)
-    checks["Ollama Server"] = check_ollama_server()
-    checks["Ollama Models"] = check_ollama_models()
+    if backend == "anthropic":
+        print("\n" + "=" * 60)
+        print("Anthropic Setup (SDK/auth + model capability check)")
+        print("=" * 60)
+        try:
+            import yaml
+
+            config = yaml.safe_load(
+                Path(args.config).read_text(encoding="utf-8")
+            ) or {}
+        except Exception as exc:
+            print(f"✗ Could not load configuration for Anthropic setup: {exc}")
+            config = {}
+        checks["Anthropic SDK/Auth/Model"] = check_anthropic(config)
+    else:
+        print("\n" + "=" * 60)
+        print("Ollama Setup")
+        print("=" * 60)
+        checks["Ollama Server"] = check_ollama_server()
+        checks["Ollama Models"] = check_ollama_models()
 
     # Summary
     print("\n" + "=" * 60)

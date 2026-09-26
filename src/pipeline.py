@@ -13,7 +13,8 @@ import yaml as yaml_lib
 from loguru import logger
 from tqdm import tqdm
 
-from .ollama_client import OllamaClient
+from .llm import LLMBackend
+from .llm.factory import build_backend_clients
 from .checkpoint_manager import CheckpointManager
 from .output_layout import resolve_world_package, world_package_name
 from .run_manifest import RunManifest, file_sha256, snapshot_files, utc_now
@@ -104,6 +105,7 @@ class Pipeline:
         story_model: Optional[str] = None,
         reference_model: Optional[str] = None,
         vision_model: Optional[str] = None,
+        backend: Optional[Union[str, LLMBackend]] = None,
     ):
         """
         Initialize pipeline
@@ -111,7 +113,8 @@ class Pipeline:
         Args:
             config_path: Path to configuration file
             prompts_dir: Directory containing prompt templates
-            model: Model name to use (overrides config value).  Pass one of:
+            model: Model name to use (overrides config value). For Ollama,
+                   pass one of:
                    "gpt-oss:20b"    – standard local model (default)
                    "gpt-oss:20b-q8" – 8-bit quantized (16-24 GB VRAM)
                    "gpt-oss:20b-q4" – 4-bit quantized (8-16 GB VRAM)
@@ -124,13 +127,43 @@ class Pipeline:
                   and persisted in the run manifest.
             output_dir: Optional root directory for generated runs. When omitted,
                         ``output.base_dir`` from the configuration is used.
-            structured_model: Optional Ollama model for JSON-producing phases.
-            story_model: Optional Ollama model for novel generation.
-            reference_model: Optional Ollama model for reference generation.
-            vision_model: Optional Ollama vision model for image input.
+            structured_model: Optional role model for JSON-producing phases.
+            story_model: Optional role model for novel generation.
+            reference_model: Optional role model for reference generation.
+            vision_model: Optional role model for image input.
+            backend: Backend name (``ollama`` or ``anthropic``), or an injected
+                     backend implementation for tests and custom integrations.
         """
         # Load configuration
         self.config = load_config(config_path)
+
+        llm_config = self.config.get("llm", {})
+        anthropic_config = dict(
+            llm_config.get("anthropic", {})
+            or self.config.get("anthropic", {})
+        )
+        configured_backend = self.config.get(
+            "backend", llm_config.get("backend", "ollama")
+        )
+        explicit_backend = backend is not None
+        injected_backend = backend if not isinstance(backend, str) else None
+        backend_name = (
+            backend
+            if isinstance(backend, str)
+            else getattr(backend, "backend_name", None)
+            if backend is not None
+            else configured_backend
+        )
+        if injected_backend is not None and not isinstance(backend_name, str):
+            backend_name = "custom"
+        if backend_name not in {"ollama", "anthropic"} and injected_backend is None:
+            raise ValueError(
+                f"Unsupported LLM backend: {backend_name}. "
+                "Choose 'ollama' or 'anthropic'."
+            )
+        self.backend_name = backend_name
+        self.backend = backend_name
+        initial_backend_name = backend_name
 
         output_config = self.config.get("output", {})
         base_dir_root_value = (
@@ -151,23 +184,35 @@ class Pipeline:
             ):
                 self.run_id = f"{self.run_id}_{secrets.token_hex(2)}"
 
-        # Initialize components.  The default remains one local model, while
-        # each role can be assigned a different Ollama model for Colab parity.
+        # Initialize components. The default remains one local model, while
+        # each role can be assigned a different model for backend parity.
         server_config = self.config.get("server", {})
         model_config = self.config.get("model", {})
         role_config = self.config.get("models", {})
 
         # Model selection: explicit argument > config value > built-in default
-        resolved_model = model or model_config.get("name", "gpt-oss:20b")
+        if self.backend_name == "anthropic":
+            resolved_model = model or anthropic_config.get("model")
+            if not resolved_model:
+                raise ValueError(
+                    "Anthropic backend requires a model. Set "
+                    "anthropic.model or pass Pipeline(model=...)."
+                )
+            backend_role_config = {}
+        else:
+            resolved_model = model or model_config.get("name", "gpt-oss:20b")
+            backend_role_config = role_config
 
         def configured_role(role: str, explicit: Optional[str]) -> str:
+            if self.backend_name == "anthropic":
+                return resolved_model
             if explicit:
                 return explicit
-            if role == "vision" and role_config.get("vision"):
-                return role_config["vision"]
+            if role == "vision" and backend_role_config.get("vision"):
+                return backend_role_config["vision"]
             if model:
                 return resolved_model
-            return role_config.get(role, resolved_model)
+            return backend_role_config.get(role, resolved_model)
 
         self.model_names = {
             "structured": configured_role("structured", structured_model),
@@ -176,17 +221,16 @@ class Pipeline:
             "vision": configured_role("vision", vision_model),
         }
 
-        client_kwargs = {
-            "host": server_config.get("host", "http://localhost"),
-            "port": server_config.get("port", 11434),
-            "timeout": server_config.get("timeout", 300),
-            "max_retries": server_config.get("max_retries", 3),
-            "retry_delay": server_config.get("retry_delay", 5),
-        }
-        self.clients = {
-            role: OllamaClient(model=model_name, **client_kwargs)
-            for role, model_name in self.model_names.items()
-        }
+        def build_clients() -> Dict[str, LLMBackend]:
+            return build_backend_clients(
+                self.backend_name,
+                self.model_names,
+                server_config,
+                anthropic_config,
+                injected_backend=injected_backend,
+            )
+
+        self.clients = build_clients()
         # Backwards-compatible alias used by existing callers and tests.
         self.client = self.clients["structured"]
 
@@ -241,6 +285,8 @@ class Pipeline:
             "layout_version": 1 if self.legacy_layout else 2,
             "artifact_type": "world_output",
             "run_id": self.run_id,
+            "backend": self.backend_name,
+            "model": resolved_model,
             "run_seed": int(initial_seed),
             "seed_source": (
                 "argument" if seed is not None
@@ -296,11 +342,19 @@ class Pipeline:
         # Resuming without an explicit model override must use the models that
         # created the run. This prevents an interactive default choice from
         # silently changing the continuation environment.
+        stored_backend = self.manifest.data.get("backend")
         stored_models = self.manifest.data.get("models")
         explicit_model_override = any(
             value is not None
             for value in (model, structured_model, story_model, reference_model, vision_model)
         )
+        if (
+            manifest_already_exists
+            and not explicit_backend
+            and stored_backend in {"ollama", "anthropic"}
+        ):
+            self.backend_name = stored_backend
+            self.backend = stored_backend
         if (
             manifest_already_exists
             and isinstance(stored_models, dict)
@@ -310,14 +364,25 @@ class Pipeline:
                 role: stored_models.get(role, name)
                 for role, name in self.model_names.items()
             }
-            self.clients = {
-                role: OllamaClient(model=model_name, **client_kwargs)
-                for role, model_name in self.model_names.items()
-            }
+            self.clients = build_clients()
             self.client = self.clients["structured"]
         elif manifest_already_exists and isinstance(stored_models, dict):
             if stored_models != self.model_names:
                 self.manifest.update(model_override=dict(self.model_names))
+
+        if (
+            self.backend_name != initial_backend_name
+            and injected_backend is None
+            and not isinstance(stored_models, dict)
+        ):
+            self.clients = build_clients()
+            self.client = self.clients["structured"]
+
+        self.manifest.update(
+            backend=self.backend_name,
+            model=self.model_names["structured"],
+            models=dict(self.model_names),
+        )
 
         checkpoint_config = self.config.get("checkpointing", {})
         self.checkpoint_manager = CheckpointManager(
@@ -342,8 +407,8 @@ class Pipeline:
         )
         logger.info(f"Output directory: {self.base_dir}")
 
-    def _client_for(self, role: str = "structured") -> OllamaClient:
-        """Return the local Ollama client assigned to a pipeline role."""
+    def _client_for(self, role: str = "structured") -> LLMBackend:
+        """Return the configured backend assigned to a pipeline role."""
         return self.clients[role]
 
     def _num_ctx(self, phase_config: Dict[str, Any]) -> Optional[int]:
@@ -508,9 +573,16 @@ class Pipeline:
     ) -> Optional[Dict[str, Any]]:
         options = self._generation_options(phase_config, request_key)
         num_ctx = options.pop("num_ctx", None)
-        max_tokens = options.pop("num_predict", 4096)
+        max_tokens = (
+            None
+            if self.backend_name == "anthropic"
+            else options.pop("num_predict", 4096)
+        )
+        if self.backend_name == "anthropic":
+            options.pop("num_predict", None)
         temperature = options.pop("temperature", 0.7)
-        return self._client_for(role).generate_json(
+        client = self._client_for(role)
+        response = client.generate_json(
             prompt,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -519,6 +591,8 @@ class Pipeline:
             num_ctx=num_ctx,
             **options,
         )
+        self._record_backend_response(client, request_key)
+        return response
 
     def _generate_text(
         self,
@@ -532,7 +606,13 @@ class Pipeline:
         client = self._client_for(role)
         options = self._generation_options(phase_config, request_key)
         num_ctx = options.pop("num_ctx", None)
-        max_tokens = options.pop("num_predict", 4096)
+        max_tokens = (
+            None
+            if self.backend_name == "anthropic"
+            else options.pop("num_predict", 4096)
+        )
+        if self.backend_name == "anthropic":
+            options.pop("num_predict", None)
         temperature = options.pop("temperature", 1.0)
         request_seed = options.pop("seed", None)
         common = {
@@ -544,15 +624,35 @@ class Pipeline:
             **options,
         }
         if long_form:
-            return client.generate_long_text(
+            response = client.generate_long_text(
                 prompt,
                 **common,
                 seed=request_seed,
                 max_continuations=phase_config.get("max_continuations", 3),
                 seed_factory=lambda index: self._derive_seed(request_key, index),
             )
-        common["seed"] = request_seed
-        return client.generate_text(prompt, **common)
+        else:
+            common["seed"] = request_seed
+            response = client.generate_text(prompt, **common)
+        self._record_backend_response(client, request_key)
+        return response
+
+    def _record_backend_response(self, client: LLMBackend, request_key: str) -> None:
+        """Persist truncation/refusal metadata returned by a backend."""
+        metadata = getattr(client, "last_response_meta", {})
+        if not isinstance(metadata, dict):
+            return
+        stop_reason = metadata.get("stop_reason")
+        if stop_reason not in {"max_tokens", "refusal"}:
+            return
+        requests = self.manifest.data.setdefault("requests", {})
+        request = dict(requests.get(request_key, {}))
+        request["response_meta"] = dict(metadata)
+        requests[request_key] = request
+        self.manifest.update(
+            requests=requests,
+            last_backend_response={"request_key": request_key, **metadata},
+        )
 
     def _resume_data(self, phase_name: str) -> Dict[str, Any]:
         """Load partial phase data only when this Pipeline is in resume mode."""
@@ -586,11 +686,6 @@ class Pipeline:
         """
         logger.info("Checking prerequisites...")
 
-        # Check Ollama server once, then ensure every model needed by this run.
-        if not self.client.check_server():
-            logger.error("Ollama server is not running. Please start it with: ollama serve")
-            return False
-
         roles = ["structured", "story", "reference"]
         if include_vision:
             roles.append("vision")
@@ -600,7 +695,7 @@ class Pipeline:
             if client.model in seen_models:
                 continue
             seen_models.add(client.model)
-            if not client.ensure_model_ready():
+            if not client.check_ready():
                 logger.error(f"Model for {role} is not available: {client.model}")
                 return False
 

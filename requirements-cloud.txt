@@ -1,0 +1,2 @@
+# Optional cloud LLM backend. Ollama-only users do not need this file.
+anthropic>=1.8.0

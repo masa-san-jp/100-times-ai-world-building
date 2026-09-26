@@ -67,6 +67,54 @@ class TestPipeline:
 
     @patch("src.pipeline.load_config")
     @patch("src.pipeline.load_prompts")
+    def test_anthropic_requires_a_model_setting_or_override(
+        self, mock_load_prompts, mock_load_config, mock_config, mock_prompts
+    ):
+        mock_config["backend"] = "anthropic"
+        mock_config["anthropic"] = {"request_options": {"max_tokens": 1}}
+        mock_load_config.return_value = mock_config
+        mock_load_prompts.return_value = mock_prompts
+
+        with pytest.raises(ValueError, match="requires a model"):
+            Pipeline(run_id="missing_anthropic_model")
+
+    @patch("src.pipeline.build_backend_clients")
+    @patch("src.pipeline.load_config")
+    @patch("src.pipeline.load_prompts")
+    def test_anthropic_model_and_request_options_are_recorded(
+        self,
+        mock_load_prompts,
+        mock_load_config,
+        mock_build_clients,
+        mock_config,
+        mock_prompts,
+        tmp_path,
+    ):
+        mock_config["backend"] = "anthropic"
+        mock_config["anthropic"] = {
+            "model": "configured-model",
+            "request_options": {"max_tokens": 64000},
+        }
+        mock_config["output"]["base_dir"] = str(tmp_path)
+        mock_load_config.return_value = mock_config
+        mock_load_prompts.return_value = mock_prompts
+        fake_client = Mock(model="configured-model")
+        mock_build_clients.return_value = {
+            role: fake_client
+            for role in ("structured", "story", "reference", "vision")
+        }
+
+        pipeline = Pipeline(run_id="anthropic_manifest")
+
+        assert pipeline.model_names["structured"] == "configured-model"
+        assert pipeline.manifest.data["backend"] == "anthropic"
+        assert pipeline.manifest.data["model"] == "configured-model"
+        assert mock_build_clients.call_args.args[3]["request_options"] == {
+            "max_tokens": 64000
+        }
+
+    @patch("src.pipeline.load_config")
+    @patch("src.pipeline.load_prompts")
     def test_model_override(self, mock_load_prompts, mock_load_config, mock_config, mock_prompts):
         mock_load_config.return_value = mock_config
         mock_load_prompts.return_value = mock_prompts
