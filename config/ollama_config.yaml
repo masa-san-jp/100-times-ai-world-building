@@ -3,6 +3,27 @@
 # 100 TIMES AI WORLD BUILDING - Local Version
 # ========================================
 
+# LLM backend. Choose "ollama" (default) or "anthropic".
+backend: "ollama"
+
+# Optional Anthropic backend settings. Credentials are resolved by the
+# official SDK from its normal environment/profile configuration.
+anthropic:
+  # Model-dependent values may change across model generations; review this
+  # section when replacing the model.
+  model: "claude-opus-5"
+  timeout: 900.0
+  max_retries: 2  # Let the Anthropic SDK handle retries.
+  request_options:
+    max_tokens: 64000
+    thinking:
+      type: "adaptive"
+    output_config:
+      effort: "high"
+    betas:
+      - "server-side-fallback-2026-07-01"
+    fallbacks: "default"
+
 # Server Configuration
 # ----------------------------------------
 server:

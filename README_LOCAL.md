@@ -28,6 +28,7 @@
 - `--choice 1` はPhase 1だけの短い確認用です。最終成果物まで作る場合は `--choice 2` を使います。
 - 生成結果の品質、速度、完全な再現性は、Ollamaのモデル、モデルのバージョン、ハードウェアに依存します。
 - Phase 0〜6と完全作例1件は実機確認済みです。10回バッチは未検証です。
+- バックエンドの既定値はOllamaです。同じパイプラインを任意依存のAnthropic SDK経由でClaudeでも実行できます。
 
 ## 必要なもの
 
@@ -107,6 +108,27 @@ python example_run.py --choice 2 --yes \
 ```
 
 完了後、表示された `output/world_<run_id>/` を開いて成果物を確認してください。
+
+### Anthropicバックエンド（任意）
+
+Ollamaを使わずClaudeで同じPhase 0〜6、検証、チェックポイント、品質レポートを実行する場合は、
+任意依存を追加してからSDKの通常の認証設定を使います。APIキーはコードや設定ファイルに書きません。
+
+```bash
+python -m pip install -r requirements-cloud.txt
+python setup_check.py --backend anthropic  # SDK/認証とモデル情報を確認
+python example_run.py --choice 2 --yes --backend anthropic \
+  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --output-dir output
+```
+
+モデルは `config/ollama_config.yaml` の `anthropic.model`、またはCLIの `--model` で指定します。
+サンプル設定の初期値は `claude-opus-5` ですが、モデルの世代を替えるときは
+`anthropic.request_options` の `max_tokens`、`thinking`、`output_config`、フォールバック設定も
+見直してください。`setup_check.py --backend anthropic` は Models API からモデルの存在、
+`max_input_tokens`、`max_tokens` を確認し、設定値が上限を超える場合に警告します。
+CLIを使わず設定だけで選ぶ場合は `backend: anthropic` にします。Ollama利用者は
+`requirements-cloud.txt` をインストールする必要はありません。
 
 ## 入力の渡し方
 

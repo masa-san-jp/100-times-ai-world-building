@@ -12,6 +12,9 @@ The project is designed for **iterative exploration**: you run it multiple times
 or models, and each generated world is saved as a self-contained output package so previous results are
 never overwritten.
 
+The pipeline backend is selectable: Ollama is the default, and Claude can be used through the official
+Anthropic Python SDK without changing the phase/checkpoint/validation pipeline.
+
 ## Documents
 
 | File | Role | Language |
@@ -95,6 +98,27 @@ python example_run.py --choice 2 --yes \
 ```
 
 See [examples/README.md](examples/README.md) for the curation policy.
+
+### Anthropic backend
+
+Install the optional cloud dependency and provide credentials through the Anthropic SDK's normal
+environment/profile resolution. The API key is never stored in this repository.
+
+```bash
+python -m pip install -r requirements-cloud.txt
+python setup_check.py --backend anthropic
+python example_run.py --choice 2 --yes --backend anthropic \
+  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --output-dir output
+```
+
+The initial model value is configured as `anthropic.model` (currently `claude-opus-5` in the sample
+configuration); change it there or with `--model`. Model-dependent Messages API parameters such as
+`max_tokens`, `thinking`, `output_config`, and fallback options are kept in `anthropic.request_options`.
+Review those settings when changing model generations. `setup_check.py --backend anthropic` retrieves
+the configured model's capability limits through the Models API and warns about an excessive
+`request_options.max_tokens` value. Set `backend: anthropic` in `config/ollama_config.yaml` to select
+it without a CLI flag.
 
 `--choice 1` runs only the fast Phase 1 expansion. `--choice 2` runs the complete Phase 0–6
 pipeline. Use `--runs N` with choice 2 to create N independent world packages under one batch.

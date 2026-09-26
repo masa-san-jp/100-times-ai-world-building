@@ -11,9 +11,13 @@ from typing import Optional, Dict, Any, List, Union
 import requests
 from loguru import logger
 
+from .llm import LLMBackend
 
-class OllamaClient:
+
+class OllamaClient(LLMBackend):
     """Client for interacting with Ollama API"""
+
+    backend_name = "ollama"
 
     def __init__(
         self,
@@ -158,6 +162,10 @@ class OllamaClient:
 
         logger.info(f"Model {self.model} not found, attempting to pull...")
         return self.pull_model()
+
+    def check_ready(self) -> bool:
+        """Check the Ollama server and make this client's model available."""
+        return self.check_server() and self.ensure_model_ready()
 
     def generate(
         self,

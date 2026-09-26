@@ -12,7 +12,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from src import Pipeline, run_batch, setup_logging
+from src import Pipeline, load_config, run_batch, setup_logging
 
 # ---------------------------------------------------------------------------
 # Local model options
@@ -67,17 +67,41 @@ def make_pipeline(
     run_id: str = None,
     output_dir: str = None,
 ) -> Pipeline:
-    """Create a pipeline with optional role-specific local Ollama models."""
-    return Pipeline(
-        model=model or args.model,
-        run_id=run_id or args.run_id,
-        seed=args.seed,
-        output_dir=output_dir if output_dir is not None else args.output_dir,
-        structured_model=args.structured_model,
-        story_model=args.story_model,
-        reference_model=args.reference_model,
-        vision_model=args.vision_model,
-    )
+    """Create a pipeline with the selected backend and role models."""
+    kwargs = {
+        "model": model or args.model,
+        "run_id": run_id or args.run_id,
+        "seed": args.seed,
+        "output_dir": output_dir if output_dir is not None else args.output_dir,
+        "structured_model": args.structured_model,
+        "story_model": args.story_model,
+        "reference_model": args.reference_model,
+        "vision_model": args.vision_model,
+    }
+    if getattr(args, "backend", None) is not None:
+        kwargs["backend"] = args.backend
+    return Pipeline(**kwargs)
+
+
+def select_model_for_backend(args) -> str:
+    """Select a local model only when the Ollama backend is in use."""
+    if args.model:
+        return args.model
+    backend = getattr(args, "backend", None)
+    if backend is None:
+        try:
+            config = load_config("config/ollama_config.yaml")
+            backend = config.get("backend", config.get("llm", {}).get("backend"))
+        except Exception:
+            backend = None
+    if backend == "anthropic":
+        return None
+    return select_model()
+
+
+def _pipeline_model(args) -> str:
+    """Return the CLI model override without prompting Anthropic users."""
+    return select_model_for_backend(args)
 
 
 def select_model() -> str:
@@ -111,7 +135,7 @@ def run_phase1_only(args):
     print("=" * 60)
 
     # Model selection
-    model = args.model or select_model()
+    model = _pipeline_model(args)
 
     # Setup logging
     setup_logging(log_level="INFO", console=True)
@@ -164,7 +188,7 @@ def run_full_pipeline(args):
         return 0
 
     # Model selection
-    model = args.model or select_model()
+    model = _pipeline_model(args)
 
     # Setup logging
     setup_logging(
@@ -218,7 +242,7 @@ def run_batch_pipeline(args):
         print("Cancelled.")
         return 0
 
-    model = args.model or select_model()
+    model = _pipeline_model(args)
     setup_logging(
         log_level="INFO",
         log_file="./logs/batch_pipeline.log",
@@ -232,6 +256,8 @@ def run_batch_pipeline(args):
         "reference_model": args.reference_model,
         "vision_model": args.vision_model,
     }
+    if getattr(args, "backend", None) is not None:
+        pipeline_kwargs["backend"] = args.backend
     user_context = load_context(args)
     summary = run_batch(
         user_context=user_context,
@@ -354,7 +380,13 @@ def parse_args():
         help="1=Phase 1, 2=full pipeline, 3=resume, 4=exit",
     )
     parser.add_argument("--context-file", help="Local text/YAML/JSON file for user_context")
-    parser.add_argument("--model", help="Use this Ollama model for all roles")
+    parser.add_argument(
+        "--backend",
+        choices=("ollama", "anthropic"),
+        default=None,
+        help="LLM backend (default: config value, otherwise ollama)",
+    )
+    parser.add_argument("--model", help="Use this backend model for all roles")
     parser.add_argument("--structured-model", help="Ollama model for JSON/world-building phases")
     parser.add_argument("--story-model", help="Ollama model for novel chapters")
     parser.add_argument("--reference-model", help="Ollama model for reference documents")
