@@ -20,7 +20,7 @@
 ### ✅ Phase 0: コンテクスト抽出
 - **状態**: 実装完了
 - **ファイル**: `src/pipeline.py:run_phase0_context_extraction()`
-- **出力**: `output/world_<id>/input/user_context.yaml`
+- **出力**: `output/world_<run_id>/input/user_context.yaml`
 
 ### ✅ Phase 1: 100倍拡張
 - **状態**: 実装完了
@@ -69,13 +69,13 @@
 - **状態**: 実装完了
 - **ファイル**: `src/pipeline.py:run_phase5_novel_generation()`
 - **プロンプト**: `config/prompts/story_generation.yaml:story_chapter`
-- **出力**: `output/world_<id>/final/novels/chapter_01-10.txt` (全10章の小説本文)
+- **出力**: `output/world_<run_id>/final/novels/chapter_01-10.txt` (全10章の小説本文)
 
 ### ✅ Phase 6: 設定資料集生成
 - **状態**: 実装完了
 - **ファイル**: `src/pipeline.py:run_phase6_reference_generation()`
 - **プロンプト**: `config/prompts/story_generation.yaml:reference_*`
-- **出力**: `output/world_<id>/final/references/*.md` (17種類の詳細資料)
+- **出力**: `output/world_<run_id>/final/references/*.md` (17種類の詳細資料)
   - characters.md
   - plot.md
   - user_context.md
@@ -180,7 +180,7 @@
 
 ### ✅ Jupyter Notebook
 - **ファイル**: `local-v2.0.ipynb`
-- **セル数**: 10セル
+- **構成**: 10セクション（22セル）
 - **機能**:
   - セットアップと初期化
   - Phase 1実行
@@ -235,6 +235,11 @@
 | Phase 6 | 17回 | 15〜30分 | 45分〜1.5時間 |
 | **合計** | **91回** | **2〜4時間** | **5〜10時間** |
 
+Phase 1だけの目安は15〜90分、完全パイプラインの目安は2〜10時間です。
+モデル、ハードウェア、Ollamaの状態によって変動します。10回バッチは未検証です。
+
+モデル選択肢は [`README_LOCAL.md`](README_LOCAL.md) の「モデル選択肢」を参照してください。
+
 ---
 
 ## 実行方法
@@ -255,10 +260,12 @@ ollama serve
 ollama pull gpt-oss:20b-q4
 
 # 5. Phase 1のみ実行（テスト）
-python example_run.py
-# → 選択肢1を選択
+python example_run.py --choice 1 \
+  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --model gpt-oss:20b-q4 \
+  --output-dir output
 
-# 6. Jupyter Notebookで実行（推奨）
+# 6. Jupyter Notebookで対話的に実行
 jupyter notebook
 # → local-v2.0.ipynb を開く
 ```
@@ -267,11 +274,13 @@ jupyter notebook
 
 ```bash
 # コマンドラインから
-python example_run.py
-# → 選択肢2を選択
+python example_run.py --choice 2 --yes \
+  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --model gpt-oss:20b \
+  --output-dir output
 
 # または、Jupyter Notebookで
-# Cell 7のコメントアウトを解除して実行
+# 完全パイプラインのセルのコメントアウトを解除して実行
 ```
 
 ---
@@ -286,36 +295,32 @@ python example_run.py
 
 ---
 
-## 今後の拡張可能性
+## 今後の課題
 
-### 短期（v2.1〜v2.3）
-- [ ] Web UI（Streamlit/Gradio）
-- [ ] リアルタイム進捗表示
-- [x] 役割別モデル選択機能
-- [ ] 出力品質評価
+現状の実装・検証で未完了の改善候補は次のとおりです。
 
-### 中期（v2.4〜v2.6）
-- [ ] マルチモーダル対応
-- [ ] 分散処理
-- [ ] ファインチューニング
-- [ ] データベース統合
-
-### 長期（v3.0〜）
-- [ ] 完全オープンソース化
-- [ ] コミュニティモデル共有
-- [ ] クロスプラットフォーム
-- [ ] リアルタイムコラボレーション
+- [生成結果の品質評価と評価指標の整備](https://github.com/masa-san-jp/100-times-ai-world-building/issues/14)
+- [複数世界の比較](https://github.com/masa-san-jp/100-times-ai-world-building/issues/15)
+- [クラウドLLMバックエンド](https://github.com/masa-san-jp/100-times-ai-world-building/issues/16)
+- プロンプトの継続的な改善
+- 独立した処理の並列化とメモリ使用量の監視
+- エラーメッセージとリトライ処理のさらなる改善
+- リアルタイムの進捗表示
+- Web UI（Streamlit/Gradio）の提供
+- FastAPIなどによるAPI化
+- 複数画像を含むマルチモーダル処理の拡張
+- 分散処理、ファインチューニング、データベース連携
 
 ---
 
 ## プロジェクト統計
 
-- **Python ファイル**: 7個
+- **Python ファイル**: 16個（実行・src・テスト）
 - **設定ファイル**: 5個（YAML）
-- **ドキュメント**: 4個（Markdown）
-- **テストファイル**: 2個
+- **主要ドキュメント**: 6個（Markdown）
+- **テストファイル**: 5個
 - **Notebook**: 2個
-- **合計コード行数**: 約2,500行
+- **合計コード行数**: 4,469行（`src/` と `tests/`）
 - **プロンプトテンプレート**: 32個
 
 ---

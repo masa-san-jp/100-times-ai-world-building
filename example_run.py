@@ -155,7 +155,7 @@ def run_full_pipeline(args):
     """Run the complete pipeline (WARNING: Takes several hours)"""
     print("=" * 60)
     print("Running Full Pipeline")
-    print("WARNING: This will take 1.5-8 hours depending on your hardware")
+    print("WARNING: This will take 2-10 hours depending on your hardware")
     print("=" * 60)
 
     response = "yes" if args.yes else input("\nAre you sure you want to continue? (yes/no): ")
@@ -391,8 +391,8 @@ def main():
     if args.choice is None:
         print("\n100 TIMES AI WORLD BUILDING - Example Run\n")
         print("Select an option:")
-        print("1. Run Phase 1 only (quick test, ~5-25 min)")
-        print("2. Run full pipeline (complete generation, ~1.5-8 hours)")
+        print("1. Run Phase 1 only (quick test, ~15-90 min)")
+        print("2. Run full pipeline (complete generation, ~2-10 hours)")
         print("3. Resume from checkpoint")
         print("4. Exit")
 
