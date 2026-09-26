@@ -9,7 +9,7 @@
 動作確認には[完全作例](neo_tokyo_complete/)の入力コンテクストを使えます。
 
 - `examples/<example-name>/`: 内容を確認して残す1つの作例パッケージ。
-- `output/world_<id>/`: 生成された1つの世界パッケージ。
+- `output/world_<run_id>/`: 生成された1つの世界パッケージ。
 
 作例ディレクトリは人間が読める名前を付けます。内部の `run_id` は一意な実行識別子で、
 作品名ではありません。作例の説明はこのREADMEに書き、生成条件は各
@@ -19,7 +19,7 @@
 
 ```text
 examples/
-└── neo_tokyo_complete/    # output/world_<id> と同じ構造の完全作例
+└── neo_tokyo_complete/    # output/world_<run_id> と同じ構造の完全作例
     ├── input/
     ├── intermediate/
     ├── checkpoints/
@@ -29,7 +29,7 @@ examples/
     └── run_manifest.json
 ```
 
-各作例ディレクトリは、`output/world_<id>/` と同じ成果物パッケージです。
+各作例ディレクトリは、`output/world_<run_id>/` と同じ成果物パッケージです。
 入力、途中生成物、チェックポイント、最終成果物を1つのディレクトリにまとめます。
 
 ## 現在収録されている作例
@@ -67,6 +67,8 @@ python example_run.py --choice 2 --runs 10 --yes \
   --model gpt-oss:20b-q4 \
   --output-dir output
 ```
+
+10回バッチの実機検証はまだ行っていません。所要時間はモデルとハードウェアに依存します。
 
 同じ入力から再実行したい場合は `--seed` を追加します。生成後の
 `output/world_*/run_manifest.json` に記録されたモデル・設定ハッシュも確認できます。

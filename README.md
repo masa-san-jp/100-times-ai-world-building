@@ -12,6 +12,17 @@ The project is designed for **iterative exploration**: you run it multiple times
 or models, and each generated world is saved as a self-contained output package so previous results are
 never overwritten.
 
+## Documents
+
+| File | Role | Language |
+|---|---|---|
+| [`README.md`](README.md) | Entry point, overview, and quick start | English |
+| [`README_LOCAL.md`](README_LOCAL.md) | Local version user guide | Japanese |
+| [`DESIGN_SPEC.md`](DESIGN_SPEC.md) | Cloud version (notebook) design | Japanese |
+| [`DESIGN_SPEC_LOCAL.md`](DESIGN_SPEC_LOCAL.md) | Local version design | Japanese |
+| [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) | Implementation, verification status, and remaining tasks | Japanese |
+| [`examples/README.md`](examples/README.md) | Example curation policy | Japanese |
+
 ## Where to look first
 
 `output/` is the collection of generated world packages:
@@ -19,18 +30,17 @@ never overwritten.
 | Path | Meaning | For visitors |
 |------|---------|--------------|
 | [`examples/`](examples/README.md) | Reviewed, readable examples and reusable inputs | Start here |
-| `output/world_<id>/` | One world output with its input, intermediate data, checkpoints, and final files | Open one package |
-| `output/batch_<id>/` | One batch containing several world outputs and its batch manifest | Open for multi-run work |
+| `output/world_<run_id>/` | One world output with its input, intermediate data, checkpoints, and final files | Open one package |
+| `output/batch_<batch_id>/` | One batch containing several world outputs and its batch manifest | Open for multi-run work |
 
 `output/` is intentionally excluded from Git because it is generated locally. It is not a flat
-scratch dump: every `world_<id>/` is one complete or partial generation, and all files belonging
+scratch dump: every `world_<run_id>/` is one complete or partial generation, and all files belonging
 to that generation live inside it. The currently verified complete example is listed in
 [`examples/README.md`](examples/README.md).
 
 Current local implementation status: Phase 0–6 and one complete end-to-end example have been
-verified on a local Ollama setup. Repeated batch generation is implemented, but the time required
-for a 10-run batch depends heavily on the selected model and hardware and has not been validated
-as a universal benchmark.
+verified on a local Ollama setup. Repeated batch generation is implemented, but the 10-run batch
+has not been verified; its time depends heavily on the selected model and hardware.
 
 ## Related repositories
 
@@ -107,20 +117,20 @@ runs never overwrite each other:
 
 ```
 output/
-├── world_20260101_120000/   ← one world output
+├── world_<run_id>/           ← one world output
 │   ├── input/
 │   ├── intermediate/
 │   ├── checkpoints/
 │   └── final/
 │       ├── novels/
 │       └── references/
-├── world_20260102_093000/   ← another world output
-└── batch_20260103_150500/   ← a multi-run package
+├── world_<run_id>/           ← another world output
+└── batch_<batch_id>/         ← a multi-run package
     ├── batch_manifest.json
     └── worlds/
 ```
 
-For a reviewed example, generate into `output/`, inspect the complete `world_<id>/` package,
+For a reviewed example, generate into `output/`, inspect the complete `world_<run_id>/` package,
 then give the selected package a human-readable name under `examples/`. See
 [`examples/README.md`](examples/README.md).
 

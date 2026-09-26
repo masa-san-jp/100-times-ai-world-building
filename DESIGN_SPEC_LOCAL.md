@@ -1,7 +1,7 @@
 # 100 TIMES AI WORLD BUILDING — ローカル版設計仕様書
 
-**バージョン**: v2.0-local
-**作成日**: 2026-02-14
+**バージョン**: v2.1-local
+**更新日**: 2026-08-29
 **著者**: masa-jp-art
 **文書ステータス**: 初版
 **対象**: Ollama + gpt-oss:20b によるローカル実行版
@@ -39,12 +39,12 @@
 
 ### 1.2 v1.2との互換性
 
-| 項目 | v1.2 (クラウド版) | v2.0 (ローカル版) |
+| 項目 | v1.2 (クラウド版) | v2.1 (ローカル版) |
 |------|------------------|------------------|
 | 主要機能 | 100倍拡張、小説生成、資料集生成 | 同一 |
 | データフロー | 同一パイプライン | 同一パイプライン |
 | 出力品質 | GPT-4 + Claude 3.7 | gpt-oss:20b (品質トレードオフあり) |
-| API呼び出し回数 | 74回 | 74回 (すべてローカル) |
+| API呼び出し回数 | 74回 | 91回 (すべてローカル) |
 | 実行環境 | Google Colab推奨 | ローカルJupyter + Ollama |
 
 ---
@@ -58,7 +58,7 @@
 Jupyter Notebook → OpenAI API (クラウド)
                  → Anthropic API (クラウド)
 
-[v2.0]
+[v2.1]
 Jupyter Notebook → Ollama (localhost:11434)
                  → gpt-oss:20b (ローカルモデル)
 ```
@@ -111,7 +111,7 @@ Jupyter Notebook → Ollama (localhost:11434)
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐    │
 │  │          成果物パッケージ永続化                      │    │
-│  │   ./output/world_<id>/                             │    │
+│  │   ./output/world_<run_id>/                         │    │
 │  │   ├── intermediate/*.yaml                          │    │
 │  │   ├── checkpoints/*.json                           │    │
 │  │   └── final/{novels,references}/                   │    │
@@ -126,7 +126,9 @@ Jupyter Notebook → Ollama (localhost:11434)
 ├── local-v2.0.ipynb                      # メインノートブック
 ├── DESIGN_SPEC_LOCAL.md                  # 本設計仕様書
 ├── README_LOCAL.md                       # ローカル版README
-├── requirements-local.txt                # Python依存関係
+├── requirements.txt                      # 実行時の最小依存
+├── requirements-dev.txt                  # テスト・flake8を含む開発用
+├── requirements-local.txt                # CLI・ノートブックを含むローカル用
 ├── config/
 │   ├── ollama_config.yaml               # Ollama設定
 │   └── prompts/                          # プロンプトテンプレート集
@@ -193,6 +195,8 @@ Jupyter Notebook → Ollama (localhost:11434)
 | 推奨RAM | 32GB以上 |
 | 言語サポート | 多言語（日本語対応） |
 
+モデル選択肢は [`README_LOCAL.md`](README_LOCAL.md) の「モデル選択肢」を参照してください。
+
 ---
 
 ## 5. データフロー
@@ -248,6 +252,8 @@ v1.2と同一のパイプライン構造を維持しますが、すべてのAPI�
 | Phase 5 | 10回 | story_1...10保存（章ごと） |
 | Phase 6 | 17回 | reference_*保存（資料ごと） |
 | **合計** | **91回** | **各フェーズ終了時に自動保存** |
+
+Phase 0〜6と完全作例1件は実機確認済みです。10回バッチは未検証です。
 
 ---
 
@@ -594,7 +600,7 @@ output/world_<run_id>/
 
 gpt-oss:20bは高性能なオープンソースモデルですが、GPT-4やClaude 3.7と比較すると以下のトレードオフがあります：
 
-| 評価軸 | v1.2 (GPT-4 + Claude) | v2.0 (gpt-oss:20b) | 備考 |
+| 評価軸 | v1.2 (GPT-4 + Claude) | v2.1 (gpt-oss:20b) | 備考 |
 |--------|----------------------|-------------------|------|
 | JSON構造化精度 | ★★★★★ | ★★★★☆ | 追加の後処理で補完可能 |
 | 長文生成品質 | ★★★★★ | ★★★★☆ | 文学的表現力はやや劣る |
@@ -698,13 +704,15 @@ base_context = cache.get_or_generate(
 | フェーズ | API呼び出し | 推定時間（GPU） | 推定時間（CPU） |
 |----------|------------|---------------|---------------|
 | Phase 0 | 1回 | 1〜2分 | 3〜5分 |
-| Phase 1 | 5回 | 5〜10分 | 15〜25分 |
+| Phase 1 | 17回（100件リストを20件ずつ分割） | 15〜35分 | 30〜90分 |
 | Phase 2 | 1回 | 1〜2分 | 3〜5分 |
 | Phase 3 | 14回（people_list分割を含む） | 10〜20分 | 30〜50分 |
 | Phase 4 | 31回 | 30〜60分 | 1.5〜3時間 |
 | Phase 5 | 10回 | 20〜40分 | 1〜2時間 |
 | Phase 6 | 17回 | 15〜30分 | 45分〜1.5時間 |
-| **合計** | **91回** | **1.5〜3時間** | **4〜8時間** |
+| **合計** | **91回** | **2〜4時間** | **5〜10時間** |
+
+Phase 1だけの目安は15〜90分、完全パイプラインの目安は2〜10時間です。
 
 ---
 
@@ -769,8 +777,14 @@ ollama pull gpt-oss:20b-q4
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# 依存関係インストール
+# ローカル版（CLI・ノートブック・テスト）
 pip install -r requirements-local.txt
+
+# 実行時だけの場合
+# pip install -r requirements.txt
+
+# テストとflake8だけの場合
+# pip install -r requirements-dev.txt
 ```
 
 #### Step 4: 既存データの移行
@@ -808,7 +822,6 @@ save_checkpoint('migration', old_data)
 |---------|------|
 | Web UI化 | Streamlit/Gradioによるインタラクティブインターフェース |
 | プロンプトテンプレート管理 | YAML設定ファイルでの外部化、バージョン管理 |
-| モデル選択機能 | 複数のローカルモデルから選択可能に（Llama 3, Mistral等） |
 | 出力品質評価 | 生成結果の自動評価スコアリング |
 | リアルタイム進捗表示 | トークン生成のストリーミング表示 |
 
@@ -919,6 +932,7 @@ def robust_json_generate(prompt, max_retries=3):
 
 **文書履歴**:
 - v2.0-local (2026-02-14): 初版作成
+- v2.1-local (2026-08-29): 現行の出力構成、依存関係、検証状況を反映
 
 **関連ドキュメント**:
 - `DESIGN_SPEC.md` - v1.2（クラウド版）設計仕様書
