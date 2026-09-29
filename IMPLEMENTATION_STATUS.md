@@ -261,7 +261,7 @@ ollama pull gpt-oss:20b-q4
 
 # 5. Phase 1のみ実行（テスト）
 python example_run.py --choice 1 \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --model gpt-oss:20b-q4 \
   --output-dir output
 
@@ -275,7 +275,7 @@ jupyter notebook
 ```bash
 # コマンドラインから
 python example_run.py --choice 2 --yes \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --model gpt-oss:20b \
   --output-dir output
 

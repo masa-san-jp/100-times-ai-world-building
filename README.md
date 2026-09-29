@@ -35,7 +35,7 @@ Ollama 上で動く**ローカルパイプライン**を収録しています。
 
 | パス | 意味 | 閲覧者向け |
 |------|------|------------|
-| [`examples/`](examples/README.md) | レビュー済みで読みやすいサンプルと再利用できる入力 | まずここから |
+| [`examples/`](examples/README.md) | レビュー済みの生成物の見本（閲覧用。仕組みの入力ではない） | まずここから |
 | `output/world_<run_id>/` | 入力・中間データ・チェックポイント・最終ファイルを含む 1 つの世界出力 | パッケージを 1 つ開く |
 | `output/batch_<batch_id>/` | 複数の世界出力とバッチマニフェストを含む 1 つのバッチ | 複数回実行の作業時に開く |
 
@@ -85,11 +85,13 @@ pip install -r requirements-local.txt
 python example_run.py
 ```
 
-対話なしで完全な世界出力を 1 つ作成する場合：
+入力は自分で用意します（テキスト・YAML・JSON、形式は自由）。既定の入力はなく、
+`--context-file` を省くと対話メニューでファイルのパスを尋ねます。
+対話なしで完全な世界出力を 1 つ作成する場合（`path/to/your_input.yaml` は自分の入力ファイルに置き換え）：
 
 ```bash
 python example_run.py --choice 2 --yes \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --model gpt-oss:20b \
   --output-dir output
 ```
@@ -105,7 +107,7 @@ python example_run.py --choice 2 --yes \
 python -m pip install -r requirements-cloud.txt
 python setup_check.py --backend anthropic
 python example_run.py --choice 2 --yes --backend anthropic \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --output-dir output
 ```
 
@@ -237,7 +239,7 @@ Anthropic Python SDK without changing the phase/checkpoint/validation pipeline.
 
 | Path | Meaning | For visitors |
 |------|---------|--------------|
-| [`examples/`](examples/README.md) | Reviewed, readable examples and reusable inputs | Start here |
+| [`examples/`](examples/README.md) | Reviewed output samples for reading (not inputs to the pipeline) | Start here |
 | `output/world_<run_id>/` | One world output with its input, intermediate data, checkpoints, and final files | Open one package |
 | `output/batch_<batch_id>/` | One batch containing several world outputs and its batch manifest | Open for multi-run work |
 
@@ -293,11 +295,13 @@ pip install -r requirements-local.txt
 python example_run.py
 ```
 
-To create one complete world output non-interactively:
+You supply your own input (text, YAML, or JSON; free form). There is no built-in default input;
+without `--context-file` the interactive menu asks for a file path.
+To create one complete world output non-interactively (replace `path/to/your_input.yaml` with your file):
 
 ```bash
 python example_run.py --choice 2 --yes \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --model gpt-oss:20b \
   --output-dir output
 ```
@@ -313,7 +317,7 @@ environment/profile resolution. The API key is never stored in this repository.
 python -m pip install -r requirements-cloud.txt
 python setup_check.py --backend anthropic
 python example_run.py --choice 2 --yes --backend anthropic \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --output-dir output
 ```
 

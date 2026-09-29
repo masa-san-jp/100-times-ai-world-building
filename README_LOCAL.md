@@ -1,8 +1,8 @@
 # 100 TIMES AI WORLD BUILDING — Local Version
 
 このファイルは、Ollamaを使って本リポジトリをローカル実行するためのガイドです。
-最初に読む人は、まず[完全作例](examples/neo_tokyo_complete/)を確認し、その後このページの
-クイックスタートを実行してください。
+生成物の見本は [`examples/`](examples/README.md) にあります。作例は閲覧用で、仕組みの一部ではありません。
+実行時は必ず自分で用意した入力ファイルを `--context-file` で渡してください（既定の入力はありません）。
 
 ## これは何か
 
@@ -87,11 +87,13 @@ python setup_check.py
 
 ### 3. まずPhase 1だけ実行する
 
+入力は自分で用意します。テキスト・YAML・JSON のいずれでもよく、形式は自由です。
+`path/to/your_input.yaml` は、その入力ファイルのパスに置き換えてください。
 短い動作確認では、100倍拡張までを実行します。
 
 ```bash
 python example_run.py --choice 1 \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --model gpt-oss:20b-q4 \
   --output-dir output
 ```
@@ -102,7 +104,7 @@ Phase 0〜6を最後まで実行し、10章の本文と設定資料を生成し�
 
 ```bash
 python example_run.py --choice 2 --yes \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --model gpt-oss:20b \
   --output-dir output
 ```
@@ -118,7 +120,7 @@ Ollamaを使わずClaudeで同じPhase 0〜6、検証、チェックポイント
 python -m pip install -r requirements-cloud.txt
 python setup_check.py --backend anthropic  # SDK/認証とモデル情報を確認
 python example_run.py --choice 2 --yes --backend anthropic \
-  --context-file examples/neo_tokyo_complete/input/user_context.yaml \
+  --context-file path/to/your_input.yaml \
   --output-dir output
 ```
 

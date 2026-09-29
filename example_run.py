@@ -41,24 +41,36 @@ LOCAL_MODELS = [
 ]
 
 
-DEFAULT_CONTEXT = """
-context:
-  theme: "未来都市での人間と人工知能の共存"
-  mood: "希望と不安が交錯する"
-  setting: "2080年代の東京"
-  key_elements:
-    - "完全自動化された社会"
-    - "失われつつある人間性"
-    - "新しい形のコミュニケーション"
-  protagonist_idea: "AIと対話できる特殊能力を持つ若者"
-"""
+class ContextInputError(ValueError):
+    """Raised when no usable user input was supplied."""
 
 
-def load_context(args) -> str:
-    """Load Colab-style user_context from a local text/YAML file."""
-    if args.context_file:
-        return Path(args.context_file).read_text(encoding="utf-8")
-    return DEFAULT_CONTEXT
+def load_context(args, prompt=input, allow_images_only: bool = False) -> str:
+    """Load the user's input from a local text/YAML/JSON file.
+
+    There is intentionally no built-in default input: every world must be
+    generated from what the user supplies. In the interactive menu the file
+    path is asked for; non-interactive runs must pass ``--context-file``.
+    """
+    path = args.context_file
+    images_only_allowed = allow_images_only and bool(getattr(args, "image", None))
+    if not path and args.choice is None:
+        hint = "（画像だけで生成する場合は空欄）" if images_only_allowed else ""
+        path = prompt(f"入力ファイルのパス（テキスト/YAML/JSON）{hint}: ").strip()
+    if not path and images_only_allowed:
+        return ""
+    if not path:
+        raise ContextInputError(
+            "No input supplied. Pass --context-file with your own text/YAML/JSON file; "
+            "there is no built-in default input."
+        )
+    context_path = Path(path).expanduser()
+    if not context_path.is_file():
+        raise ContextInputError(f"Input file not found: {context_path}")
+    text = context_path.read_text(encoding="utf-8")
+    if not text.strip():
+        raise ContextInputError(f"Input file is empty: {context_path}")
+    return text
 
 
 def make_pipeline(
@@ -134,6 +146,8 @@ def run_phase1_only(args):
     print("Running Phase 1 (100x Expansion) Only")
     print("=" * 60)
 
+    user_context = load_context(args)
+
     # Model selection
     model = _pipeline_model(args)
 
@@ -148,7 +162,6 @@ def run_phase1_only(args):
         print("\n✗ Prerequisites not met. Please check the errors above.")
         return 1
 
-    user_context = load_context(args)
 
     # Run Phase 1
     print("\nStarting Phase 1...")
@@ -182,6 +195,8 @@ def run_full_pipeline(args):
     print("WARNING: This will take 2-10 hours depending on your hardware")
     print("=" * 60)
 
+    user_context = load_context(args, allow_images_only=True)
+
     response = "yes" if args.yes else input("\nAre you sure you want to continue? (yes/no): ")
     if response.lower() != "yes":
         print("Cancelled.")
@@ -205,7 +220,6 @@ def run_full_pipeline(args):
         print("\n✗ Prerequisites not met. Please check the errors above.")
         return 1
 
-    user_context = load_context(args)
 
     # Run full pipeline
     print("\nStarting full pipeline...")
@@ -235,6 +249,8 @@ def run_batch_pipeline(args):
     print("Each run gets its own output directory and run seed.")
     print("=" * 60)
 
+    user_context = load_context(args, allow_images_only=True)
+
     response = "yes" if args.yes else input(
         "\nAre you sure you want to continue? (yes/no): "
     )
@@ -258,7 +274,6 @@ def run_batch_pipeline(args):
     }
     if getattr(args, "backend", None) is not None:
         pipeline_kwargs["backend"] = args.backend
-    user_context = load_context(args)
     summary = run_batch(
         user_context=user_context,
         runs=args.runs,
@@ -379,7 +394,10 @@ def parse_args():
         "--choice", choices=("1", "2", "3", "4"),
         help="1=Phase 1, 2=full pipeline, 3=resume, 4=exit",
     )
-    parser.add_argument("--context-file", help="Local text/YAML/JSON file for user_context")
+    parser.add_argument(
+        "--context-file",
+        help="Your own text/YAML/JSON input file (required; there is no default input)",
+    )
     parser.add_argument(
         "--backend",
         choices=("ollama", "anthropic"),
@@ -454,6 +472,9 @@ def main():
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user.")
+        return 1
+    except ContextInputError as e:
+        print(f"\n✗ {e}")
         return 1
     except Exception as e:
         print(f"\n✗ Error: {e}")
