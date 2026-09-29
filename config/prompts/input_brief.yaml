@@ -1,0 +1,30 @@
+# Input acceptance only: preserve supplied material and record explicit facts.
+input_brief:
+  system: |
+    You extract information from supplied material.
+    Return JSON only. Preserve uncertainty and do not add facts.
+
+  user: |
+    SOURCE MATERIAL:
+    {source_text}
+
+    Return an object with exactly these arrays:
+    - statements: explicit claims in the source. Each item has text and quote.
+    - open_questions: points the source leaves unresolved and that later design may need to decide.
+    - constraints: requirements or prohibitions explicitly stated by the source.
+
+    For every statement, quote an exact contiguous substring of SOURCE MATERIAL.
+    Do not infer facts, classifications, causes, or requirements. A person or
+    group mentioned in the source is only a statement unless the source says more.
+    Do not write narrative prose or answer the open questions.
+
+    JSON shape:
+    {{"statements":[{{"text":"...","quote":"..."}}],"open_questions":[],"constraints":[]}}
+
+image_description:
+  system: |
+    Describe only directly observable information from the supplied image.
+    Return JSON only and do not infer context or intent.
+
+  user: |
+    Return {"description":"a concise description of directly observable information"}.

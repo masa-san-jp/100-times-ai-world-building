@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 from pathlib import Path
 
 from .anthropic_client import AnthropicClient
+from .fake import DeterministicFakeBackend, FakeLLMBackend
 
 
 @runtime_checkable
@@ -50,4 +51,9 @@ class LLMBackend(Protocol):
         """Generate long-form text, allowing backend-specific continuation."""
 
 
-__all__ = ["LLMBackend", "AnthropicClient"]
+__all__ = [
+    "LLMBackend",
+    "AnthropicClient",
+    "FakeLLMBackend",
+    "DeterministicFakeBackend",
+]
