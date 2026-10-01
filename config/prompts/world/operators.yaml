@@ -1,0 +1,92 @@
+# Generation operators for the world graph. Every operator gets only a small,
+# bounded local context. No setting, era, genre or technology is assumed:
+# the world comes solely from the supplied statements and existing entities.
+common:
+  system: |
+    You write reference material about an invented world, in the neutral
+    register of an encyclopedia or a design handbook. Return JSON only.
+    Never use a narrative voice: no scene description, no spoken lines,
+    no narration, no viewpoint character, no sequence of dramatic events.
+    Describe what exists, how it works and why, as plain facts.
+
+  user: |
+    OUTPUT LANGUAGE: write every name, summary and fact in the language
+    with code "{language}". Do not mix in other languages.
+
+    TASK: {task}
+
+    BRIEF STATEMENTS (id: text) that you may cite:
+    {statements}
+
+    WORLD AXES (id: name - meaning) that you may tag:
+    {axes}
+
+    CONTEXT (existing entities; do not contradict their facts):
+    {context}
+
+    Produce exactly {n} candidates that clearly differ from one another.
+    Each candidate is one entity with:
+    - type: one of {types}
+    - name: a specific proper name, not a generic label
+    - axes: ids chosen from the WORLD AXES list
+    - summary: an objective explanation (2 to 4 sentences) of structure,
+      cause and effect, stated neutrally
+    - facts: at least {min_facts} concrete facts, each with a kind
+      ({kinds}) and a text. {concrete_rule}
+    - statement_ids: ids from BRIEF STATEMENTS that support the candidate
+    - derived_from: ids of existing entities in CONTEXT it follows from
+    - reason: why it follows from them (required when derived_from is used)
+    - relations: optional links to entities in CONTEXT, each with a type
+      ({relation_types}) and a target id
+
+    Rules:
+    - Use proper nouns, numbers, named mechanisms, quantities and objects.
+      Do not stay with abstract words such as "various", "important",
+      "complex" or "rich".
+    - Stay consistent with every existing fact in CONTEXT.
+    - Cite at least one statement id or one derived_from id. Candidates with
+      neither are discarded. Do not invent ids.
+    - Do not write narrative prose. Write the world, not an account of events
+      experienced by someone.
+
+    JSON shape:
+    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"","relations":[{{"type":"related_to","target":"e1"}}]}}]}}
+
+operators:
+  premise: |
+    Propose foundational premises of the world: a governing rule, a scarce
+    resource, a geographic fact, or a turning point. Derive them from the
+    brief statements and the axes. Each premise is a standalone world-scale
+    fact that other material can later depend on.
+  expand: |
+    Add sibling entities that stand beside the TARGET entity: same scale,
+    same parent, on the same or a neighbouring axis. Include peripheral,
+    overlooked or unrelated areas of the world, not only things close to the
+    target's own theme.
+  zoom: |
+    Add child entities one scale below the TARGET entity, located inside it.
+    The lower the scale, the more physical and specific the facts must be:
+    named people-places-objects, quantities, measurements, tools and routines.
+  cause: |
+    Explain why the TARGET entity is the way it is. Give a distinct cause
+    (a rule, a resource limit, an earlier decision, a constraint) as a new
+    entity that leads to the target, with a mechanism and numbers where
+    possible.
+  perspective: |
+    Describe how the TARGET institution, place or event is experienced by a
+    group or kind of inhabitant whose position differs from the others
+    already in CONTEXT (different interests, access, burden or knowledge).
+    The new entity is that group or its practice, described neutrally with
+    its concrete dealings with the target. No individual narration.
+  history: |
+    Link something that still remains today (a ruin, a former name, a custom
+    whose reason was lost, an unresolved dispute) to an earlier event of the
+    world that explains it. The new entity is that earlier event or layer,
+    with dates or periods, names and a traceable consequence for the TARGET.
+  document: |
+    Create a document that physically exists in the world and relates to the
+    TARGET: a statute clause, an official record, a notice, a product label,
+    a dictionary entry, a ledger page, a receipt, a form. Give its issuer,
+    its date or period, its identifiers, and quote its actual wording in
+    facts. The summary describes what the document is and what it regulates
+    or records. It is an artifact, not an account.
