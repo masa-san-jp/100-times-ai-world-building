@@ -1,0 +1,248 @@
+# Renderer labels for the world reference material, keyed by language code.
+# The material's language is graph.meta.language; unknown languages (and any
+# missing key) fall back to "en".  Labels are neutral headings only: they
+# carry no genre, era, setting or narrative vocabulary.
+
+en:
+  readme_title: World Reference
+  overview: Overview
+  overview_empty: No world-scale entity has been recorded.
+  overview_counts: "Entities: {entities} / axes: {axes}"
+  axes: Axes
+  axes_intro: Areas this world needs, with the weight each one was given.
+  axis_columns: [Axis, Weight, Meaning, Grounds]
+  axis_origin_added: added from the input
+  no_grounds: no direct statement
+  contents: Contents
+  scales_by_scale: Entities by scale
+  glossary: Glossary
+  timeline: Timeline
+  documents: In-world documents
+  report: Exploration report
+  entity_count: "{n} entities"
+  scale_page_title: "Scale: {scale}"
+  entities_under: "Under {parent}"
+  entities_top: Top level
+  up: Up
+  next_scale: Next scale
+  prev_scale: Previous scale
+  index: Index
+  summary: Summary
+  facts: Facts
+  no_facts: No facts recorded.
+  relations: Relations
+  referenced_by: Referenced by
+  hierarchy: Hierarchy
+  parent: Parent
+  children: Children
+  none: none
+  provenance: Provenance
+  source_statements: Source statements
+  derived_from: Derived from
+  reason: Reason
+  attributes: Attributes
+  type: Type
+  scale: Scale
+  axes_of_entity: Axes
+  glossary_intro: Proper nouns appearing as entity names or as named facts.
+  glossary_name: entity name
+  glossary_fact: named fact
+  timeline_intro: Events and dated facts, with the traces they left in the present state of the world. Entries follow the order in which they were recorded, not a chronology.
+  timeline_events: Events
+  timeline_periods: Dated facts
+  timeline_traces: Traces in the present
+  timeline_empty: No events or dated facts were recorded.
+  documents_intro: Documents that exist in the world, presented as artifacts.
+  documents_empty: No documents were recorded.
+  document_issuer: Issuer
+  document_target: Concerns
+  document_facts: Details
+  report_title: Exploration Report
+  run_summary: Run summary
+  stop_reason: Stop reason
+  iterations: Iterations
+  generation_calls: Generation calls
+  accepted: Accepted
+  rejected: Discarded
+  coverage: Coverage
+  coverage_axes: Axis coverage against weight
+  coverage_columns: [Axis, Weight, Budget share, Entities, Entity share]
+  coverage_state: Coverage state
+  met: met
+  not_met: not met
+  scale_counts: Entities per scale
+  scale_columns: [Scale, Entities]
+  reward_distribution: Reward distribution
+  reward_columns: [Score, Count, Mean, Min, Max]
+  reward_total: reward (total)
+  reward_histogram: Histogram of the total reward
+  discarded: Candidates discarded as generic
+  discarded_empty: No candidates were discarded as generic.
+  discarded_score: Genericity score
+  discarded_reasons: Reasons
+  total: Total
+  types:
+    place: place
+    group: group
+    institution: institution
+    person: inhabitant
+    object: object
+    practice: practice
+    event: event
+    concept: concept
+    document: document
+  scales:
+    world: World
+    region: Region
+    settlement: Settlement
+    district: District
+    site: Site
+    detail: Detail
+  fact_kinds:
+    proper_noun: proper noun
+    number: number
+    period: period
+    procedure: procedure
+    object: object
+    expression: expression
+    other: other
+  relation_types:
+    located_in: located in
+    member_of: member of
+    causes: causes
+    affects: affects
+    opposes: opposes
+    derived_from: derived from
+    part_of: part of
+    uses: uses
+    produces: produces
+    governs: governs
+    related_to: related to
+  stop_reasons:
+    coverage_met: coverage criteria met
+    max_iterations: iteration budget reached
+    max_wall_seconds: time budget reached
+    max_generation_calls: generation-call budget reached
+    frontier_exhausted: no frontier left to develop
+
+ja:
+  readme_title: 世界設定資料
+  overview: 概観
+  overview_empty: 世界スケールのエンティティは記録されていません。
+  overview_counts: "エンティティ数: {entities} / 軸の数: {axes}"
+  axes: 軸
+  axes_intro: この世界に必要な領域と、それぞれに与えられた重み。
+  axis_columns: [軸, 重み, 意味, 根拠]
+  axis_origin_added: 入力から追加
+  no_grounds: 直接の記述なし
+  contents: 目次
+  scales_by_scale: スケール別の一覧
+  glossary: 用語集
+  timeline: 年表
+  documents: 世界内文書集
+  report: 探索レポート
+  entity_count: "{n} 件"
+  scale_page_title: "スケール: {scale}"
+  entities_under: "{parent} の下位"
+  entities_top: 最上位
+  up: 上位へ
+  next_scale: 次のスケール
+  prev_scale: 前のスケール
+  index: 索引
+  summary: 概要
+  facts: 事実
+  no_facts: 事実は記録されていません。
+  relations: 関係
+  referenced_by: 参照元
+  hierarchy: 階層
+  parent: 上位
+  children: 下位
+  none: なし
+  provenance: 由来
+  source_statements: 根拠となった入力の記述
+  derived_from: 導出元
+  reason: 理由
+  attributes: 属性
+  type: 種別
+  scale: スケール
+  axes_of_entity: 軸
+  glossary_intro: エンティティ名および固有名詞の事実として現れる名称の索引。
+  glossary_name: エンティティ名
+  glossary_fact: 事実中の名称
+  timeline_intro: 出来事と時期を伴う事実、およびそれらが現在の世界に残した痕跡。記録された順に並べており、時系列順ではない。
+  timeline_events: 出来事
+  timeline_periods: 時期を伴う事実
+  timeline_traces: 現在に残る痕跡
+  timeline_empty: 出来事も時期を伴う事実も記録されていません。
+  documents_intro: 世界に実在する文物としての文書。
+  documents_empty: 文書は記録されていません。
+  document_issuer: 発行主体
+  document_target: 対象
+  document_facts: 詳細
+  report_title: 探索レポート
+  run_summary: 実行の概要
+  stop_reason: 停止理由
+  iterations: 反復回数
+  generation_calls: 生成呼び出し数
+  accepted: 採用
+  rejected: 破棄
+  coverage: 被覆
+  coverage_axes: 軸ごとの被覆と重みの比較
+  coverage_columns: [軸, 重み, 配分比率, エンティティ数, エンティティ比率]
+  coverage_state: 被覆の状態
+  met: 達成
+  not_met: 未達
+  scale_counts: スケールごとの件数
+  scale_columns: [スケール, 件数]
+  reward_distribution: 報酬の分布
+  reward_columns: [採点項目, 件数, 平均, 最小, 最大]
+  reward_total: 報酬（合計）
+  reward_histogram: 合計報酬のヒストグラム
+  discarded: 凡庸さで捨てられた候補
+  discarded_empty: 凡庸さで捨てられた候補はありません。
+  discarded_score: 凡庸さの採点
+  discarded_reasons: 理由
+  total: 合計
+  types:
+    place: 場所
+    group: 集団
+    institution: 制度・組織
+    person: 住人
+    object: 物
+    practice: 慣習
+    event: 出来事
+    concept: 概念
+    document: 文書
+  scales:
+    world: 世界
+    region: 地域
+    settlement: 集落
+    district: 地区
+    site: 施設
+    detail: 細部
+  fact_kinds:
+    proper_noun: 固有名詞
+    number: 数値
+    period: 時期
+    procedure: 手順
+    object: 物
+    expression: 表現
+    other: その他
+  relation_types:
+    located_in: 所在
+    member_of: 所属
+    causes: 原因となる
+    affects: 影響を与える
+    opposes: 対立する
+    derived_from: 由来
+    part_of: 一部
+    uses: 用いる
+    produces: 生み出す
+    governs: 統べる
+    related_to: 関連
+  stop_reasons:
+    coverage_met: 被覆の基準を満たした
+    max_iterations: 反復の上限に達した
+    max_wall_seconds: 時間の上限に達した
+    max_generation_calls: 生成呼び出しの上限に達した
+    frontier_exhausted: 深める箇所が尽きた
