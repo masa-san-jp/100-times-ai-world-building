@@ -1,4 +1,9 @@
-"""Batch execution for repeated local world-building experiments."""
+"""Batch execution: N independent worlds from the same input.
+
+Each world is its own package (own seed, own checkpoints, own manifest); the
+batch adds a ``batch_manifest.json`` and, for two or more worlds, a
+cross-world comparison report.
+"""
 
 from __future__ import annotations
 
@@ -56,14 +61,15 @@ class BatchRunner:
 
     def run(
         self,
-        user_context: Optional[str],
+        raw_input: Union[str, bytes, Path],
         runs: int,
         seed: Optional[int] = None,
-        context_images: Optional[Sequence[Union[str, Path, bytes]]] = None,
-        extract_context: bool = False,
+        images: Optional[Sequence[Union[str, Path, bytes]]] = None,
+        source_name: Optional[str] = None,
+        budget: Optional[Dict[str, Any]] = None,
         continue_on_error: bool = True,
     ) -> Dict[str, Any]:
-        """Run ``runs`` independent executions and return the batch summary."""
+        """Run ``runs`` independent worlds and return the batch summary."""
         if runs < 1:
             raise ValueError("runs must be at least 1")
 
@@ -96,6 +102,10 @@ class BatchRunner:
             "batch_id": batch_id,
             "batch_seed": batch_seed,
             "requested_runs": runs,
+            "budget": dict(budget or {}),
+            "backend": kwargs.get("backend")
+            if isinstance(kwargs.get("backend"), str) else None,
+            "model": kwargs.get("model"),
             "created_at": _utc_now(),
             "status": "running",
             "runs": [],
@@ -110,6 +120,7 @@ class BatchRunner:
             run_kwargs = dict(batch_pipeline_kwargs)
             run_kwargs.pop("run_id", None)
             run_kwargs["seed"] = run_seed
+            run_kwargs["budget"] = budget
             started = time.monotonic()
             record: Dict[str, Any] = {
                 "index": index,
@@ -122,19 +133,17 @@ class BatchRunner:
                 pipeline = Pipeline(**run_kwargs)
                 record["run_id"] = pipeline.run_id
                 record["output_dir"] = pipeline.base_dir
-                result = pipeline.run_full_pipeline(
-                    user_context,
-                    context_images=context_images,
-                    extract_context=extract_context,
+                result = pipeline.run(
+                    raw_input, images=images, source_name=source_name,
                 )
-                if (
-                    not result
-                    or pipeline.manifest.data.get("status") != "completed"
-                ):
+                if pipeline.manifest.data.get("status") != "completed":
                     raise RuntimeError(
                         "pipeline did not complete successfully"
                     )
                 record["status"] = "completed"
+                record["stop_reason"] = result.stop_reason
+                record["iterations"] = result.iterations
+                record["entities"] = len(result.graph.get("entities", []))
             except KeyboardInterrupt:
                 record["status"] = "cancelled"
                 summary["runs"].append(record)
@@ -202,20 +211,22 @@ class BatchRunner:
 
 
 def run_batch(
-    user_context: Optional[str],
+    raw_input: Union[str, bytes, Path],
     runs: int,
     seed: Optional[int] = None,
     pipeline_kwargs: Optional[Dict[str, Any]] = None,
-    context_images: Optional[Sequence[Union[str, Path, bytes]]] = None,
-    extract_context: bool = False,
+    images: Optional[Sequence[Union[str, Path, bytes]]] = None,
+    source_name: Optional[str] = None,
+    budget: Optional[Dict[str, Any]] = None,
     continue_on_error: bool = True,
 ) -> Dict[str, Any]:
     """Convenience wrapper around :class:`BatchRunner`."""
     return BatchRunner(pipeline_kwargs).run(
-        user_context=user_context,
+        raw_input=raw_input,
         runs=runs,
         seed=seed,
-        context_images=context_images,
-        extract_context=extract_context,
+        images=images,
+        source_name=source_name,
+        budget=budget,
         continue_on_error=continue_on_error,
     )

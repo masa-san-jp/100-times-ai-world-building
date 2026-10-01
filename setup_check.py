@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Setup Check Script
-Verify that all prerequisites are met for running the local version
+Verify that all prerequisites are met for running the world engine
 """
 
 import argparse
@@ -28,9 +28,10 @@ def check_directory_structure():
     required_dirs = [
         "config",
         "config/prompts",
+        "config/world",
         "src",
+        "src/world",
         "tests",
-        "examples",
     ]
 
     all_exist = True
@@ -45,36 +46,51 @@ def check_directory_structure():
     return all_exist
 
 
-def check_required_files():
-    """Check if required files exist"""
-    required_files = [
-        "config/ollama_config.yaml",
-        "config/prompts/expansion.yaml",
-        "config/prompts/world_building.yaml",
-        "config/prompts/plot_generation.yaml",
-        "config/prompts/story_generation.yaml",
-        "example_run.py",
-        "src/__init__.py",
-        "src/ollama_client.py",
-        "src/llm/__init__.py",
-        "src/llm/factory.py",
-        "src/llm/anthropic_client.py",
-        "src/checkpoint_manager.py",
-        "src/utils.py",
-        "src/pipeline.py",
-        "src/batch.py",
-        "src/output_layout.py",
-        "src/run_manifest.py",
-        "src/validation.py",
-        "local-v2.0.ipynb",
-        "README_LOCAL.md",
-        "DESIGN_SPEC_LOCAL.md",
-        "requirements-local.txt",
-        ".gitignore",
-    ]
+ENGINE_FILES = [
+    "config/ollama_config.yaml",
+    "config/prompts/input_brief.yaml",
+    "config/prompts/world_axes.yaml",
+    "config/prompts/world/operators.yaml",
+    "config/prompts/world/revision.yaml",
+    "config/prompts/world/verifiers.yaml",
+    "config/world/domains.yaml",
+    "config/world/explore.yaml",
+    "config/world/language_rules.yaml",
+    "config/world/render_labels.yaml",
+    "config/world/reward.yaml",
+    "config/world/quality.yaml",
+    "example_run.py",
+    "src/__init__.py",
+    "src/pipeline.py",
+    "src/batch.py",
+    "src/quality.py",
+    "src/compare.py",
+    "src/ollama_client.py",
+    "src/llm/__init__.py",
+    "src/llm/factory.py",
+    "src/llm/anthropic_client.py",
+    "src/checkpoint_manager.py",
+    "src/run_manifest.py",
+    "src/world/input.py",
+    "src/world/axes.py",
+    "src/world/graph.py",
+    "src/world/operators.py",
+    "src/world/verify.py",
+    "src/world/reward.py",
+    "src/world/explore.py",
+    "src/world/render.py",
+    "README.md",
+    "README_LOCAL.md",
+    "DESIGN_SPEC_LOCAL.md",
+    "requirements-local.txt",
+    ".gitignore",
+]
 
+
+def check_required_files():
+    """Check if the engine's code and configuration files exist"""
     all_exist = True
-    for file_path in required_files:
+    for file_path in ENGINE_FILES:
         path = Path(file_path)
         if path.exists():
             print(f"✓ {file_path}")
@@ -83,6 +99,56 @@ def check_required_files():
             all_exist = False
 
     return all_exist
+
+
+def check_engine_config(config_path="config/ollama_config.yaml"):
+    """Check that the engine's configuration and prompts load and are usable"""
+    ok = True
+    try:
+        import yaml
+
+        config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8")) or {}
+        print(f"✓ {config_path} parses")
+    except Exception as exc:
+        print(f"✗ {config_path} could not be loaded: {exc}")
+        return False
+
+    try:
+        from src.world.explore import load_explore_config
+
+        explore = load_explore_config(
+            overrides=(config.get("engine") or {}).get("explore") or {}
+        )
+        budget = explore.get("budget", {})
+        print(
+            "✓ exploration config "
+            f"(max_iterations={budget.get('max_iterations')}, "
+            f"max_wall_seconds={budget.get('max_wall_seconds')}, "
+            f"max_generation_calls={budget.get('max_generation_calls')})"
+        )
+    except Exception as exc:
+        print(f"✗ exploration config: {exc}")
+        ok = False
+
+    try:
+        from src.world.axes import load_catalog
+        from src.world.operators import load_prompts, load_revision_prompts
+        from src.world.reward import load_reward_config
+
+        load_catalog()
+        load_prompts()
+        load_revision_prompts()
+        load_reward_config()
+        print("✓ domain catalog, operator prompts and reward config load")
+    except Exception as exc:
+        print(f"✗ engine resources: {exc}")
+        ok = False
+
+    backend = config.get("backend", "ollama")
+    if backend == "ollama" and not (config.get("model") or {}).get("name"):
+        print("✗ model.name is not set (the model is taken from the config or --model)")
+        ok = False
+    return ok
 
 
 def check_dependencies(backend="ollama"):
@@ -95,13 +161,11 @@ def check_dependencies(backend="ollama"):
     ]
     optional_packages = [
         "ollama",  # Optional SDK; the CLI uses the Ollama HTTP API directly.
-        "psutil",  # Optional notebook/system-monitoring support.
-        "jupyter",
     ]
     if backend != "anthropic":
         optional_packages.append("anthropic")
 
-    print("\nChecking Python packages required by the CLI...")
+    print("\nChecking Python packages required by the engine...")
     all_installed = True
 
     for package in required_packages:
@@ -115,13 +179,13 @@ def check_dependencies(backend="ollama"):
             print(f"✗ {package} (not installed)")
             all_installed = False
 
-    print("\nChecking optional notebook packages...")
+    print("\nChecking optional packages...")
     for package in optional_packages:
         try:
             __import__(package)
             print(f"✓ {package}")
         except ImportError:
-            print(f"⚠ {package} (optional; install for notebook/system extras)")
+            print(f"⚠ {package} (optional)")
 
     return all_installed
 
@@ -207,14 +271,20 @@ def selected_backend(cli_backend=None, config_path="config/ollama_config.yaml"):
         return "ollama"
 
 
-def check_ollama_server():
+def _ollama_url(config):
+    server = config.get("server", {}) or {}
+    return f"{server.get('host', 'http://localhost')}:{server.get('port', 11434)}"
+
+
+def check_ollama_server(config=None):
     """Check if Ollama server is accessible"""
+    url = _ollama_url(config or {})
     try:
         import requests
 
-        response = requests.get("http://localhost:11434/api/tags", timeout=5)
+        response = requests.get(f"{url}/api/tags", timeout=5)
         if response.status_code == 200:
-            print("✓ Ollama server is running")
+            print(f"✓ Ollama server is running ({url})")
             return True
         else:
             print(f"✗ Ollama server returned status {response.status_code}")
@@ -223,7 +293,7 @@ def check_ollama_server():
         print("⚠ Cannot check Ollama server (requests not installed)")
         return False
     except requests.exceptions.ConnectionError:
-        print("✗ Ollama server is not running")
+        print(f"✗ Ollama server is not running ({url})")
         print("  Start it with: ollama serve")
         return False
     except Exception as e:
@@ -231,35 +301,39 @@ def check_ollama_server():
         return False
 
 
-def check_ollama_models():
-    """Check if required models are available"""
+def check_ollama_models(config=None, model=None):
+    """Check that the configured generation model is available locally.
+
+    The model name comes from ``--model`` or ``model.name`` in the config;
+    ``models.vision`` is reported separately because it is only needed for
+    image input.
+    """
+    config = config or {}
+    target = model or (config.get("model", {}) or {}).get("name")
+    if not target:
+        print("✗ No model configured (set model.name or pass --model)")
+        return False
     try:
         import requests
 
-        response = requests.get("http://localhost:11434/api/tags", timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            models = data.get("models", [])
-            model_names = [m.get("name", "") for m in models]
-
-            target_models = ["gpt-oss:20b", "gpt-oss:20b-q4", "gpt-oss:20b-q8"]
-            found = False
-
-            for target in target_models:
-                if target in model_names:
-                    print(f"✓ Model found: {target}")
-                    found = True
-                    break
-
-            if not found:
-                print("✗ No required models found")
-                print("  Download with: ollama pull gpt-oss:20b")
-                return False
-
-            return True
-        else:
+        response = requests.get(f"{_ollama_url(config)}/api/tags", timeout=5)
+        if response.status_code != 200:
             print("✗ Cannot check models (server not responding)")
             return False
+        names = [m.get("name", "") for m in response.json().get("models", [])]
+        found = target in names or f"{target}:latest" in names
+        if found:
+            print(f"✓ Model found: {target}")
+        else:
+            print(f"✗ Model not found: {target}")
+            print(f"  Download with: ollama pull {target}")
+        vision = (config.get("models", {}) or {}).get("vision")
+        if vision:
+            if vision in names or f"{vision}:latest" in names:
+                print(f"✓ Vision model found: {vision}")
+            else:
+                print(f"⚠ Vision model not found: {vision} (only needed for --image)")
+        return found
     except Exception as e:
         print(f"⚠ Cannot check models: {e}")
         return False
@@ -267,8 +341,9 @@ def check_ollama_models():
 
 def main():
     """Main check routine"""
-    parser = argparse.ArgumentParser(description="Check pipeline setup")
+    parser = argparse.ArgumentParser(description="Check world engine setup")
     parser.add_argument("--backend", choices=("ollama", "anthropic"))
+    parser.add_argument("--model", help="Model to check (default: from the config)")
     parser.add_argument("--config", default="config/ollama_config.yaml")
     args = parser.parse_args()
     backend = selected_backend(args.backend, args.config)
@@ -298,6 +373,11 @@ def main():
     print("=" * 60)
     checks["Dependencies"] = check_dependencies(backend)
 
+    print("\n" + "=" * 60)
+    print("Engine Configuration")
+    print("=" * 60)
+    checks["Engine Configuration"] = check_engine_config(args.config)
+
     if backend == "anthropic":
         print("\n" + "=" * 60)
         print("Anthropic Setup (SDK/auth + model capability check)")
@@ -313,11 +393,19 @@ def main():
             config = {}
         checks["Anthropic SDK/Auth/Model"] = check_anthropic(config)
     else:
+        try:
+            import yaml
+
+            ollama_config = yaml.safe_load(
+                Path(args.config).read_text(encoding="utf-8")
+            ) or {}
+        except Exception:
+            ollama_config = {}
         print("\n" + "=" * 60)
         print("Ollama Setup")
         print("=" * 60)
-        checks["Ollama Server"] = check_ollama_server()
-        checks["Ollama Models"] = check_ollama_models()
+        checks["Ollama Server"] = check_ollama_server(ollama_config)
+        checks["Ollama Models"] = check_ollama_models(ollama_config, args.model)
 
     # Summary
     print("\n" + "=" * 60)
@@ -335,15 +423,17 @@ def main():
     if all_passed:
         print("✓ All checks passed! You're ready to start.")
         print("\nNext steps:")
-        print("1. Run a quick Phase 1 check: python example_run.py --choice 1")
-        print("2. Run the complete pipeline: python example_run.py --choice 2")
-        print("3. For the notebook workflow, open local-v2.0.ipynb")
+        print("1. Try a short run: python example_run.py "
+              "--context-file path/to/your_input.yaml --max-iterations 5 --yes")
+        print("2. Run the full engine: python example_run.py "
+              "--context-file path/to/your_input.yaml --yes")
+        print("3. Use --max-iterations / --max-minutes / --max-calls to set the budget")
     else:
         print("✗ Some checks failed. Please fix the issues above.")
         print("\nCommon fixes:")
         print("- Install dependencies: pip install -r requirements-local.txt")
         print("- Start Ollama: ollama serve")
-        print("- Download model: ollama pull gpt-oss:20b")
+        print("- Download the configured model: ollama pull <model.name from config>")
     print("=" * 60)
 
     return 0 if all_passed else 1

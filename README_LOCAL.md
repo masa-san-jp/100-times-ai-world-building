@@ -1,364 +1,188 @@
-# 100 TIMES AI WORLD BUILDING — Local Version
+# 100 TIMES AI WORLD BUILDING - 利用ガイド
 
-このファイルは、Ollamaを使って本リポジトリをローカル実行するためのガイドです。
-生成物の見本は [`examples/`](examples/README.md) にあります。作例は閲覧用で、仕組みの一部ではありません。
-実行時は必ず自分で用意した入力ファイルを `--context-file` で渡してください（既定の入力はありません）。
+入力から世界設定資料を自律的に生成・検証・深化するエンジンの使い方です。仕組みは
+[DESIGN_SPEC_LOCAL.md](DESIGN_SPEC_LOCAL.md)、状況は [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) を参照してください。
 
-## これは何か
+> **検証状況**：新エンジンはフェイクバックエンドでのみテスト済みで、実機のローカルモデルでのエンドツーエンド
+> 実行は未確認です。実モデルでの所要時間・品質は、最初は小さい予算（`--max-iterations 5` など）で確かめてください。
 
-入力したナラティブ（テーマ、舞台、主人公のアイデアなど）をもとに、Phase 0〜6を順番に実行します。
-
-0. **Phase 0**: ナラティブの保存・必要に応じた構造化
-1. **Phase 1**: 願望・能力・役割・プロット形式の拡張
-2. **Phase 2**: キャラクター生成
-3. **Phase 3**: 物語世界の構築
-4. **Phase 4**: 10章分のプロット生成
-5. **Phase 5**: 各章の小説本文生成
-6. **Phase 6**: 設定資料集の生成
-
-生成中の入力・途中生成物・チェックポイント・最終成果物は、1回の実行ごとに
-`output/world_<run_id>/` へまとめて保存されます。複数回実行した場合は
-`output/batch_<batch_id>/worlds/` に世界ごとのパッケージが作られます。
-
-## 重要な前提
-
-- 生成処理はOllamaへ送るため、生成時に入力や出力をOpenAIなどの外部APIへ送信しません。
-- 初回のPython依存関係とOllamaモデルの取得にはインターネット接続が必要です。
-- Phase 1だけの目安は15〜90分、完全パイプラインの目安は2〜10時間です（モデルとマシンに依存します）。
-- `--choice 1` はPhase 1だけの短い確認用です。最終成果物まで作る場合は `--choice 2` を使います。
-- 生成結果の品質、速度、完全な再現性は、Ollamaのモデル、モデルのバージョン、ハードウェアに依存します。
-- Phase 0〜6と完全作例1件は実機確認済みです。10回バッチは未検証です。
-- バックエンドの既定値はOllamaです。同じパイプラインを任意依存のAnthropic SDK経由でClaudeでも実行できます。
-
-## 必要なもの
-
-- Python 3.10以上
-- [Ollama](https://ollama.com/)
-- 生成に使用するOllamaモデル
-- 完全版を実行する場合は、モデルと出力を保存する十分なRAM・ストレージ
-
-既定モデルは `gpt-oss:20b` です。利用できるモデルはマシンによって異なるため、
-`ollama list` で確認してください。別のOllamaモデルも `--model` で指定できます。
-
-### モデル選択肢
-
-| モデル | 説明 | 要件の目安 |
-|---|---|---|
-| `gpt-oss:20b` | **既定**。フル精度20Bモデル | VRAM 16GB以上またはRAM 32GB以上 |
-| `gpt-oss:20b-q8` | 8-bit量子化。品質とメモリのバランス | VRAM 16〜24GB |
-| `gpt-oss:20b-q4` | 4-bit量子化。最も軽量 | VRAM 8〜16GB |
-| `gpt-oss:120b` | 高品質向けの大規模モデル | VRAM 60GB以上 |
-
-## クイックスタート
-
-### 1. Ollamaを用意する
-
-Ollamaをインストールして、モデルを取得します。
+## 1. 準備
 
 ```bash
-ollama pull gpt-oss:20b
-```
-
-別ターミナルでサーバーを起動します。
-
-```bash
+# Ollama（既定のバックエンド）。モデル名は config/ollama_config.yaml の model.name
+ollama pull <model.name>
 ollama serve
+
+pip install -r requirements-local.txt
+python setup_check.py          # Anthropic を使う場合は --backend anthropic
 ```
 
-### 2. Python環境を用意する
+`setup_check.py` は Python、必須ファイル、依存パッケージ、エンジン設定（探索設定・ドメインカタログ・プロンプト・
+報酬設定の読み込み）、バックエンド（Ollama サーバーと設定中のモデル、または Anthropic の認証とモデル）を確認します。
 
-リポジトリのルートで実行します。
+## 2. 入力
+
+入力は自分で用意します（テキスト・YAML・JSON、形式は自由、画像は `--image`）。既定の入力はありません。
+エンジンは原文を保存し、**明示された事項だけ**を引用付きで抽出します。入力にない設定は、
+ジャンル・時代・舞台・技術・主人公像を含め、エンジン側からは持ち込みません。
+
+## 3. 実行
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-python -m pip install -r requirements-local.txt
+# 対話なしで 1 つの世界を生成
+python example_run.py --context-file path/to/your_input.yaml --yes
+
+# 予算を指定
+python example_run.py --context-file path/to/your_input.yaml --yes \
+  --max-iterations 50 --max-minutes 90 --max-calls 600
+
+# 画像も入力に使う（Ollama では models.vision のビジョンモデル）
+python example_run.py --context-file path/to/your_input.yaml --yes --image path/to/picture.png
+
+# 対話メニュー（1. 世界を生成 / 2. 再開 / 3. 終了）
+python example_run.py
 ```
 
-`requirements-local.txt` には、CLIの実行、ノートブック、テストに必要な依存関係をまとめています。
-実行時だけなら `requirements.txt`、テストとflake8だけなら `requirements-dev.txt`、
-ローカル版を一通り使う場合は `requirements-local.txt` を使います。
+| 引数 | 説明 |
+|---|---|
+| `--context-file` | 入力ファイル（必須。対話メニューではパスを尋ねる） |
+| `--yes` | 確認プロンプトを省く。`--context-file` か `--yes` があれば、メニューを出さず「世界を生成」を実行 |
+| `--choice 1|2|3` | 1=生成、2=再開、3=終了 |
+| `--max-iterations` / `--max-minutes` / `--max-calls` | 予算（反復回数 / 分 / 生成呼び出し回数） |
+| `--seed` | 乱数 seed（操作と対象の選択を再現可能にする） |
+| `--backend ollama|anthropic` | バックエンド（既定は設定値、なければ Ollama） |
+| `--model` | 生成モデル（既定は `model.name` / `anthropic.model`） |
+| `--vision-model` | `--image` を読むモデル（Ollama。既定は `models.vision`） |
+| `--output-dir` | 世界パッケージの置き場（既定は `output.base_dir`） |
+| `--run-id` | パッケージ ID。再開時に指定 |
+| `--runs N` | 同じ入力から N 個の独立した世界を作る（バッチ） |
+| `--config` | 設定ファイル（既定は `config/ollama_config.yaml`） |
 
-セットアップ状態を確認します。
+旧版の `--structured-model` / `--story-model` / `--reference-model` / `--extract-context` は廃止しました。
+新エンジンのモデルの役割は「生成」と「画像読み取り」の 2 つだけで、`--model` と `--vision-model` が対応します。
+入力の受け入れは常に行われます。
+
+### 予算と停止理由
+
+予算の既定は `config/world/explore.yaml` の `budget`、`config/ollama_config.yaml` の `engine.explore` で上書きできます。
+停止すると `run_manifest.json` の `stop_reason` に理由が残ります。
+
+| `stop_reason` | 意味 |
+|---|---|
+| `coverage_met` | 全軸が 1 件以上、指定スケールまで、平均報酬が目標以上、の被覆条件を満たした |
+| `max_iterations` | 反復回数の上限 |
+| `max_wall_seconds` | 経過時間の上限 |
+| `max_generation_calls` | 生成呼び出し回数の上限 |
+| `frontier_exhausted` | 次に行える操作が見つからない |
+
+### 再開
 
 ```bash
-python setup_check.py
+python example_run.py --choice 2 --run-id <run_id> --max-iterations 100
 ```
 
-### 3. まずPhase 1だけ実行する
+チェックポイント（グラフ・バンディット・乱数状態・選好ログの位置）から続行します。再開時は、そのパッケージを作った
+バックエンドとモデルをそのまま使います（`--model` で明示的に変えた場合を除く）。同じ `run_id` に別の入力や別の
+seed を渡すとエラーになります。
 
-入力は自分で用意します。テキスト・YAML・JSON のいずれでもよく、形式は自由です。
-`path/to/your_input.yaml` は、その入力ファイルのパスに置き換えてください。
-短い動作確認では、100倍拡張までを実行します。
+### バッチ（独立した N 個の世界）
 
 ```bash
-python example_run.py --choice 1 \
-  --context-file path/to/your_input.yaml \
-  --model gpt-oss:20b-q4 \
-  --output-dir output
+python example_run.py --context-file path/to/your_input.yaml --yes --runs 5 --seed 7
 ```
 
-### 4. 完全パイプラインを実行する
+`output/batch_<batch_id>/` に `batch_manifest.json`、`worlds/world_<run_id>/`（各自の seed・チェックポイント・
+マニフェスト）、`comparison.md` が作られます。`--seed` を固定すると各世界の seed が決定的に導かれます。
+1 つの世界が失敗しても残りは続行されます（`completed_with_errors`）。
 
-Phase 0〜6を最後まで実行し、10章の本文と設定資料を生成します。
-
-```bash
-python example_run.py --choice 2 --yes \
-  --context-file path/to/your_input.yaml \
-  --model gpt-oss:20b \
-  --output-dir output
-```
-
-完了後、表示された `output/world_<run_id>/` を開いて成果物を確認してください。
-
-### Anthropicバックエンド（任意）
-
-Ollamaを使わずClaudeで同じPhase 0〜6、検証、チェックポイント、品質レポートを実行する場合は、
-任意依存を追加してからSDKの通常の認証設定を使います。APIキーはコードや設定ファイルに書きません。
-
-```bash
-python -m pip install -r requirements-cloud.txt
-python setup_check.py --backend anthropic  # SDK/認証とモデル情報を確認
-python example_run.py --choice 2 --yes --backend anthropic \
-  --context-file path/to/your_input.yaml \
-  --output-dir output
-```
-
-モデルは `config/ollama_config.yaml` の `anthropic.model`、またはCLIの `--model` で指定します。
-サンプル設定の初期値は `claude-opus-5` ですが、モデルの世代を替えるときは
-`anthropic.request_options` の `max_tokens`、`thinking`、`output_config`、フォールバック設定も
-見直してください。`setup_check.py --backend anthropic` は Models API からモデルの存在、
-`max_input_tokens`、`max_tokens` を確認し、設定値が上限を超える場合に警告します。
-CLIを使わず設定だけで選ぶ場合は `backend: anthropic` にします。Ollama利用者は
-`requirements-cloud.txt` をインストールする必要はありません。
-
-## 入力の渡し方
-
-`--context-file` には、YAML、JSON、またはプレーンテキストを指定できます。
-YAML/JSONの構造をそのまま使う場合は通常 `--extract-context` は不要です。
-
-```bash
-# 構造化済みYAMLを使う
-python example_run.py --choice 2 --context-file ./my_context.yaml --model gpt-oss:20b
-
-# プレーンテキストをローカルモデルで構造化してから使う
-python example_run.py --choice 2 --context-file ./idea.txt --extract-context
-```
-
-画像をコンテクストに含める場合は、ローカルのvisionモデルを指定します。
-
-```bash
-ollama pull llava:latest
-python example_run.py --choice 2 \
-  --context-file ./idea.txt \
-  --image ./reference.png \
-  --vision-model llava:latest
-```
-
-画像も外部サービスには送信されません。
-
-## 繰り返し生成する
-
-同じ入力から独立した世界を複数作るには `--runs` を指定します。各世界は別ディレクトリに保存され、
-前の実行を上書きしません。
-
-```bash
-python example_run.py --choice 2 --runs 10 --yes \
-  --context-file ./my_context.yaml \
-  --model gpt-oss:20b-q4 \
-  --output-dir output
-```
-
-バッチ全体のseedを固定すると、各周回に異なるseedを決定的に割り当てられます。
-ただし、モデルやOllamaのバージョンが変われば完全一致は保証されません。
-
-```bash
-python example_run.py --choice 2 --runs 10 --seed 20260827 --yes \
-  --context-file ./my_context.yaml \
-  --model gpt-oss:20b-q4 \
-  --output-dir output
-```
-
-`--seed` を省略すると、実行ごとに新しいseedが生成され、`run_manifest.json` に保存されます。
-
-## 中断した実行を再開する
-
-各フェーズのチェックポイントは実行パッケージ内に保存されます。再開時は、元の実行IDと出力ルートを指定します。
-モデルを指定しなければ、保存済みマニフェストのモデル構成が優先されます。
-
-```bash
-python example_run.py --choice 3 \
-  --run-id 20260829_123456_789012 \
-  --output-dir output
-```
-
-`--run-id` はディレクトリ名 `world_<run_id>` の `world_` を除いた部分です。
-バッチ内の世界も `--run-id` で指定できます。
-
-## 出力構造
-
-### 1回の実行
+## 4. 出力
 
 ```text
 output/world_<run_id>/
-├── run_manifest.json       # モデル、seed、設定ハッシュ、実行状態
-├── input/                  # 入力コンテクスト
-├── intermediate/           # Phase 1〜4の途中生成物（YAML）
-├── checkpoints/            # 再開用のフェーズ状態（JSON）
+├── run_manifest.json        # エンジン設定・予算・seed・バックエンド/モデル・停止理由・状態
+├── input/                   # 原文、画像、input_brief.json
+├── world/
+│   ├── world_axes.json      # 世界の軸と重み
+│   ├── graph.json           # エンティティグラフ
+│   ├── contrasts.json       # 「入力なし」の対照（凡庸さの検証用）
+│   └── preferences.jsonl    # 候補・採点・採否・書き直しの選好ログ
+├── checkpoints/
+├── quality_report.json/.md
 └── final/
-    ├── novels/             # chapter_01.txt 〜 chapter_10.txt
-    └── references/         # 設定資料（Markdown）
+    ├── world.json
+    ├── world_bible/         # README.md, scales/, entities/, glossary.md, timeline.md, documents.md
+    └── world_report.md
 ```
 
-### 複数回の実行
+- `final/world_bible/README.md`：概要、軸（根拠付き）、スケール別・用語集・年表・世界内文書への入口。
+- `final/world_report.md`：停止理由、被覆、スケール別件数、報酬分布とヒストグラム、凡庸さで落とした候補の例。
+- `final/world.json`：軸・グラフ・実行サマリを含む機械可読の世界モデル。
+- `run_manifest.json`：`engine_config`（探索・オペレータ・生成の既定値）、`budget`（要求値と有効値）、`run_seed`、
+  `backend` / `model` / `models`、`stop_reason`、`iterations`、`counters`、設定ファイルのハッシュを記録します。
 
-```text
-output/batch_<batch_id>/
-├── batch_manifest.json     # バッチ全体のseed、件数、状態
-└── worlds/
-    ├── world_<run_id>/     # 1周目
-    └── world_<run_id>/     # 2周目以降
+## 5. 品質・比較レポート
+
+```bash
+python -m src.quality output/world_<run_id> [--json] [--strict]
+python -m src.compare output/world_a output/world_b [--out comparison.md]
+python -m src.compare --batch output/batch_<batch_id>
 ```
 
-`output/` は生成用で、Git管理対象外です。確認済みの作例だけを
-[`examples/`](examples/README.md) に、同じパッケージ構造で保存します。
+品質レポート（`quality_report.json/.md`、実行後に自動生成）は次を見ます。しきい値は `config/world/quality.yaml` です。
 
-## Pythonから使う
+| チェック | 見るもの |
+|---|---|
+| graph | グラフの整合性（参照・スケール・親子）、エンティティ数 |
+| axis_coverage | 軸ごとのエンティティ数、重み比と実際の比、未被覆の軸 |
+| scale_depth | スケール別件数、最深スケール、目標深度に届いていないスケール |
+| reward_distribution | 報酬の平均・最小・最大、ヒストグラム、検証器別平均、低報酬・未採点 |
+| genericity | 凡庸さスコア、基準未満のエンティティ、凡庸さで却下された候補数 |
+| provenance | 由来のないエンティティ |
+| duplicates | エンティティ内容・名前の完全 / 近似重複 |
+| exploration | 実行状態、停止理由、反復数、採用された反復数 |
+
+比較レポートは、世界ごとの実行条件・被覆・深度・平均報酬・平均凡庸さ・品質に加えて、世界同士の重複
+（同名率、近似エンティティ率、共通の固有名詞率、軸の類似度）を示します。重複が高い組は `REPEATS` で示します。
+率が低いほど、同じ入力から大きく分岐した世界です。
+
+## 6. バックエンド
+
+- **Ollama（既定）**：`config/ollama_config.yaml` の `server` と `model.name`。`generation`（`max_tokens`・`num_ctx`・
+  `think`・`temperature`）は全生成呼び出しの既定値です（`null` は送らない）。
+- **Anthropic**：`--backend anthropic`、またはそのファイルの `backend: anthropic`。モデルは `anthropic.model`、
+  モデル依存のリクエスト設定は `anthropic.request_options`。認証は SDK が環境変数 / プロファイルから解決します。
+
+モデル名・モデル固有のパラメータはコードに固定せず、設定ファイルと `--model` で扱います。
+
+## 7. Python から使う
 
 ```python
 from src import Pipeline, run_batch
 
-pipeline = Pipeline(
-    model="gpt-oss:20b-q4",
-    output_dir="output",
-    seed=12345,
-)
-result = pipeline.run_full_pipeline("""
-context:
-  theme: "海底都市と地上文明の対立"
-  mood: "静かな緊張感"
-  setting: "23世紀の太平洋"
-""")
-print(pipeline.base_dir)
+pipeline = Pipeline(seed=7, budget={"max_iterations": 50})
+result = pipeline.run(open("path/to/your_input.yaml", encoding="utf-8").read())
+print(result.stop_reason, result.iterations, pipeline.package_dir)
+
+pipeline.resume()                                   # 同じパッケージを続行
+run_batch(text, runs=3, seed=1, budget={"max_iterations": 20})
 ```
 
-複数周回をコードから実行する場合:
+`Pipeline` はエンジン（`src/world/explore.py:run_world_engine`）を包む薄いラッパーで、バックエンド/モデルの解決、
+パッケージ、マニフェスト、品質レポートだけを担当します。テストでは `backend=` にフェイクバックエンドを渡せます。
 
-```python
-summary = run_batch(
-    user_context="context:\n  theme: 海底都市と地上文明の対立\n",
-    runs=10,
-    seed=20260827,
-    pipeline_kwargs={"model": "gpt-oss:20b-q4", "output_dir": "output"},
-)
-print(summary["summary_path"])
-```
+## 8. トラブルシューティング
 
-## モデルをフェーズごとに分ける
+| 症状 | 対処 |
+|---|---|
+| `No model configured` | `model.name`（Ollama）または `anthropic.model` を設定、または `--model` |
+| `Prerequisites not met` | `python setup_check.py` で Ollama サーバー・モデルを確認 |
+| `Input differs from the one stored` | 既存の `run_id` に別の入力は使えません。新しい `run_id` で |
+| `Seed ... does not match` | 再開は保存済みの seed を使います。`--seed` を外す |
+| 生成が遅い | `--max-iterations` / `--max-calls` を小さくし、`config/world/explore.yaml` の `generation.candidates` を減らす |
+| 世界が偏る | 品質レポートの axis_coverage / scale_depth を確認し、予算を増やして再開 |
+| 停止後に続けたい | `--choice 2 --run-id <run_id>` に大きい予算を付ける |
 
-通常は `--model` 1つで全フェーズを実行できます。役割ごとにモデルを分ける場合は、次のオプションを使います。
+## 9. 旧版
 
-```bash
-python example_run.py --choice 2 \
-  --structured-model gpt-oss:20b-q4 \
-  --story-model gpt-oss:20b \
-  --reference-model gpt-oss:20b-q4
-```
-
-- `--structured-model`: JSONや世界設定を生成するフェーズ
-- `--story-model`: 小説本文を生成するフェーズ
-- `--reference-model`: Markdownの設定資料を生成するフェーズ
-- `--vision-model`: 画像コンテクストの解析
-
-## 設定とプロンプト
-
-- `config/ollama_config.yaml`: Ollama接続、モデル、生成パラメータ、出力先、チェックポイント設定
-- `config/prompts/`: 各フェーズのプロンプトテンプレート
-- `src/pipeline.py`: Phase 0〜6の実行制御
-- `src/batch.py`: 複数周回の実行
-- `src/validation.py`: 生成物の件数・構造検証
-- `src/run_manifest.py`: seed、モデル、設定ハッシュ、状態の記録
-- `src/checkpoint_manager.py`: 中断・再開用状態の保存
-
-構造化出力はローカルモデルが1回で100件を返しきれない場合に備え、複数の小さなリクエストへ分割します。
-この挙動は `config/ollama_config.yaml` の `items_per_request` などで調整できます。
-
-## トラブルシューティング
-
-### `Connection refused` が出る
-
-Ollamaサーバーが起動しているか確認します。
-
-```bash
-ollama serve
-ollama list
-```
-
-別ターミナルを占有したくない場合は、ログをファイルに保存してバックグラウンド起動できます。
-
-```bash
-nohup ollama serve > ollama.log 2>&1 &
-```
-
-### モデルが見つからない
-
-モデル名はローカルに存在する名前と完全に一致させます。
-
-```bash
-ollama list
-ollama pull gpt-oss:20b-q4
-```
-
-### メモリ不足・処理が遅い
-
-量子化モデルを選び、同時実行数を増やさずに実行してください。完全版は大量の構造化出力と10章の本文を生成するため、
-CPUのみの環境では長時間かかります。
-
-同時実行数は `config/ollama_config.yaml` の次の設定で確認できます。
-
-```yaml
-performance:
-  max_parallel_requests: 1
-```
-
-### JSONの解析に失敗する
-
-構造化フェーズには再試行とJSON互換フォールバックがあります。それでも失敗する場合は、
-より大きいモデルを使うか、`config/ollama_config.yaml` で温度を下げてください。
-
-長時間実行のログは、実行方法に応じて `logs/full_pipeline.log` または
-`logs/batch_pipeline.log` を確認してください。
-
-## ノートブック版
-
-- `20250601-100-TIMES-AI-WORLD-BUILDING-v1.2.ipynb`: OpenAI / Anthropic APIを使う元のクラウド版
-- `local-v2.0.ipynb`: Ollamaを使うローカル版
-
-`local-v2.0.ipynb` は、ローカル版を対話的に試すためのノートブックです。工程をセル単位で確認できます。
-再実行、チェックポイント再開、複数周回、
-成果物管理を行う場合は `example_run.py` またはPython APIを推奨します。
-
-## 関連リポジトリ
-
-100 TIMES AIシリーズの工程別リポジトリです。これらは関連プロジェクトですが、共通のインストールパッケージではありません。
-
-- [100 TIMES AI HEROES](https://github.com/masa-san-jp/100-times-ai-heroes)：願望・能力・役割などを組み合わせ、キャラクター設定と画像生成用プロンプトを大量に作るプロジェクト。
-- [100 TIMES AI HERO'S JOURNEY](https://github.com/masa-san-jp/100-times-ai-heros-journey)：作家の自己ナラティブから、ヒーローズ・ジャーニー形式のキャラクター、プロット、物語を生成するプロジェクト。
-- [100 TIMES AI WORLD BUILDING](https://github.com/masa-san-jp/100-times-ai-world-building)：本リポジトリ。キャラクターや物語の材料を、設定資料・世界観・プロット・章本文へ展開するプロジェクト。
-- [100 TIMES AI MANGA DRAWING](https://github.com/masa-san-jp/100-times-ai-manga-drawing)：生成AIを使ったマンガ制作工程の分析・構造化と高速化の試みをまとめた制作・実験リポジトリ。
-
-## テスト
-
-```bash
-pytest tests/ -v
-```
-
-## 利用条件
-
-このリポジトリには現在 `LICENSE` ファイルがありません。コードや生成物の利用・再配布条件は、
-作者に確認してください。Ollamaや使用するモデルには、それぞれのライセンス・利用条件が適用されます。
-
----
-
-**Author**: masa-san-jp
-**Last Updated**: 2026-08-29
+`legacy/` のノートブックと `examples/` の作例は、物語を生成していた旧パイプラインのものです。新エンジンとは別物で、
+新エンジンの仕組みはそれらを参照しません。

@@ -6,7 +6,6 @@ from pathlib import Path
 import yaml
 
 from src.llm import FakeLLMBackend
-from src.pipeline import Pipeline
 from src.world import InputBriefBuilder
 
 
@@ -97,27 +96,6 @@ def test_image_original_is_saved_and_vision_description_is_source_material(
     assert "明るい面と細い線が見える" in result.source_for_brief
     assert result.brief["statements"][0]["quote"] in result.source_for_brief
     assert (tmp_path / "package" / "source_for_brief.txt").is_file()
-
-
-def test_pipeline_phase_zero_persists_brief_with_fake_backend(tmp_path):
-    raw = '{"label":"unresolved input"}'
-    backend = FakeLLMBackend(
-        json_responses={
-            "statements": [{"text": "入力にラベルがある", "quote": "\"label\""}],
-            "open_questions": ["扱い"],
-            "constraints": [],
-        }
-    )
-
-    pipeline = Pipeline(
-        backend=backend,
-        run_id="input-brief",
-        output_dir=tmp_path,
-    )
-    assert pipeline.run_phase0_context_extraction(raw) == raw
-
-    brief_path = tmp_path / "world_input-brief" / "input" / "input_brief.json"
-    assert json.loads(brief_path.read_text(encoding="utf-8"))["statements"]
 
 
 def test_ids_are_assigned_by_code_in_order_after_filtering(tmp_path):

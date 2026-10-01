@@ -1,7 +1,8 @@
 # ========================================
-# Ollama Configuration
-# 100 TIMES AI WORLD BUILDING - Local Version
+# Backend and engine configuration
+# 100 TIMES AI WORLD BUILDING
 # ========================================
+# Model names live here (and in --model), never in code.
 
 # LLM backend. Choose "ollama" (default) or "anthropic".
 backend: "ollama"
@@ -24,234 +25,60 @@ anthropic:
       - "server-side-fallback-2026-07-01"
     fallbacks: "default"
 
-# Server Configuration
+# Ollama server
 # ----------------------------------------
 server:
   host: "http://localhost"
   port: 11434
-  # Large structured outputs (100 items) can take several minutes locally.
-  timeout: 900  # seconds (15 minutes per request)
+  timeout: 900  # seconds per request
   max_retries: 3
   retry_delay: 5  # seconds
 
-# Model Configuration
+# Ollama models
 # ----------------------------------------
 model:
-  # Primary model name (standard local model)
+  # Model used for every generation call (override with --model).
   name: "gpt-oss:20b"
 
-  # Quantized variants of gpt-oss:20b (for limited VRAM / memory-constrained machines)
-  quantized_variants:
-    - name: "gpt-oss:20b-q8"   # 8-bit quantized – balanced quality / memory trade-off
-      description: "8-bit quantized (recommended for 16–24 GB VRAM)"
-    - name: "gpt-oss:20b-q4"   # 4-bit quantized – lowest memory footprint
-      description: "4-bit quantized (recommended for 8–16 GB VRAM)"
-
-  # High-end model for powerful machines (60+ GB VRAM or large RAM)
-  high_end_model:
-    name: "gpt-oss:120b"
-    description: "120 billion parameter model – highest quality, requires 60+ GB VRAM or large RAM"
-
-  # Other alternative models (for fallback or experimentation)
-  alternatives:
-    - "llama3:70b"      # Alternative large model
-    - "mistral:latest"  # Lighter alternative model
-
-  # Default generation parameters
-  generation:
-    temperature: 0.7
-    top_p: 0.9
-    top_k: 40
-    num_predict: 4096  # max tokens to generate
-    repeat_penalty: 1.1
-    seed: null  # null for non-deterministic, set integer for reproducibility
-
-# Optional role-specific local models.  If omitted, the model above is used
-# for every phase.  Set `vision` to a local vision-capable Ollama model when
-# using image context input (for example: llava:latest).
+# Optional vision model, used only when --image is given (Ollama backend).
+# When the Anthropic backend is used, its model reads images too.
 models:
-  structured: "gpt-oss:20b"
-  story: "gpt-oss:20b"
-  reference: "gpt-oss:20b"
   vision: "llava:latest"
 
-# Phase-specific configurations
+# Defaults passed to every generation call. A call that sets its own value
+# wins. Keys set to null are not sent (the backend's own default applies).
+generation:
+  max_tokens: 8192
+  num_ctx: 32768        # Ollama context window; ignored by the Anthropic backend
+  think: false          # structured output should not spend its budget on reasoning
+  temperature: null
+
+# Engine settings
 # ----------------------------------------
-phases:
-  # Phase 0: User context extraction
-  phase0_input_acceptance:
-    temperature: 0.7
-    num_predict: 2048
-    format: "json"
-    think: false
-
-  # Legacy name retained for resumable runs created before input acceptance.
-  phase0_context_extraction:
-    temperature: 0.7
-    num_predict: 2048
-    format: "json"
-    think: false
-
-  # Phase 1: 100x expansion
-  phase1_expansion:
-    temperature: 0.8
-    # Generate 100-item lists in bounded chunks for local memory/time safety.
-    # Plot-type candidates contain several fields per item and need more room.
-    num_predict: 8192
-    format: "json"
-    # Structured artifacts should not spend the response budget on reasoning.
-    think: false
-    batch_size: 1  # Requests are kept sequential for local memory safety
-    items_per_request: 20
-    plottype_items_per_request: 5
-
-  # Phase 2: Character generation
-  phase2_characters:
-    temperature: 0.9
-    num_predict: 2048
-    format: "json"
-    think: false
-
-  # Phase 3: World building
-  phase3_world:
-    temperature: 0.7
-    # people_list contains 100 items; generate it in bounded local batches.
-    num_predict: 8192
-    format: "json"
-    think: false
-    cumulative_context: true  # Use accumulated context
-    people_items_per_request: 20
-
-  # Phase 4: Plot generation
-  phase4_plot:
-    temperature: 0.8
-    # The complete 10-chapter plot needs more room than the old 3K limit.
-    num_predict: 8192
-    format: "json"
-    think: false
-
-  # Phase 5: Novel generation
-  phase5_novel:
-    temperature: 1.0  # High creativity for storytelling
-    num_predict: 4096
-    max_continuations: 3  # Continue locally when Ollama stops at the token limit
-    format: ""  # Free text
-    think: false
-    streaming: false  # Set true for real-time output
-
-  # Phase 6: Reference material generation
-  phase6_references:
-    temperature: 0.7
-    num_predict: 4096
-    format: ""  # Markdown output
-    think: false
-
-# Quality report thresholds
-# ----------------------------------------
-quality:
-  near_duplicate_threshold: 0.8
-  min_chapter_characters: 2000
-
-# Performance Optimization
-# ----------------------------------------
-performance:
-  # Enable GPU acceleration (auto-detected by Ollama)
-  gpu_enabled: true
-
-  # Number of GPU layers to offload (null = auto)
-  num_gpu_layers: null
-
-  # Maximum parallel requests
-  max_parallel_requests: 1
-
-  # Context caching
-  use_context_cache: true
-  cache_ttl: 3600  # seconds (1 hour)
-
-  # Memory management
-  max_context_length: 32768  # tokens; accumulated Phase 3 prompts need more than the 8K minimum
-  truncate_strategy: "sliding_window"  # or "priority"
+engine:
+  # Overrides merged over config/world/explore.yaml (selection, generation,
+  # operators, frontier, budget, coverage).
+  explore: {}
+  # Overrides for the operator runner (see src/world/operators.py:OperatorConfig).
+  operator: {}
 
 # Checkpointing
 # ----------------------------------------
 checkpointing:
-  enabled: true
   auto_save: true
-  save_interval: 1  # Save after every N API calls
-  # Pipeline places these inside the corresponding world_<id> package.
-  compression: false  # Set true to gzip checkpoint files
+  compression: false
   max_checkpoints_per_phase: 100
 
 # Logging
 # ----------------------------------------
 logging:
-  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  file: "./logs/local_v2.log"
+  level: "INFO"
+  file: "./logs/world_engine.log"
   console: true
 
-# Output Configuration
+# Output
 # ----------------------------------------
-# Each pipeline run is saved as one self-contained world package under base_dir,
-# named "world_YYYYMMDD_HHMMSS". Its input, intermediate artifacts,
-# checkpoints, and final deliverables stay together.
+# Each run is one self-contained world package under base_dir, named
+# "world_<run_id>" (see README for the tree).
 output:
   base_dir: "./output"
-  subdirs:
-    input: "input"
-    intermediate: "intermediate"
-    checkpoints: "checkpoints"
-    final: "final"
-
-  # File formats
-  formats:
-    intermediate: "yaml"  # yaml or json
-    novels: "txt"         # txt or md
-    references: "md"      # md or txt
-
-  # Naming conventions
-  naming:
-    timestamp: true
-    prefix: ""
-    suffix: ""
-
-# Safety and Validation
-# ----------------------------------------
-safety:
-  # Validate JSON outputs
-  validate_json: true
-  validate_outputs: true
-  max_validation_retries: 3
-
-  # Content filtering (basic)
-  enable_content_filter: false
-
-  # Rate limiting (to prevent system overload)
-  rate_limit:
-    enabled: true
-    max_requests_per_minute: 20
-
-# Development Mode
-# ----------------------------------------
-development:
-  debug: false
-  mock_api_calls: false  # Set true to test without actual API calls
-  save_prompts: true     # Save all prompts for debugging
-  verbose_errors: true
-
-# Feature Flags
-# ----------------------------------------
-features:
-  # Enable experimental features
-  parallel_processing: false  # Reserved for a future multi-request implementation
-  streaming_output: false
-  multi_model_ensemble: false
-
-  # Phase toggles (for selective execution)
-  enable_phase0: true
-  enable_phase1: true
-  enable_phase2: true
-  enable_phase3: true
-  enable_phase4: true
-  enable_phase5: true
-  enable_phase6: true

@@ -40,40 +40,6 @@ def load_config(config_path: str = "config/ollama_config.yaml") -> Dict[str, Any
         return {}
 
 
-def load_prompts(prompts_dir: str = "config/prompts") -> Dict[str, Dict[str, Any]]:
-    """
-    Load all prompt templates from directory
-
-    Args:
-        prompts_dir: Directory containing prompt template files
-
-    Returns:
-        Dictionary of prompt templates
-    """
-    prompts = {}
-    prompts_path = Path(prompts_dir)
-
-    if not prompts_path.exists():
-        logger.error(f"Prompts directory not found: {prompts_dir}")
-        return prompts
-
-    try:
-        for yaml_file in prompts_path.glob("*.yaml"):
-            with open(yaml_file, "r", encoding="utf-8") as f:
-                file_prompts = yaml.safe_load(f)
-
-            if file_prompts:
-                prompts.update(file_prompts)
-                logger.debug(f"Loaded prompts from {yaml_file.name}")
-
-        logger.info(f"Loaded {len(prompts)} prompt templates")
-        return prompts
-
-    except Exception as e:
-        logger.error(f"Error loading prompts: {e}")
-        return prompts
-
-
 def data_to_markdown(data: Union[Dict, list, Any], indent: int = 0) -> str:
     """
     Convert Python dict/list to Markdown list format

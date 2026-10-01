@@ -55,7 +55,7 @@ class CheckpointManager:
         Save checkpoint data
 
         Args:
-            phase_name: Name of the phase (e.g., "phase1_expansion")
+            phase_name: Name of the phase (e.g., "world_explore")
             data: Data to save
             timestamp: Optional timestamp (auto-generated if None)
 
