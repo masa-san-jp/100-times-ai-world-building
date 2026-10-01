@@ -1,346 +1,86 @@
-# Implementation Status - 100 TIMES AI WORLD BUILDING Local Version
+# Implementation Status - 100 TIMES AI WORLD BUILDING
 
-**Date**: 2026-08-29
-**Version**: v2.1-local
-**Status**: ✅ Core implementation complete; local E2E verification complete for one full example
-
-### 実機確認メモ（2026-08-28）
-
-- setup_check: 全項目PASS（CLI必須依存、Ollamaサーバー、`gpt-oss:20b`）
-- Ollama最小リクエスト: 成功（seed伝播を含む）
-- 100件JSON単体リクエスト: 成功（100件、`done_reason=stop`）
-- Phase 1: 有効な2種類の100件リストを保存し、未完了runを再開できることを確認
-- 完全パイプライン: 成功（`examples/neo_tokyo_complete/`、Phase 0〜6全成果物）
-- 10周バッチ: 未実施。実機の長時間推論・GPU共有状態に依存するため、別途検証する
+**Version**: v3.0 (world-setting engine)
+**Status**: エンジンと基盤の移行は実装完了。**検証はフェイクバックエンドのみで、実機のローカルモデルでの
+エンドツーエンド実行は未実施。**
 
 ---
 
-## 実装完了状況
+## 検証状況（正直な現状）
 
-### ✅ Phase 0: コンテクスト抽出
-- **状態**: 実装完了
-- **ファイル**: `src/pipeline.py:run_phase0_context_extraction()`
-- **出力**: `output/world_<run_id>/input/user_context.yaml`
+| 項目 | 状況 |
+|---|---|
+| ユニット / 結合テスト（フェイクバックエンド） | 実施済み。`python -m pytest tests/ -q` が通る。CI は Python 3.11 / 3.12 / 3.13 |
+| 非対話 CLI（`example_run.py --context-file ... --yes`）のエンドツーエンド（フェイク） | 実施済み（`tests/test_example_run.py`） |
+| 実機の Ollama モデルでのエンドツーエンド実行 | **未実施**。所要時間、出力品質、20B 級モデルでの安定性は未確認 |
+| Anthropic バックエンドでのエンドツーエンド実行 | **未実施**（クライアント自体の単体テストのみ） |
+| バッチ（N 個の世界）の実機実行 | **未実施**（フェイクでは検証済み） |
+| 凡庸さの対照が実モデルの事前分布を十分に捉えるか | **未確認** |
 
-### ✅ Phase 1: 100倍拡張
-- **状態**: 実装完了
-- **ファイル**: `src/pipeline.py:run_phase1_expansion()`
-- **プロンプト**: `config/prompts/expansion.yaml`
-- **出力**:
-  - `01_desire_list.yaml` (100個の願望)
-  - `02_ability_list.yaml` (100個の能力)
-  - `03_role_list.yaml` (100個の役割)
-  - `04_plottype_list.yaml` (10個のプロットタイプ)
-  - `05_plottype.yaml` (選択されたプロットタイプ)
-
-### ✅ Phase 2: キャラクター生成
-- **状態**: 実装完了
-- **ファイル**: `src/pipeline.py:run_phase2_characters()`
-- **プロンプト**: `config/prompts/world_building.yaml:characters`
-- **出力**: `06_characters_list.yaml` (4人の主要キャラクター)
-
-### ✅ Phase 3: 世界構築
-- **状態**: 実装完了
-- **ファイル**: `src/pipeline.py:run_phase3_world_building()`
-- **プロンプト**: `config/prompts/world_building.yaml`
-- **出力**:
-  - `10_events.yaml` (物理的事象)
-  - `11_observation.yaml` (観測手段)
-  - `12_interpretation.yaml` (解釈体系)
-  - `13_media.yaml` (記録媒体)
-  - `14_important_past_events.yaml` (歴史的イベント)
-  - `15_social_structure.yaml` (社会構造)
-  - `16_living_environment.yaml` (生活環境)
-  - `17_social_groups.yaml` (社会的集団)
-  - `18_people_list.yaml` (100人のペルソナ)
-  - `19_future_scenarios.yaml` (未来シナリオ)
-
-### ✅ Phase 4: プロット生成
-- **状態**: 実装完了
-- **ファイル**: `src/pipeline.py:run_phase4_plot_generation()`
-- **プロンプト**: `config/prompts/plot_generation.yaml`
-- **出力**:
-  - `20_plot.yaml` (全体プロット)
-  - `21-30_plot_1-10.yaml` (章別プロット)
-  - `31-40_plot_keywords_1-10.yaml` (章別キーワード)
-  - `41-50_plot_reference_1-10.yaml` (章別参考資料)
-
-### ✅ Phase 5: 小説生成
-- **状態**: 実装完了
-- **ファイル**: `src/pipeline.py:run_phase5_novel_generation()`
-- **プロンプト**: `config/prompts/story_generation.yaml:story_chapter`
-- **出力**: `output/world_<run_id>/final/novels/chapter_01-10.txt` (全10章の小説本文)
-
-### ✅ Phase 6: 設定資料集生成
-- **状態**: 実装完了
-- **ファイル**: `src/pipeline.py:run_phase6_reference_generation()`
-- **プロンプト**: `config/prompts/story_generation.yaml:reference_*`
-- **出力**: `output/world_<run_id>/final/references/*.md` (17種類の詳細資料)
-  - characters.md
-  - plot.md
-  - user_context.md
-  - desire_list.md
-  - ability_list.md
-  - role_list.md
-  - plottype_list.md
-  - events.md
-  - observation.md
-  - interpretation.md
-  - media.md
-  - important_past_events.md
-  - social_structure.md
-  - living_environment.md
-  - social_groups.md
-  - people_list.md
-  - future_scenarios.md
+旧パイプライン（物語を生成する Phase 0〜6）の実機検証メモは、撤去とともに削除しました。
 
 ---
 
-## コアモジュール
+## 実装完了状況（エピック #26 の子イシュー）
 
-### ✅ OllamaClient (`src/ollama_client.py`)
-- **機能**:
-  - Ollama APIとの通信
-  - サーバー起動確認
-  - モデルダウンロード
-  - JSON/テキスト生成
-  - 自動リトライ機構
-- **状態**: 完全実装
+| # | 内容 | 主なファイル |
+|---|---|---|
+| #27 | 入力の受け入れ（形式自由・前提を足さない） | `src/world/input.py`, `config/prompts/input_brief.yaml` |
+| #28 | 世界の軸と重み | `src/world/axes.py`, `config/world/domains.yaml`, `config/prompts/world_axes.yaml` |
+| #29 | スケール階層と由来を持つエンティティグラフ | `src/world/graph.py` |
+| #30 | 生成オペレータ（premise / expand / zoom / cause / perspective / history / document） | `src/world/operators.py`, `config/prompts/world/` |
+| #31 | 凡庸さを罰する検証器と報酬 | `src/world/verify.py`, `src/world/reward.py`, `config/world/reward.yaml`, `language_rules.yaml` |
+| #32 | 報酬で行動を選ぶ自律探索ループと選好ログ | `src/world/explore.py`, `config/world/explore.yaml` |
+| #33 | 世界設定資料（Markdown と world.json）の出力 | `src/world/render.py`, `config/world/render_labels.yaml` |
+| #34 | 新エンジンを既定にし、旧フェーズを撤去して基盤を移行 | 下記 |
 
-### ✅ CheckpointManager (`src/checkpoint_manager.py`)
-- **機能**:
-  - チェックポイント保存/読み込み
-  - 状態管理
-  - チェックポイント一覧表示
-  - クリーンアップ
-- **状態**: 完全実装
+### #34 で撤去したもの
 
-### ✅ Utilities (`src/utils.py`)
-- **機能**:
-  - 設定ファイル読み込み
-  - プロンプトテンプレート管理
-  - データ変換（YAML/JSON/Markdown）
-  - ファイルI/O
-  - ロギング設定
-- **状態**: 完全実装
+- 4 人の役割キャラクター、プロットタイプの一覧と選択、プロット・章プロット・キーワード・参考資料検索、
+  章本文（小説）と参考資料の生成。
+- 入力を固定形に整形する旧 `context_extraction`、固定スキーマの世界項目（events / observation / interpretation / media など）と
+  「50〜100 年後の未来シナリオ」。
+- 100 倍の願望・能力・役割リスト（キャラクター・プロット生成にだけ使われていたため）。
+- それらのプロンプト（`expansion` / `plot_generation` / `story_generation` / `world_building`）、設定セクション、テスト。
+- 旧 `Pipeline` の Phase メソッド、role 別モデル（structured / story / reference）と `--structured-model` などの引数。
+- ハードコードされたモデル一覧（`example_run.py`、`setup_check.py`、`OllamaClient` の既定モデル名）。
 
-### ✅ Pipeline (`src/pipeline.py`)
-- **機能**:
-  - 全フェーズのオーケストレーション
-  - チェックポイント統合
-  - エラーハンドリング
-  - 進捗表示
-- **状態**: 完全実装（Phase 0-6）
+### #34 で移行したもの
 
-### ✅ 実行管理・品質保証
-- **`src/run_manifest.py`**: run_seed、モデル、設定・プロンプトのハッシュ、実行状態を保存
-- **`src/validation.py`**: 生成物の構造・件数・章数・依存関係を検証
-- **`src/batch.py`**: 複数の独立した実行とバッチサマリーを提供
-- **`src/checkpoint_manager.py`**: 原子保存、gzip、破損時の有効世代へのフォールバック、世代保持
-
----
-
-## 設定ファイル
-
-### ✅ Ollama設定 (`config/ollama_config.yaml`)
-- **内容**:
-  - サーバー設定
-  - モデル設定
-  - フェーズ別パラメータ
-  - パフォーマンス最適化
-  - ログ設定
-- **状態**: 完全設定済み
-
-### ✅ プロンプトテンプレート
-- **expansion.yaml**: Phase 1用（5つのプロンプト）
-- **world_building.yaml**: Phase 2-3用（10個のプロンプト）
-- **plot_generation.yaml**: Phase 4用（6つのプロンプト）
-- **story_generation.yaml**: Phase 5-6用（11個のプロンプト）
-- **状態**: 完全実装
-
----
-
-## ドキュメント
-
-### ✅ ユーザー向け
-- **README_LOCAL.md**: 完全なユーザーガイド
-- **DESIGN_SPEC_LOCAL.md**: 技術仕様書
-- **IMPLEMENTATION_STATUS.md**: 本ファイル
-
-### ✅ 開発者向け
-- **setup_check.py**: セットアップ検証スクリプト
-- **example_run.py**: 実行例スクリプト
-- **`--runs N`**: 複数周回の一括実行
-- **`--seed`**: 実行またはバッチのseed固定
-- **tests/**: ユニットテスト
-
----
-
-## 実行環境
-
-### ✅ Jupyter Notebook
-- **ファイル**: `local-v2.0.ipynb`
-- **構成**: 10セクション（22セル）
-- **機能**:
-  - セットアップと初期化
-  - Phase 1実行
-  - 結果確認
-  - 完全パイプライン実行（オプション）
-  - チェックポイント管理
-  - クリーンアップ
-
-### ✅ コマンドライン
-- **ファイル**: `example_run.py`
-- **機能**:
-  - Phase 1のみ実行
-  - 完全パイプライン実行
-  - チェックポイントから再開
+| 対象 | 内容 |
+|---|---|
+| `example_run.py` | 新エンジンを実行。`--context-file` 必須（既定入力なし）、`--image`、`--backend`、`--model`、`--vision-model`、`--seed`、`--output-dir`、`--runs`、`--yes`、`--run-id`、予算（`--max-iterations` / `--max-minutes` / `--max-calls`）、再開（`--choice 2`）。メニューは 生成 / 再開 / 終了 |
+| `src/pipeline.py` | 生成ロジックを持たない薄いラッパー（`Pipeline.run` / `.resume`）。バックエンド/モデルの解決、パッケージ、マニフェスト、品質レポート |
+| `src/batch.py` | 同じ入力から N 個の独立した世界（各自の package と seed）、`batch_manifest.json`、`comparison.md` |
+| `src/quality.py` | 新しい世界モデルが対象。軸の被覆・スケールの深さ・報酬の分布・凡庸さ・由来・重複・探索の状態 |
+| `src/compare.py` | 世界ごとの要約と、世界同士の重複（同名・近似エンティティ・共通の固有名詞・軸の類似） |
+| `run_manifest.json` | エンジン設定、予算、seed、バックエンド/モデル、入力、停止理由、反復数、カウンタ |
+| `setup_check.py` | 新エンジンの前提（必須ファイル、エンジン設定の読み込み、バックエンド、設定中のモデル） |
+| ノートブック | `legacy/` へ移動（旧版） |
+| `examples/neo_tokyo_complete` | 旧パイプラインの出力として残し、`examples/README.md` に明記。仕組みからは参照しない |
 
 ---
 
 ## テスト
 
-### ✅ ユニットテスト
-- **test_ollama_client.py**: OllamaClient のテスト
-- **test_pipeline.py**: Pipeline のテスト
-- **test_checkpoint_manager.py / test_validation.py / test_batch.py**: 実行管理・検証のテスト
-- **実行**: `pytest tests/ -v`
-
----
-
-## Git管理
-
-### ✅ .gitignore設定
-保護される内容:
-- `output/` (すべての生成データ)
-- `*.checkpoint` (チェックポイント)
-- `logs/` (ログファイル)
-- `user_context*.yaml` (ユーザーデータ)
-- `secrets.*` (APIキー・シークレット)
-- `dev_*.ipynb` (開発用ノートブック)
-- Python標準の除外項目
-
----
-
-## API呼び出し回数
-
-| フェーズ | 呼び出し回数 | 推定時間（GPU） | 推定時間（CPU） |
-|----------|-------------|---------------|---------------|
-| Phase 0 | 1回 | 1〜2分 | 3〜5分 |
-| Phase 1 | 17回（100件リストを20件ずつ分割） | 15〜35分 | 30〜90分 |
-| Phase 2 | 1回 | 1〜2分 | 3〜5分 |
-| Phase 3 | 14回（people_listを20件ずつ分割） | 10〜20分 | 30〜50分 |
-| Phase 4 | 31回 | 30〜60分 | 1.5〜3時間 |
-| Phase 5 | 10回 | 20〜40分 | 1〜2時間 |
-| Phase 6 | 17回 | 15〜30分 | 45分〜1.5時間 |
-| **合計** | **91回** | **2〜4時間** | **5〜10時間** |
-
-Phase 1だけの目安は15〜90分、完全パイプラインの目安は2〜10時間です。
-モデル、ハードウェア、Ollamaの状態によって変動します。10回バッチは未検証です。
-
-モデル選択肢は [`README_LOCAL.md`](README_LOCAL.md) の「モデル選択肢」を参照してください。
-
----
-
-## 実行方法
-
-### クイックスタート
-
-```bash
-# 1. セットアップ確認
-python setup_check.py
-
-# 2. 依存関係インストール
-pip install -r requirements-local.txt
-
-# 3. Ollama起動（別ターミナル）
-ollama serve
-
-# 4. モデルダウンロード
-ollama pull gpt-oss:20b-q4
-
-# 5. Phase 1のみ実行（テスト）
-python example_run.py --choice 1 \
-  --context-file path/to/your_input.yaml \
-  --model gpt-oss:20b-q4 \
-  --output-dir output
-
-# 6. Jupyter Notebookで対話的に実行
-jupyter notebook
-# → local-v2.0.ipynb を開く
-```
-
-### 完全パイプライン実行
-
-```bash
-# コマンドラインから
-python example_run.py --choice 2 --yes \
-  --context-file path/to/your_input.yaml \
-  --model gpt-oss:20b \
-  --output-dir output
-
-# または、Jupyter Notebookで
-# 完全パイプラインのセルのコメントアウトを解除して実行
-```
-
----
+- 実 LLM に依存しない決定的なテスト（フェイクバックエンド、合成入力）。
+- 旧語彙（`protagonist` / `plottype` / `chapter` / `novel` など）が `src/`・`config/` に残らないことを検査
+  （`tests/test_old_phases_removed.py`）。`novelty`（新規性の検証器）は対象外。
+- 混入ガード（`tests/test_example_run.py`）：`examples/` の内容が `src/`・`config/`・テスト・ノートブック（`legacy/` を含む）に
+  入っていないことを検査。
+- CI（`.github/workflows/tests.yml`）：`pytest tests/ -q` と flake8 の致命的エラー検査。
 
 ## 既知の制限事項
 
-1. **コンテキスト長**: 32,768トークン（モデルが対応する範囲で設定）
-2. **生成トークン数**: フェーズごとに設定（最大8,192トークン。v1.2は16,000）
-3. **出力品質**: GPT-4/Claudeよりやや劣る
-4. **処理速度**: ハードウェアに依存（GPU推奨）
-5. **画像入力**: Ollamaのvision対応モデルを別途指定する必要がある
-
----
+- 実モデルでの挙動は未確認（上表）。最初は `--max-iterations 5` など小さな予算で確かめる。
+- 生成のサンプリング seed は制御しない（`--seed` は操作と対象の選択、バッチの世界ごとの seed を決める）。同じ seed でも、
+  実モデルの出力は完全には再現しない。
+- 類似度は文字 3-gram が既定。埋め込み類似度・LLM 審査は未導入（プラグイン点のみ）。
+- 旧パイプラインの出力パッケージは再開・比較・品質レポートの対象外。
 
 ## 今後の課題
 
-現状の実装・検証で未完了の改善候補は次のとおりです。
-
-- [生成結果の品質評価と評価指標の整備](https://github.com/masa-san-jp/100-times-ai-world-building/issues/14)
-- [複数世界の比較](https://github.com/masa-san-jp/100-times-ai-world-building/issues/15)
-- [クラウドLLMバックエンド](https://github.com/masa-san-jp/100-times-ai-world-building/issues/16)
-- プロンプトの継続的な改善
-- 独立した処理の並列化とメモリ使用量の監視
-- エラーメッセージとリトライ処理のさらなる改善
-- リアルタイムの進捗表示
-- Web UI（Streamlit/Gradio）の提供
-- FastAPIなどによるAPI化
-- 複数画像を含むマルチモーダル処理の拡張
-- 分散処理、ファインチューニング、データベース連携
-
----
-
-## プロジェクト統計
-
-- **Python ファイル**: 16個（実行・src・テスト）
-- **設定ファイル**: 5個（YAML）
-- **主要ドキュメント**: 6個（Markdown）
-- **テストファイル**: 5個
-- **Notebook**: 2個
-- **合計コード行数**: 4,469行（`src/` と `tests/`）
-- **プロンプトテンプレート**: 32個
-
----
-
-## 完成度
-
-```
-Phase 0: ████████████████████ 100%
-Phase 1: ████████████████████ 100%
-Phase 2: ████████████████████ 100%
-Phase 3: ████████████████████ 100%
-Phase 4: ████████████████████ 100%
-Phase 5: ████████████████████ 100%
-Phase 6: ████████████████████ 100%
-
-Overall: ████████████████████ 100% COMPLETE
-```
-
----
-
-**Status**: ✅ Ready for Production
-**Last Updated**: 2026-08-29
-**Author**: masa-jp-art
+- 実機のローカルモデル（20B 級）での長時間実行と、それに基づく設定（`generation.candidates`、しきい値など）の調整。
+- Anthropic バックエンドでの実行検証。
+- 選好ログを使った DPO などによるモデル調整（第 2 段階）。
+- 埋め込み類似度と LLM 審査の導入。

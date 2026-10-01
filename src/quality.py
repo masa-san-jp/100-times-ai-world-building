@@ -1,114 +1,118 @@
-"""Quality checks for one generated world package."""
+"""Quality checks for one generated world package.
+
+The report reads the package the engine wrote (``world/graph.json``,
+``world/world_axes.json``, ``world/preferences.jsonl``, ``run_manifest.json``)
+and judges the world on the properties the engine is meant to deliver: axis
+coverage, scale depth, reward distribution, genericity, provenance and
+internal duplication.  It never calls a model and never blocks generation.
+"""
 
 from __future__ import annotations
 
 import argparse
+import copy
 import json
-import re
-import unicodedata
 from pathlib import Path
 from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
+    Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple,
 )
 
 import yaml
 
-from .utils import load_config
-from .validation import validate_artifact, validate_text
-
-
-DEFAULT_NEAR_DUPLICATE_THRESHOLD = 0.8
-DEFAULT_MIN_CHAPTER_CHARACTERS = 2000
-CHAPTER_COUNT = 10
-END_OF_SENTENCE_CHARACTERS = set("。！？!?．.」』】〕》〉\"'”’…")
-TRAILING_SEPARATOR_LINE = re.compile(r"^[\s*＊\-－=＝#※]+$")
-
-LIST_SPECS = (
-    ("01_desire_list", "desires"),
-    ("02_ability_list", "abilities"),
-    ("03_role_list", "roles"),
-    ("18_people_list", "people"),
+from .world.graph import SCALE_RANK, SCALES, validate_graph
+from .world.textsim import (  # noqa: F401  (re-exported for callers)
+    _item_text, character_ngrams, jaccard, normalize_item,
 )
+from .world.verify import entity_text
+
+CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
+DEFAULT_QUALITY_PATH = CONFIG_DIR / "world" / "quality.yaml"
+HISTOGRAM_BINS = 5
 
 
-def _item_text(value: Any) -> str:
-    if isinstance(value, (dict, list, tuple)):
-        return json.dumps(
-            value,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-            default=str,
-        )
-    return str(value)
-
-
-def normalize_item(value: Any) -> str:
-    """Normalize one list item for duplicate detection."""
-    text = unicodedata.normalize("NFKC", _item_text(value)).lower()
-    return "".join(
-        character
-        for character in text
-        if not character.isspace()
-        and not unicodedata.category(character).startswith(("P", "S"))
-    )
-
-
-def character_ngrams(value: str, size: int = 3) -> Set[str]:
-    """Return the character n-grams used by duplicate checks."""
-    if len(value) < size:
-        return set()
-    return {
-        value[index:index + size] for index in range(len(value) - size + 1)
-    }
-
-
-def jaccard(left: Set[str], right: Set[str]) -> float:
-    """Return the Jaccard similarity of two n-gram sets."""
-    union = left | right
-    return len(left & right) / len(union) if union else 0.0
-
+# ------------------------------------------------------------- text helpers
 
 def analyze_duplicates(
-    items: Sequence[Any],
-    threshold: float = DEFAULT_NEAR_DUPLICATE_THRESHOLD,
+    items: Sequence[Any], threshold: float = 0.8,
 ) -> Dict[str, Any]:
-    """Return exact, normalized, and character 3-gram duplicate metrics."""
-    values = [_item_text(item) for item in items]
-    normalized = [normalize_item(item) for item in values]
-    exact_unique_count = len(set(values))
-    normalized_unique_count = len(set(normalized))
-
-    near_duplicate_pair_count = 0
-    for index, left in enumerate(normalized):
-        left_grams = character_ngrams(left)
-        if not left_grams:
+    """Exact, normalized and character 3-gram duplicate metrics for texts."""
+    values = [_item_text(i) for i in items]
+    normalized = [normalize_item(i) for i in values]
+    grams = [character_ngrams(n) for n in normalized]
+    near = 0
+    for i, left in enumerate(normalized):
+        if not grams[i]:
             continue
-        for right in normalized[index + 1:]:
-            if left == right:
-                continue
-            right_grams = character_ngrams(right)
-            if right_grams and jaccard(left_grams, right_grams) >= threshold:
-                near_duplicate_pair_count += 1
-
+        for j in range(i + 1, len(normalized)):
+            if left != normalized[j] and grams[j] \
+                    and jaccard(grams[i], grams[j]) >= threshold:
+                near += 1
     return {
         "item_count": len(values),
-        "exact_duplicate_count": len(values) - exact_unique_count,
-        "normalized_duplicate_count": len(values) - normalized_unique_count,
-        "near_duplicate_pair_count": near_duplicate_pair_count,
-        "exact_unique_count": exact_unique_count,
-        "normalized_unique_count": normalized_unique_count,
-        "unique_count": normalized_unique_count,
-        "valid_count": normalized_unique_count,
+        "exact_duplicate_count": len(values) - len(set(values)),
+        "normalized_duplicate_count": len(values) - len(set(normalized)),
+        "near_duplicate_pair_count": near,
     }
+
+
+# ------------------------------------------------------------------ loading
+
+def _read_json(path: Path, default: Any = None) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return default
+
+
+def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    out = []
+    for line in lines:
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(rec, dict):
+            out.append(rec)
+    return out
+
+
+def get_quality_config(
+    config: Optional[Mapping[str, Any]] = None, path: Any = None,
+) -> Dict[str, Any]:
+    """Load ``config/world/quality.yaml`` and merge ``config`` over it."""
+    cfg = yaml.safe_load(
+        Path(path or DEFAULT_QUALITY_PATH).read_text(encoding="utf-8")) or {}
+    cfg.update(copy.deepcopy(dict(config or {})))
+    if not 0.0 <= float(cfg["near_duplicate_threshold"]) <= 1.0:
+        raise ValueError("near_duplicate_threshold must be between 0 and 1")
+    if cfg["min_depth_scale"] not in SCALE_RANK:
+        raise ValueError(f"min_depth_scale must be one of {list(SCALES)}")
+    return cfg
+
+
+def load_world_package(world_dir: Any) -> Dict[str, Any]:
+    """Read the parts of a world package the reports need."""
+    root = Path(world_dir)
+    if not root.is_dir():
+        raise ValueError(f"World directory does not exist: {root}")
+    graph = _read_json(root / "world" / "graph.json")
+    if not isinstance(graph, dict):
+        raise ValueError(f"Not a world package (no world/graph.json): {root}")
+    axes = (_read_json(root / "world" / "world_axes.json", {}) or {}) \
+        .get("axes", [])
+    return {
+        "root": root, "graph": graph, "axes": axes,
+        "manifest": _read_json(root / "run_manifest.json", {}) or {},
+        "prefs": _read_jsonl(root / "world" / "preferences.jsonl"),
+    }
+
+
+def entities_of(graph: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    return [e for e in graph.get("entities", []) if isinstance(e, Mapping)]
 
 
 def _status_rank(status: str) -> int:
@@ -119,581 +123,330 @@ def _worst_status(statuses: Iterable[str]) -> str:
     return max(statuses, key=_status_rank, default="pass")
 
 
-def _load_yaml(path: Path) -> Tuple[Optional[Any], Optional[str]]:
-    try:
-        return yaml.safe_load(path.read_text(encoding="utf-8")), None
-    except OSError as exc:
-        return None, str(exc)
-    except yaml.YAMLError as exc:
-        return None, f"invalid YAML: {exc}"
+def _num(value: Any) -> Optional[float]:
+    return float(value) if isinstance(value, (int, float)) \
+        and not isinstance(value, bool) else None
 
 
-def _read_text(path: Path) -> Tuple[Optional[str], Optional[str]]:
-    try:
-        return path.read_text(encoding="utf-8"), None
-    except OSError as exc:
-        return None, str(exc)
+def _stats(values: Sequence[float]) -> Dict[str, Any]:
+    if not values:
+        return {"count": 0, "mean": None, "min": None, "max": None}
+    return {"count": len(values), "mean": round(sum(values) / len(values), 4),
+            "min": round(min(values), 4), "max": round(max(values), 4)}
 
 
-def get_quality_config(
-    config_path: str = "config/ollama_config.yaml",
-    config: Optional[Mapping[str, Any]] = None,
-) -> Dict[str, Any]:
-    loaded = dict(config) if config is not None else load_config(config_path)
-    if isinstance(loaded, dict) and "quality" in loaded:
-        quality = loaded.get("quality", {})
+# ------------------------------------------------------------------- checks
+
+def _graph_check(entities, graph, axes) -> Dict[str, Any]:
+    errors = validate_graph(graph)
+    status = "fail" if errors or not entities else "pass"
+    out = {"status": status, "entity_count": len(entities),
+           "errors": errors[:10], "error_count": len(errors)}
+    if not entities:
+        out["errors"] = ["the world has no entities"] + out["errors"]
+    return out
+
+
+def _axis_check(entities, axes, cfg) -> Dict[str, Any]:
+    minimum = int(cfg["min_axis_entities"])
+    counts = {a["id"]: 0 for a in axes}
+    for e in entities:
+        for a in set(e.get("axes") or []):
+            if a in counts:
+                counts[a] += 1
+    total_w = sum(float(a.get("weight") or 0) for a in axes)
+    used = sum(counts.values())
+    rows = []
+    for a in axes:
+        w = float(a.get("weight") or 0)
+        rows.append({
+            "id": a["id"], "name": a.get("name") or a["id"],
+            "weight": round(w, 4),
+            "weight_share": round(w / total_w, 4) if total_w else 0.0,
+            "entities": counts[a["id"]],
+            "entity_share": round(counts[a["id"]] / used, 4) if used else 0.0})
+    uncovered = [r["id"] for r in rows if r["entities"] < minimum]
+    status = "warn" if uncovered or not axes else "pass"
+    return {"status": status, "axis_count": len(axes),
+            "min_axis_entities": minimum, "uncovered_axes": uncovered,
+            "axes": rows}
+
+
+def _scale_check(entities, cfg) -> Dict[str, Any]:
+    counts = {s: 0 for s in SCALES}
+    for e in entities:
+        if e.get("scale") in counts:
+            counts[e["scale"]] += 1
+    reached = [s for s in SCALES if counts[s]]
+    target = SCALE_RANK[cfg["min_depth_scale"]]
+    need = int(cfg["min_entities_per_scale"])
+    missing = [s for s in SCALES[: target + 1] if counts[s] < need]
+    deepest = reached[-1] if reached else None
+    if not entities:
+        status = "fail"
     else:
-        quality = loaded if isinstance(loaded, dict) else {}
-    if not isinstance(quality, dict):
-        quality = {}
-    threshold = quality.get(
-        "near_duplicate_threshold", DEFAULT_NEAR_DUPLICATE_THRESHOLD
-    )
-    minimum = quality.get(
-        "min_chapter_characters",
-        quality.get("min_chapter_length", DEFAULT_MIN_CHAPTER_CHARACTERS),
-    )
-    return {
-        "near_duplicate_threshold": float(threshold),
-        "min_chapter_characters": int(minimum),
-    }
+        status = "warn" if missing else "pass"
+    return {"status": status, "counts": counts, "deepest_scale": deepest,
+            "target_scale": cfg["min_depth_scale"],
+            "min_entities_per_scale": need, "missing_scales": missing}
 
 
-def _list_quality(
-    intermediate_dir: Path,
-    threshold: float,
-) -> Dict[str, Any]:
-    lists: Dict[str, Any] = {}
-    for filename, key in LIST_SPECS:
-        path = intermediate_dir / f"{filename}.yaml"
-        if not path.is_file():
-            lists[filename] = {
-                "status": "fail",
-                "items": 0,
-                "errors": [f"missing file: {path.name}"],
-            }
-            continue
-
-        data, error = _load_yaml(path)
-        if error:
-            lists[filename] = {
-                "status": "fail",
-                "items": 0,
-                "errors": [error],
-            }
-            continue
-        items = data.get(key) if isinstance(data, dict) else None
-        if not isinstance(items, list):
-            lists[filename] = {
-                "status": "fail",
-                "items": 0,
-                "errors": [f"{key} must be a list"],
-            }
-            continue
-
-        metrics = analyze_duplicates(items, threshold=threshold)
-        status = (
-            "warn"
-            if any(
-                metrics[field] > 0
-                for field in (
-                    "exact_duplicate_count",
-                    "normalized_duplicate_count",
-                    "near_duplicate_pair_count",
-                )
-            )
-            else "pass"
-        )
-        lists[filename] = {"status": status, **metrics}
-
-    return {
-        "status": _worst_status(entry["status"] for entry in lists.values()),
-        "threshold": threshold,
-        "lists": lists,
-    }
+def _reward_check(entities, cfg) -> Dict[str, Any]:
+    rewards = [v for v in (_num((e.get("scores") or {}).get("reward"))
+                           for e in entities) if v is not None]
+    unscored = [e["id"] for e in entities
+                if _num((e.get("scores") or {}).get("reward")) is None]
+    by_verifier: Dict[str, List[float]] = {}
+    for e in entities:
+        for k, v in (e.get("scores") or {}).items():
+            n = _num(v)
+            if n is not None and k != "reward":
+                by_verifier.setdefault(k, []).append(n)
+    bins = [0] * HISTOGRAM_BINS
+    for v in rewards:
+        bins[min(HISTOGRAM_BINS - 1, max(0, int(v * HISTOGRAM_BINS)))] += 1
+    low = [e["id"] for e, v in ((e, _num((e.get("scores") or {}).get("reward")))
+                                for e in entities)
+           if v is not None and v < float(cfg["low_reward_threshold"])]
+    n = len(entities) or 1
+    warnings = []
+    stats = _stats(rewards)
+    if stats["mean"] is not None and stats["mean"] < float(cfg["min_reward"]):
+        warnings.append(f"mean reward {stats['mean']:.3f} is below "
+                        f"{float(cfg['min_reward']):.2f}")
+    if len(low) / n > float(cfg["max_low_reward_share"]):
+        warnings.append(f"{len(low)} of {len(entities)} entities are "
+                        "below the low-reward threshold")
+    if len(unscored) / n > float(cfg["max_unscored_share"]):
+        warnings.append(f"{len(unscored)} entities carry no reward")
+    return {"status": "warn" if warnings else "pass", "reward": stats,
+            "histogram": bins, "low_reward_entities": low,
+            "unscored_entities": unscored,
+            "verifiers": {k: _stats(v) for k, v in sorted(by_verifier.items())},
+            "warnings": warnings}
 
 
-def _plot_path(world_dir: Path, chapter_number: int) -> Path:
-    filename = f"{20 + chapter_number:02d}_plot_{chapter_number}.yaml"
-    return world_dir / "intermediate" / filename
+def _genericity_check(entities, prefs, cfg) -> Dict[str, Any]:
+    threshold = float(cfg["genericity_threshold"])
+    scores = [(e["id"], _num((e.get("scores") or {}).get("genericity")))
+              for e in entities]
+    scored = [(i, v) for i, v in scores if v is not None]
+    generic = [i for i, v in scored if v < threshold]
+    rejected = [r for r in prefs if r.get("type") == "candidate"
+                and r.get("decision") == "rejected"
+                and "genericity" in ((r.get("result") or {}).get("failed")
+                                     or [])]
+    warnings = []
+    if scored and len(generic) / len(scored) > float(cfg["max_generic_share"]):
+        warnings.append(f"{len(generic)} of {len(scored)} scored entities "
+                        "are close to the no-input contrast")
+    return {"status": "warn" if warnings else "pass",
+            "genericity": _stats([v for _, v in scored]),
+            "threshold": threshold, "generic_entities": generic,
+            "candidates_rejected_as_generic": len(rejected),
+            "warnings": warnings}
 
 
-def _novel_path(world_dir: Path, chapter_number: int) -> Path:
-    filename = f"chapter_{chapter_number:02d}.txt"
-    final_path = world_dir / "final" / "novels" / filename
-    if final_path.is_file():
-        return final_path
-    legacy_path = world_dir / "novels" / f"chapter_{chapter_number:02d}.txt"
-    return legacy_path if legacy_path.is_file() else final_path
+def _provenance_check(entities) -> Dict[str, Any]:
+    ungrounded = []
+    for e in entities:
+        p = e.get("provenance") or {}
+        if not (p.get("statement_ids") or p.get("derived_from")
+                or str(p.get("reason") or "").strip()):
+            ungrounded.append(e["id"])
+    return {"status": "warn" if ungrounded else "pass",
+            "ungrounded_entities": ungrounded}
 
 
-def _character_name_variants(name: str) -> List[str]:
-    variants = [name.strip()]
-    without_annotation = re.sub(
-        r"\s*[（(][^（）()]*[）)]\s*$", "", name
-    ).strip()
-    if without_annotation and without_annotation not in variants:
-        variants.append(without_annotation)
-        variants.extend(
-            part
-            for part in re.split(r"[・･＝=\s]+", without_annotation)
-            if len(part) >= 2 and part not in variants
-        )
-    return variants
+def _duplicate_check(entities, cfg) -> Dict[str, Any]:
+    threshold = float(cfg["near_duplicate_threshold"])
+    metrics = analyze_duplicates(
+        [entity_text(e) for e in entities], threshold)
+    names = analyze_duplicates([str(e.get("name") or "") for e in entities],
+                               threshold)
+    dup = (metrics["exact_duplicate_count"]
+           + metrics["normalized_duplicate_count"]
+           + metrics["near_duplicate_pair_count"]
+           + names["normalized_duplicate_count"])
+    return {"status": "warn" if dup else "pass", "threshold": threshold,
+            "entities": metrics, "names": names}
 
 
-def _contains_character(text: str, name: str) -> bool:
-    folded_text = text.casefold()
-    return any(
-        variant.casefold() in folded_text
-        for variant in _character_name_variants(name)
-    )
-
-
-def _character_quality(world_dir: Path) -> Dict[str, Any]:
-    path = world_dir / "intermediate" / "06_characters_list.yaml"
-    if not path.is_file():
-        return {
-            "status": "fail",
-            "characters": [],
-            "unseen_in_plot": [],
-            "unseen_in_novel": [],
-            "errors": [f"missing file: {path.name}"],
-        }
-
-    data, error = _load_yaml(path)
-    if error:
-        return {
-            "status": "fail",
-            "characters": [],
-            "unseen_in_plot": [],
-            "unseen_in_novel": [],
-            "errors": [error],
-        }
-    characters = data.get("characters") if isinstance(data, dict) else None
-    if not isinstance(characters, list):
-        return {
-            "status": "fail",
-            "characters": [],
-            "unseen_in_plot": [],
-            "unseen_in_novel": [],
-            "errors": ["characters must be a list"],
-        }
-
-    plot_texts: Dict[int, str] = {}
-    novel_texts: Dict[int, str] = {}
-    errors: List[str] = []
-    for chapter_number in range(1, CHAPTER_COUNT + 1):
-        plot_path = _plot_path(world_dir, chapter_number)
-        novel_path = _novel_path(world_dir, chapter_number)
-        plot_text, plot_error = _read_text(plot_path)
-        novel_text, novel_error = _read_text(novel_path)
-        if plot_error is None and plot_text is not None:
-            plot_texts[chapter_number] = plot_text
-        if novel_error is None and novel_text is not None:
-            novel_texts[chapter_number] = novel_text
-
-    results: List[Dict[str, Any]] = []
-    unseen_in_plot: List[str] = []
-    unseen_in_novel: List[str] = []
-    for character in characters:
-        if not isinstance(character, dict) or not character.get("name"):
-            errors.append("each character must have a name")
-            continue
-        name = str(character["name"])
-        plot_chapters = [
-            chapter
-            for chapter, text in plot_texts.items()
-            if _contains_character(text, name)
-        ]
-        novel_chapters = [
-            chapter
-            for chapter, text in novel_texts.items()
-            if _contains_character(text, name)
-        ]
-        character_status = (
-            "pass" if plot_chapters and novel_chapters else "warn"
-        )
-        if not plot_chapters:
-            unseen_in_plot.append(name)
-        if not novel_chapters:
-            unseen_in_novel.append(name)
-        results.append(
-            {
-                "name": name,
-                "plot_chapters": plot_chapters,
-                "novel_chapters": novel_chapters,
-                "plot_chapter_count": len(plot_chapters),
-                "novel_chapter_count": len(novel_chapters),
-                "status": character_status,
-            }
-        )
-
-    statuses = [entry["status"] for entry in results]
-    if errors:
-        statuses.append("fail")
-    return {
-        "status": _worst_status(statuses),
-        "characters": results,
-        "unseen_in_plot": unseen_in_plot,
-        "unseen_in_novel": unseen_in_novel,
-        "errors": errors,
-    }
-
-
-def _last_content_character(text: str) -> Optional[str]:
-    lines = text.splitlines()
-    while lines:
-        line = lines[-1]
-        if not line.strip() or TRAILING_SEPARATOR_LINE.fullmatch(line):
-            lines.pop()
-            continue
-        return line.rstrip()[-1] if line.rstrip() else None
-    return None
-
-
-def _novel_quality(world_dir: Path, minimum: int) -> Dict[str, Any]:
-    chapters: Dict[str, Any] = {}
-    errors: List[str] = []
-    existing_lengths: List[int] = []
-
-    for chapter_number in range(1, CHAPTER_COUNT + 1):
-        path = _novel_path(world_dir, chapter_number)
-        chapter_key = f"{chapter_number:02d}"
-        if not path.is_file():
-            chapters[chapter_key] = {
-                "status": "fail",
-                "character_count": 0,
-                "errors": [f"missing file: {path.name}"],
-            }
-            errors.append(f"chapter {chapter_number}: missing file")
-            continue
-
-        text, error = _read_text(path)
-        if error or text is None:
-            message = error or "could not read text"
-            chapters[chapter_key] = {
-                "status": "fail",
-                "character_count": 0,
-                "errors": [message],
-            }
-            errors.append(f"chapter {chapter_number}: {message}")
-            continue
-
-        character_count = len(text)
-        existing_lengths.append(character_count)
-        chapter_errors = validate_text(text)
-        warnings: List[str] = []
-        if character_count < minimum:
-            warnings.append(f"below minimum character count ({minimum})")
-        if _last_content_character(text) not in END_OF_SENTENCE_CHARACTERS:
-            warnings.append("ending does not look like a sentence ending")
-        if chapter_errors:
-            errors.extend(
-                f"chapter {chapter_number}: {message}"
-                for message in chapter_errors
-            )
-        status = "fail" if chapter_errors else "warn" if warnings else "pass"
-        chapters[chapter_key] = {
-            "status": status,
-            "character_count": character_count,
-            "warnings": warnings,
-            "errors": chapter_errors,
-        }
-
-    summary = {
-        "chapter_count": len(existing_lengths),
-        "min_character_count": (
-            min(existing_lengths) if existing_lengths else None
-        ),
-        "max_character_count": (
-            max(existing_lengths) if existing_lengths else None
-        ),
-        "average_character_count": (
-            sum(existing_lengths) / len(existing_lengths)
-            if existing_lengths
-            else None
-        ),
-        "below_minimum_chapters": [
-            chapter
-            for chapter, result in chapters.items()
-            if "below minimum character count"
-            in " ".join(result.get("warnings", []))
-        ],
-        "truncated_suspected_chapters": [
-            chapter
-            for chapter, result in chapters.items()
-            if "ending does not look like a sentence ending"
-            in " ".join(result.get("warnings", []))
-        ],
-    }
-    statuses = [result["status"] for result in chapters.values()]
-    return {
-        "status": _worst_status(statuses),
-        "minimum_character_count": minimum,
-        "chapters": chapters,
-        "summary": summary,
-        "errors": errors,
-    }
-
-
-def _chapter_structure_quality(world_dir: Path) -> Dict[str, Any]:
-    chapters: Dict[str, Any] = {}
-    for chapter_number in range(1, CHAPTER_COUNT + 1):
-        chapter_key = f"{chapter_number:02d}"
-        plot_path = _plot_path(world_dir, chapter_number)
-        novel_path = _novel_path(world_dir, chapter_number)
-        errors: List[str] = []
-
-        if not plot_path.is_file():
-            errors.append(f"missing plot: {plot_path.name}")
-        else:
-            plot_data, plot_error = _load_yaml(plot_path)
-            if plot_error:
-                errors.append(f"plot: {plot_error}")
-            else:
-                errors.extend(
-                    f"plot: {message}"
-                    for message in validate_artifact(
-                        "plot_chapter",
-                        plot_data,
-                        chapter_number=chapter_number,
-                    )
-                )
-
-        if not novel_path.is_file():
-            errors.append(f"missing novel: {novel_path.name}")
-        else:
-            novel_text, novel_error = _read_text(novel_path)
-            if novel_error:
-                errors.append(f"novel: {novel_error}")
-            else:
-                errors.extend(
-                    f"novel: {message}"
-                    for message in validate_text(novel_text)
-                )
-
-        chapters[chapter_key] = {
-            "status": "fail" if errors else "pass",
-            "plot_present": plot_path.is_file(),
-            "novel_present": novel_path.is_file(),
-            "errors": errors,
-        }
-
-    return {
-        "status": _worst_status(
-            entry["status"] for entry in chapters.values()
-        ),
-        "expected_chapter_count": CHAPTER_COUNT,
-        "plot_chapter_count": sum(
-            entry["plot_present"] for entry in chapters.values()
-        ),
-        "novel_chapter_count": sum(
-            entry["novel_present"] for entry in chapters.values()
-        ),
-        "chapters": chapters,
-    }
+def _exploration_check(manifest, prefs) -> Dict[str, Any]:
+    explore = manifest.get("world_explore") or {}
+    stop = manifest.get("stop_reason") or explore.get("stop_reason")
+    counters = manifest.get("counters") or explore.get("counters") or {}
+    status = "pass"
+    notes = []
+    if manifest.get("status") == "failed":
+        status = "fail"
+        notes.append(f"run failed: {manifest.get('error', 'unknown error')}")
+    elif not stop:
+        status = "warn"
+        notes.append("no stop reason recorded (the run may be unfinished)")
+    iterations = [r for r in prefs if r.get("type") == "iteration"]
+    accepted = sum(1 for r in iterations if r.get("outcome") == "accepted")
+    return {"status": status, "run_status": manifest.get("status"),
+            "stop_reason": stop,
+            "iterations": manifest.get("iterations",
+                                       explore.get("iteration", 0)),
+            "counters": counters, "logged_iterations": len(iterations),
+            "accepted_iterations": accepted, "notes": notes}
 
 
 def generate_quality_report(
-    world_dir: Path,
-    config_path: str = "config/ollama_config.yaml",
-    config: Optional[Mapping[str, Any]] = None,
+    world_dir: Any, config: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Generate a quality report without external APIs."""
-    world_path = Path(world_dir)
-    if not world_path.is_dir():
-        raise ValueError(f"World directory does not exist: {world_path}")
-
-    quality_config = get_quality_config(config_path=config_path, config=config)
-    threshold = quality_config["near_duplicate_threshold"]
-    if not 0.0 <= threshold <= 1.0:
-        raise ValueError(
-            "quality.near_duplicate_threshold must be between 0 and 1"
-        )
-    minimum = quality_config["min_chapter_characters"]
-    if minimum < 0:
-        raise ValueError("quality.min_chapter_characters must not be negative")
-
+    """Generate a quality report for one world package (no external calls)."""
+    pkg = load_world_package(world_dir)
+    cfg = get_quality_config(config)
+    ents = entities_of(pkg["graph"])
     checks = {
-        "duplicates": _list_quality(world_path / "intermediate", threshold),
-        "character_consistency": _character_quality(world_path),
-        "novel_text": _novel_quality(world_path, minimum),
-        "chapter_structure": _chapter_structure_quality(world_path),
+        "graph": _graph_check(ents, pkg["graph"], pkg["axes"]),
+        "axis_coverage": _axis_check(ents, pkg["axes"], cfg),
+        "scale_depth": _scale_check(ents, cfg),
+        "reward_distribution": _reward_check(ents, cfg),
+        "genericity": _genericity_check(ents, pkg["prefs"], cfg),
+        "provenance": _provenance_check(ents),
+        "duplicates": _duplicate_check(ents, cfg),
+        "exploration": _exploration_check(pkg["manifest"], pkg["prefs"]),
     }
-    status = _worst_status(check["status"] for check in checks.values())
-    return {
-        "world_dir": str(world_path),
-        "status": status,
-        "overall_status": status,
-        "config": quality_config,
-        "checks": checks,
-    }
+    status = _worst_status(c["status"] for c in checks.values())
+    return {"world_dir": str(pkg["root"]), "status": status,
+            "overall_status": status, "config": cfg, "checks": checks}
+
+
+# ----------------------------------------------------------------- Markdown
+
+def _fmt(value: Optional[float]) -> str:
+    return "-" if value is None else f"{value:.3f}"
 
 
 def render_markdown(report: Mapping[str, Any]) -> str:
     """Render a compact human-readable Markdown report."""
-    checks = report["checks"]
-    lines = [
-        "# Quality Report",
-        "",
-        f"- World: `{report['world_dir']}`",
-        f"- Overall: **{str(report['status']).upper()}**",
-        "",
-        "## Summary",
-        "",
-    ]
-    for key, check in checks.items():
+    c = report["checks"]
+    lines = ["# Quality Report", "",
+             f"- World: `{report['world_dir']}`",
+             f"- Overall: **{str(report['status']).upper()}**", "",
+             "## Summary", ""]
+    for key, check in c.items():
         lines.append(f"- {key}: **{str(check['status']).upper()}**")
 
-    duplicates = checks["duplicates"]
-    lines.extend(["", "## 1. 100-item list duplicates", ""])
-    for filename, result in duplicates["lists"].items():
-        if result["status"] == "fail":
-            lines.append(
-                f"- `{filename}`: **FAIL** — {'; '.join(result['errors'])}"
-            )
-            continue
-        lines.append(
-            f"- `{filename}`: {result['status']} — "
-            f"items={result['item_count']}, "
-            f"exact_duplicates={result['exact_duplicate_count']}, "
-            f"normalized_duplicates={result['normalized_duplicate_count']}, "
-            f"near_pairs={result['near_duplicate_pair_count']}, "
-            f"unique={result['unique_count']}"
-        )
+    g = c["graph"]
+    lines += ["", "## 1. Graph", "", f"- Entities: {g['entity_count']}",
+              f"- Validation errors: {g['error_count']}"]
+    lines += [f"  - {e}" for e in g["errors"]]
 
-    characters = checks["character_consistency"]
-    lines.extend(["", "## 2. Character consistency", ""])
-    for character in characters["characters"]:
-        lines.append(
-            f"- `{character['name']}`: {character['status']} — "
-            f"plot chapters={character['plot_chapters']}, "
-            f"novel chapters={character['novel_chapters']}"
-        )
-    if characters.get("unseen_in_plot"):
-        names = "、".join(characters["unseen_in_plot"])
-        lines.append(
-            "- 章プロットに主要キャラクター名が1件も見つからない"
-            f"（{names}）: 章プロットとキャラクター一覧の名前が一致していない可能性"
-        )
-    for error in characters.get("errors", []):
-        lines.append(f"- **Error:** {error}")
+    a = c["axis_coverage"]
+    lines += ["", "## 2. Axis coverage", "",
+              f"- Axes: {a['axis_count']} (each should own at least "
+              f"{a['min_axis_entities']} entities)",
+              f"- Uncovered: {', '.join(a['uncovered_axes']) or 'none'}", "",
+              "| axis | weight share | entities | entity share |",
+              "| --- | --- | --- | --- |"]
+    for r in a["axes"]:
+        lines.append(f"| {r['name']} | {r['weight_share']:.1%} | "
+                     f"{r['entities']} | {r['entity_share']:.1%} |")
 
-    novels = checks["novel_text"]
-    summary = novels["summary"]
-    lines.extend(
-        [
-            "",
-            "## 3. Novel text",
-            "",
-            f"- Character counts: min={summary['min_character_count']}, "
-            f"max={summary['max_character_count']}, "
-            f"average={summary['average_character_count']}",
-            f"- Below minimum: `{summary['below_minimum_chapters']}`",
-            f"- Truncation suspected: "
-            f"`{summary['truncated_suspected_chapters']}`",
-        ]
-    )
-    for chapter, result in novels["chapters"].items():
-        warnings = "; ".join(result.get("warnings", []))
-        suffix = f" — {warnings}" if warnings else ""
-        lines.append(
-            f"- chapter_{chapter}: {result['status']}, "
-            f"{result['character_count']} characters{suffix}"
-        )
+    s = c["scale_depth"]
+    lines += ["", "## 3. Scale depth", "",
+              f"- Deepest scale reached: {s['deepest_scale'] or 'none'} "
+              f"(target: {s['target_scale']})",
+              f"- Scales below the minimum: "
+              f"{', '.join(s['missing_scales']) or 'none'}", "",
+              "| scale | entities |", "| --- | --- |"]
+    lines += [f"| {k} | {v} |" for k, v in s["counts"].items()]
 
-    structure = checks["chapter_structure"]
-    lines.extend(
-        [
-            "",
-            "## 4. Chapter structure",
-            "",
-            f"- Plot chapters: {structure['plot_chapter_count']}/"
-            f"{structure['expected_chapter_count']}",
-            f"- Novel chapters: {structure['novel_chapter_count']}/"
-            f"{structure['expected_chapter_count']}",
-        ]
-    )
-    for chapter, result in structure["chapters"].items():
-        if result["errors"]:
-            lines.append(
-                f"- chapter_{chapter}: **FAIL** — "
-                f"{'; '.join(result['errors'])}"
-            )
+    r = c["reward_distribution"]
+    lines += ["", "## 4. Reward distribution", "",
+              f"- Reward: mean {_fmt(r['reward']['mean'])}, "
+              f"min {_fmt(r['reward']['min'])}, max {_fmt(r['reward']['max'])} "
+              f"over {r['reward']['count']} entities",
+              f"- Low-reward entities: {len(r['low_reward_entities'])}",
+              f"- Unscored entities: {len(r['unscored_entities'])}"]
+    for i, n in enumerate(r["histogram"]):
+        lines.append(f"- {i / HISTOGRAM_BINS:.1f} - "
+                     f"{(i + 1) / HISTOGRAM_BINS:.1f}: {n}")
+    for name, st in r["verifiers"].items():
+        lines.append(f"- {name}: mean {_fmt(st['mean'])} "
+                     f"(min {_fmt(st['min'])})")
+    lines += [f"- Warning: {w}" for w in r["warnings"]]
 
+    gen = c["genericity"]
+    lines += ["", "## 5. Genericity", "",
+              f"- Mean genericity score: {_fmt(gen['genericity']['mean'])} "
+              f"(threshold {gen['threshold']})",
+              f"- Entities below threshold: {len(gen['generic_entities'])}",
+              f"- Candidates rejected as generic: "
+              f"{gen['candidates_rejected_as_generic']}"]
+    lines += [f"- Warning: {w}" for w in gen["warnings"]]
+
+    p = c["provenance"]
+    lines += ["", "## 6. Provenance", "",
+              f"- Entities without any grounding: "
+              f"{', '.join(p['ungrounded_entities']) or 'none'}"]
+
+    d = c["duplicates"]
+    lines += ["", "## 7. Duplicates", "",
+              f"- Entity texts: exact={d['entities']['exact_duplicate_count']}, "
+              f"normalized={d['entities']['normalized_duplicate_count']}, "
+              f"near pairs={d['entities']['near_duplicate_pair_count']}",
+              f"- Repeated names: {d['names']['normalized_duplicate_count']}"]
+
+    x = c["exploration"]
+    lines += ["", "## 8. Exploration", "",
+              f"- Run status: {x['run_status']}",
+              f"- Stop reason: {x['stop_reason']}",
+              f"- Iterations: {x['iterations']} "
+              f"(accepted {x['accepted_iterations']} of "
+              f"{x['logged_iterations']} logged)"]
+    lines += [f"- Note: {n}" for n in x["notes"]]
     return "\n".join(lines) + "\n"
 
 
 def write_quality_reports(
-    world_dir: Path,
-    report: Mapping[str, Any],
+    world_dir: Any, report: Mapping[str, Any],
 ) -> Tuple[Path, Path]:
     """Write JSON and Markdown reports and return their paths."""
-    world_path = Path(world_dir)
-    json_path = world_path / "quality_report.json"
-    markdown_path = world_path / "quality_report.md"
+    root = Path(world_dir)
+    json_path = root / "quality_report.json"
+    md_path = root / "quality_report.md"
     json_path.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    markdown_path.write_text(render_markdown(report), encoding="utf-8")
-    return json_path, markdown_path
+        encoding="utf-8")
+    md_path.write_text(render_markdown(report), encoding="utf-8")
+    return json_path, md_path
 
 
 def create_quality_reports(
-    world_dir: Path,
-    config_path: str = "config/ollama_config.yaml",
-    config: Optional[Mapping[str, Any]] = None,
+    world_dir: Any, config: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[Dict[str, Any], Path, Path]:
     """Generate and write both quality report formats."""
-    report = generate_quality_report(
-        world_dir, config_path=config_path, config=config
-    )
-    json_path, markdown_path = write_quality_reports(world_dir, report)
-    return report, json_path, markdown_path
-
-
-def _summary_text(
-    report: Mapping[str, Any], json_path: Path, markdown_path: Path
-) -> str:
-    checks = report["checks"]
-    lines = [f"Quality: {str(report['status']).upper()}"]
-    lines.extend(
-        f"- {name}: {str(check['status']).upper()}"
-        for name, check in checks.items()
-    )
-    lines.append(f"JSON: {json_path}")
-    lines.append(f"Markdown: {markdown_path}")
-    return "\n".join(lines)
+    report = generate_quality_report(world_dir, config=config)
+    json_path, md_path = write_quality_reports(world_dir, report)
+    return report, json_path, md_path
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Generate a world package quality report"
-    )
+        description="Generate a world package quality report")
     parser.add_argument("world_dir", type=Path)
-    parser.add_argument(
-        "--json", action="store_true", help="print the full JSON report"
-    )
-    parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="return exit code 1 when the overall status is fail",
-    )
+    parser.add_argument("--json", action="store_true",
+                        help="print the full JSON report")
+    parser.add_argument("--strict", action="store_true",
+                        help="exit 1 when the overall status is fail")
     args = parser.parse_args(argv)
-
     try:
-        report, json_path, markdown_path = create_quality_reports(
-            args.world_dir
-        )
+        report, json_path, md_path = create_quality_reports(args.world_dir)
     except (OSError, ValueError, TypeError, yaml.YAMLError) as exc:
         parser.error(str(exc))
-
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
-        print(_summary_text(report, json_path, markdown_path))
+        print(f"Quality: {str(report['status']).upper()}")
+        for name, check in report["checks"].items():
+            print(f"- {name}: {str(check['status']).upper()}")
+        print(f"JSON: {json_path}\nMarkdown: {md_path}")
     return 1 if args.strict and report["status"] == "fail" else 0
 
 

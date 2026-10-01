@@ -23,7 +23,7 @@ class OllamaClient(LLMBackend):
         self,
         host: str = "http://localhost",
         port: int = 11434,
-        model: str = "gpt-oss:20b",
+        model: Optional[str] = None,
         timeout: int = 300,
         max_retries: int = 3,
         retry_delay: int = 5,
@@ -34,7 +34,7 @@ class OllamaClient(LLMBackend):
         Args:
             host: Ollama server host
             port: Ollama server port
-            model: Model name to use
+            model: Model name to use (taken from the configuration; no default)
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries on failure
             retry_delay: Delay between retries in seconds
@@ -318,7 +318,7 @@ class OllamaClient(LLMBackend):
         if parsed is not None:
             return parsed
 
-        # Some local reasoning models (notably gpt-oss releases) may accept
+        # Some local reasoning models may accept
         # ``format=json`` but return their planning text instead of a JSON
         # document. Preserve the configured structured-format request above,
         # then make one explicit compatibility fallback. The same kwargs,
@@ -391,7 +391,7 @@ class OllamaClient(LLMBackend):
         **kwargs,
     ) -> Optional[str]:
         """
-        Generate free-form text (for novels, references)
+        Generate free-form text (descriptions, documents)
 
         Args:
             prompt: Input prompt
@@ -431,7 +431,7 @@ class OllamaClient(LLMBackend):
 
         Ollama reports ``done_reason=length`` when a response reaches
         ``num_predict``.  Only then is a continuation requested, so normal
-        short chapters still use a single call.
+        short outputs still use a single call.
         """
         resolve_seed = seed_factory or (lambda _index: seed)
         first = self.generate_text(

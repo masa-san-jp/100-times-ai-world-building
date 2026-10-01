@@ -1,0 +1,13 @@
+# Thresholds for the post-run quality report (src/quality.py) and the
+# cross-world comparison (src/compare.py). They never block generation.
+near_duplicate_threshold: 0.8   # character 3-gram Jaccard at/above this = near duplicate
+min_axis_entities: 1            # every axis should own at least this many entities
+min_depth_scale: detail         # the world should reach this scale (finest = detail)
+min_entities_per_scale: 1       # every scale down to min_depth_scale should hold this many
+min_reward: 0.6                 # mean stored reward should be at least this
+low_reward_threshold: 0.5       # an entity below this reward counts as low
+max_low_reward_share: 0.3       # warn when more entities than this share are low
+genericity_threshold: 0.5       # an entity below this genericity score counts as generic
+max_generic_share: 0.2          # warn when more entities than this share are generic
+max_unscored_share: 0.0         # warn when more entities than this share carry no score
+cross_world_overlap_warn: 0.5   # warn when two worlds' entity overlap reaches this

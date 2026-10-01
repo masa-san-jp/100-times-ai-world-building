@@ -23,7 +23,7 @@ from typing import (
 
 import yaml
 
-from ..quality import character_ngrams, jaccard, normalize_item
+from .textsim import character_ngrams, jaccard, normalize_item
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
 
