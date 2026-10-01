@@ -123,7 +123,11 @@ def test_contrast_provider_strips_input_and_caches(tmp_path):
 
 def test_reward_genericity_uses_contrast_provider():
     calls = []
-    rv = RewardVerifier(contrasts=ContrastProvider(contrast_runner(calls), n=1))
+    # The no-input contrast is demoted by default (contrast_weight 0.5);
+    # at full weight an exact copy of the prior still scores near zero.
+    rv = RewardVerifier(
+        load_reward_config(overrides={"genericity": {"contrast_weight": 1.0}}),
+        contrasts=ContrastProvider(contrast_runner(calls), n=1))
     g = graph()
     dull = cand(name="Central Guild", summary=CONTRAST["summary"],
                 facts=[{"kind": "proper_noun", "text": "Guild Hall"},
@@ -341,8 +345,12 @@ def test_reward_structure_weights_and_storage():
     rv = RewardVerifier()
     c = cand()
     res = rv.verify(g, c, brief=BRIEF)
-    assert res.skipped == ["genericity"]
-    assert set(res.scores) == set(VERIFIERS) - {"genericity"}
+    # Without a contrast provider genericity still runs: it measures
+    # restatement of the brief and local context.  It is skipped only when
+    # there is nothing at all to compare against.
+    assert res.skipped == []
+    assert set(res.scores) == set(VERIFIERS)
+    assert verify_genericity(c, []).skipped
     assert 0.0 <= res.reward <= 1.0 and res.passed and not res.failed
     assert c["entity"]["scores"]["reward"] == round(res.reward, 4)
     assert c["entity"]["scores"]["novelty"] == round(res.scores["novelty"], 4)

@@ -1,0 +1,10 @@
+# Language names used in generation prompts, keyed by language code (the codes
+# come from guess_language or from an explicit setting). A code that is absent
+# is written as the code itself; "und" (unknown) means "the input's language".
+und: the same language as the source material
+en: English
+ja: Japanese
+ko: Korean
+zh: Chinese
+ru: Russian
+ar: Arabic

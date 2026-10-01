@@ -6,6 +6,10 @@ world_axes:
     the supplied brief. Return JSON only. Do not add facts.
 
   user: |
+    OUTPUT LANGUAGE: write every name, meaning and reason in {language_name}
+    (language code "{language}"). Do not mix in other languages. Keep ids and
+    the domain field exactly as given.
+
     BRIEF STATEMENTS (id: text):
     {statements}
 

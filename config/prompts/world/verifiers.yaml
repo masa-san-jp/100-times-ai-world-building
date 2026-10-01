@@ -13,7 +13,7 @@ common:
     CANDIDATE:
     {candidate}
 
-    CONTEXT (existing entities; may be empty):
+    CONTEXT (existing entities, or the input statements for specificity; may be empty):
     {context}
 
     Return {{"score": <number from 0 to 1, 1 is best>,
@@ -23,7 +23,14 @@ criteria:
   specificity: |
     Does the candidate give proper nouns, numbers, periods, mechanisms and
     physical objects, instead of abstract words only? Low score when it
-    stays vague.
+    stays vague. Judge the substance of each fact, not only its label:
+    a "proper_noun" fact that is a common noun, a category name, or a name
+    merely assembled from words of the input statements is hollow; a
+    "number" fact that is only a count of members or parts (for example a
+    number followed by a counter word) is hollow unless it is a measured
+    quantity, ratio or period tied to a named thing; a summary that only
+    restates the input statements adds nothing. List each hollow fact as
+    an issue with its field.
   consistency: |
     Does any statement of the candidate contradict a fact in CONTEXT
     (numbers, periods, locations, membership, cause and effect)? Low score

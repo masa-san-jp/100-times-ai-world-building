@@ -25,7 +25,7 @@ import yaml
 
 from .verify import (
     ContrastProvider, Deduction, LLMJudge, Similarity, VerifierResult,
-    language_of, load_language_rules, verify_consistency, verify_genericity,
+    language_of, load_language_rules, reference_text, verify_consistency, verify_genericity,
     verify_novelty, verify_objectivity, verify_provenance, verify_specificity,
 )
 
@@ -98,23 +98,31 @@ class RewardVerifier:
         brief: Optional[Mapping[str, Any]] = None,
         axes: Optional[Sequence[Mapping[str, Any]]] = None,
         store: bool = True,
+        siblings: Optional[Sequence[Mapping[str, Any]]] = None,
     ) -> VerificationResult:
+        """Score one candidate.
+
+        ``siblings`` are the other independent candidates generated for the
+        same slot; wording they share with the candidate counts as the
+        model's default (genericity).
+        """
         cfg, lang = self.config, language_of(graph)
         results: Dict[str, VerifierResult] = {}
 
+        reference = reference_text(graph, candidate.get("target"), brief)
+        gcfg = cfg.get("genericity", {})
+        contrast: Sequence[Mapping[str, Any]] = []
         if self.contrasts is not None:
-            gcfg = cfg.get("genericity", {})
             contrast = self.contrasts.get(
                 candidate["operator"], graph, candidate.get("target"))
-            results["genericity"] = verify_genericity(
-                candidate, contrast, self.similarity, gcfg)
-        else:
-            results["genericity"] = VerifierResult(
-                "genericity", 1.0, [], skipped=True)
+        results["genericity"] = verify_genericity(
+            candidate, contrast, self.similarity, gcfg,
+            siblings=siblings, reference=reference)
         results["provenance"] = verify_provenance(
             candidate, graph, brief, cfg.get("provenance"))
         results["specificity"] = verify_specificity(
-            candidate, lang, self.rules, cfg.get("specificity"))
+            candidate, lang, self.rules, cfg.get("specificity"),
+            reference=reference)
         results["consistency"] = verify_consistency(
             candidate, graph, axes, brief, cfg.get("consistency"))
         results["objectivity"] = verify_objectivity(
@@ -124,7 +132,7 @@ class RewardVerifier:
 
         if self.judge is not None:
             for name in cfg.get("llm_judges") or []:
-                extra = self.judge.judge(name, candidate, graph) \
+                extra = self.judge.judge(name, candidate, graph, brief) \
                     if name in results else None
                 if extra:
                     r = results[name]

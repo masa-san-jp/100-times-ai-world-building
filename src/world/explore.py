@@ -107,11 +107,44 @@ def axis_consumption(
     return used
 
 
+def scale_needs(
+    graph: Mapping[str, Any], cfg: Mapping[str, Any],
+) -> Dict[str, float]:
+    """Shortage per scale in [0, 1]: how far below ``min_entities_per_scale``.
+
+    Only scales down to ``coverage.depth`` count; deeper ones need nothing.
+    """
+    c = cfg.get("coverage", {})
+    depth = SCALE_RANK[c.get("depth", "district")]
+    want = max(1, int(c.get("min_entities_per_scale", 1)))
+    counts = {s: 0 for s in SCALES}
+    for e in graph.get("entities", []):
+        if e.get("scale") in counts:
+            counts[e["scale"]] += 1
+    return {s: (max(0, want - counts[s]) / want if SCALE_RANK[s] <= depth
+                else 0.0) for s in SCALES}
+
+
 def _axis_target(
     graph: Mapping[str, Any], axis_id: str,
+    needs: Optional[Mapping[str, float]] = None,
 ) -> Optional[str]:
-    """Entity to build from for an under-served axis (deterministic)."""
+    """Entity to build under for an under-served axis (deterministic).
+
+    The gap is filled below an existing entity (zoom) or beside it
+    (perspective / cause), not by adding world-scale siblings: among the
+    entities that can still be zoomed into, the one whose child scale is
+    the most under-filled is chosen, so axis gaps also push the world
+    downward.  Entities already tagged with the axis win ties.
+    """
     ents = sorted(graph.get("entities", []), key=lambda e: e["id"])
+    detail = SCALE_RANK["detail"]
+    zoomable = [e for e in ents if SCALE_RANK[e["scale"]] < detail]
+    if zoomable and needs is not None:
+        return min(zoomable, key=lambda e: (
+            -needs.get(SCALES[SCALE_RANK[e["scale"]] + 1], 0.0),
+            0 if axis_id in e.get("axes", []) else 1,
+            SCALE_RANK[e["scale"]], e["id"]))["id"]
     tagged = [e for e in ents if axis_id in e.get("axes", [])]
     if tagged:
         return min(tagged, key=lambda e: (SCALE_RANK[e["scale"]], e["id"]))["id"]
@@ -125,18 +158,22 @@ def evaluate_frontier(
     axes: Optional[Sequence[Mapping[str, Any]]],
     cfg: Mapping[str, Any],
 ) -> List[Dict[str, Any]]:
-    """List frontier items ``{kind, target, axis, deficit, axis_share}``.
+    """List frontier items ``{kind, target, axis, deficit, axis_share, ...}``.
 
     Each item has a ``deficit`` in [0, 1] (how much the spot lacks) and an
-    ``axis_share`` in [0, 1] (the normalized weight of its axis).  Output
-    order is deterministic.
+    ``axis_share`` in [0, 1] (the normalized weight of its axis).  It also
+    carries ``target_scale`` and ``depth_need`` (``same`` / ``below``: the
+    shortage of entities at the target's scale and at the scale one below
+    it, see :func:`scale_needs`), which :func:`pair_prior` uses to favour
+    ``zoom`` while lower scales are empty.  Output order is deterministic.
     """
     fcfg = cfg.get("frontier", {})
     ccfg = cfg.get("coverage", {})
     entities = sorted(graph.get("entities", []), key=lambda e: e["id"])
     if not entities:
         return [{"kind": "empty", "target": None, "axis": None,
-                 "deficit": 1.0, "axis_share": 0.0}]
+                 "deficit": 1.0, "axis_share": 0.0, "target_scale": None,
+                 "depth_need": None}]
 
     shares = axis_shares(axes)
     top = max(shares.values(), default=0.0)
@@ -157,12 +194,19 @@ def evaluate_frontier(
     max_per_kind = int(cfg.get("selection", {}).get("max_items_per_kind", 12))
 
     by_kind: Dict[str, List[Dict[str, Any]]] = {}
+    needs = scale_needs(graph, cfg)
+    by_id = {e["id"]: e for e in entities}
 
     def add(kind, target, deficit, axis=None, share=0.0):
+        scale = by_id[target]["scale"]
+        rank = SCALE_RANK[scale]
+        below = needs[SCALES[rank + 1]] if rank + 1 < len(SCALES) else 0.0
         by_kind.setdefault(kind, []).append({
             "kind": kind, "target": target, "axis": axis,
             "deficit": round(max(0.0, min(1.0, deficit)), 6),
-            "axis_share": round(share, 6)})
+            "axis_share": round(share, 6), "target_scale": scale,
+            "depth_need": {"same": round(needs[scale], 6),
+                           "below": round(below, 6)}})
 
     for e in entities:
         rank = SCALE_RANK[e["scale"]]
@@ -187,7 +231,7 @@ def evaluate_frontier(
     for axis_id in sorted(used):
         expected = max(float(min_axis), shares.get(axis_id, 0.0) * n)
         if used[axis_id] < expected:
-            target = _axis_target(graph, axis_id)
+            target = _axis_target(graph, axis_id, needs)
             if target is not None:
                 add("axis_gap", target, (expected - used[axis_id]) / expected,
                     axis_id, shares.get(axis_id, 0.0) / top if top > 0 else 0.0)
@@ -204,7 +248,8 @@ def candidate_pairs(
     items: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any],
 ) -> List[Tuple[Dict[str, Any], str]]:
     ops = cfg.get("operators", {})
-    return [(dict(i), op) for i in items for op in ops.get(i["kind"], [])]
+    return [(dict(i), op) for i in items for op in ops.get(i["kind"], [])
+            if not (op == "zoom" and i.get("target_scale") == "detail")]
 
 
 # ------------------------------------------------------------------ bandit
@@ -306,6 +351,26 @@ def item_prior(item: Mapping[str, Any], cfg: Mapping[str, Any]) -> float:
     if total <= 0:
         return 0.0
     return (dw * float(item["deficit"]) + aw * float(item["axis_share"])) / total
+
+
+def pair_prior(
+    item: Mapping[str, Any], operator: str, cfg: Mapping[str, Any],
+) -> float:
+    """Prior of an ``(item, operator)`` pair: item prior plus depth need.
+
+    The depth term is the shortage of entities at the scale the operator
+    would add to (one below the target for ``zoom``, the target's own scale
+    otherwise), so while lower scales are empty ``zoom`` ranks first.
+    """
+    sel = cfg.get("selection", {})
+    base = item_prior(item, cfg)
+    wd = float(sel.get("depth_weight", 0.0))
+    need = item.get("depth_need")
+    if wd <= 0 or not need:
+        return base
+    w = float(sel.get("deficit_weight", 0.7)) + float(sel.get("axis_weight", 0.3))
+    depth = float(need["below" if operator == "zoom" else "same"])
+    return (base * w + wd * depth) / (w + wd)
 
 
 # ---------------------------------------------------------------- coverage
@@ -433,6 +498,9 @@ class ExplorationLoop:
         self.verifier = verifier or RewardVerifier()
         if self.verifier.contrasts is None:
             self.verifier.contrasts = self.provider  # genericity always on
+        if getattr(self.verifier, "judge", None) is not None:
+            # Judge calls spend the same generation-call budget.
+            self.verifier.judge.backend = self.backend
         self.store = GraphStore(
             self.package_dir, self.checkpoints, self.axes, self.brief)
         self.log_path = self.package_dir / PREFERENCES_RELATIVE_PATH
@@ -581,7 +649,7 @@ class ExplorationLoop:
         pairs = candidate_pairs(evaluate_frontier(graph, self.axes, self.cfg), self.cfg)
         if not pairs:
             return graph, False
-        options = [(arm_key(op, item, by_axis), item_prior(item, self.cfg))
+        options = [(arm_key(op, item, by_axis), pair_prior(item, op, self.cfg))
                    for item, op in pairs]
         item, operator = pairs[self.bandit.select(options)]
         arm = arm_key(operator, item, by_axis)
@@ -597,11 +665,12 @@ class ExplorationLoop:
         records: List[Dict[str, Any]] = []
         decisions: Dict[str, str] = {}
 
-        def score(cands, rnd, revision_of=None, findings=None):
+        def score(cands, rnd, revision_of=None, findings=None, siblings=None):
             rows = []
             for idx, c in enumerate(cands):
                 res = self.verifier.verify(
-                    graph, c, brief=self.brief, axes=self.axes, store=True)
+                    graph, c, brief=self.brief, axes=self.axes, store=True,
+                    siblings=cands if siblings is None else siblings)
                 cid = f"i{it}.r{rnd}.c{idx}"
                 records.append({
                     "type": "candidate", "id": cid, "iteration": it,
@@ -639,7 +708,9 @@ class ExplorationLoop:
                     self.state["counters"]["rewrites"] += 1
                     if revised is None:
                         break
-                    row = score([revised], rnd, base["id"], findings)[0]
+                    row = score([revised], rnd, base["id"], findings,
+                                siblings=[c for c in cands
+                                          if c is not base["cand"]])[0]
                     if row["res"].passed:
                         accepted = row
                         break
@@ -814,15 +885,19 @@ def run_world_engine(
             raw_text = raw.read_text(encoding="utf-8") if raw.exists() else ""
         else:
             built = InputBriefBuilder(
-                backend, root / "input", vision_backend=vision_backend
+                backend, root / "input", vision_backend=vision_backend,
+                language=language,
             ).build(raw_input, images, source_name)
             brief, raw_text = built.brief, built.raw_source
+        # One output language for the brief, axes and every later prompt:
+        # explicit, else guessed from the input text.
+        lang = language or guess_language(raw_text or " ".join(
+            str(s.get("text", "")) for s in brief.get("statements", [])))
         if resume and axes_path.exists():
             axes = load_axes(axes_path)
         else:
-            axes = WorldAxesBuilder(backend, root / "world").build(brief).axes
-        lang = language or guess_language(raw_text or " ".join(
-            str(s.get("text", "")) for s in brief.get("statements", [])))
+            axes = WorldAxesBuilder(
+                backend, root / "world", language=lang).build(brief).axes
         checkpoints = CheckpointManager(str(root / "checkpoints"))
         loop = ExplorationLoop(
             backend, root, brief, axes, seed=seed, language=lang,
@@ -854,5 +929,5 @@ __all__ = [
     "PREFERENCES_RELATIVE_PATH", "STOP_REASONS", "arm_key", "axis_consumption",
     "axis_shares", "candidate_pairs", "coverage_status", "evaluate_frontier",
     "extract_preference_pairs", "item_prior", "load_explore_config",
-    "mean_reward", "read_preference_log", "run_world_engine",
+    "mean_reward", "pair_prior", "scale_needs", "read_preference_log", "run_world_engine",
 ]

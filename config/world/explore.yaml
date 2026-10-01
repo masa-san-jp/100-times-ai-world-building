@@ -11,6 +11,7 @@ selection:
   item_prior_weight: 0.3    # influence of the frontier-item prior on the pick
   deficit_weight: 0.7       # share of the item prior taken from frontier deficit
   axis_weight: 0.3          # share of the item prior taken from axis weight
+  depth_weight: 1.0         # weight of the depth shortage (empty lower scales) in the pair prior
   arm_by_axis: false        # also split arms by axis
   max_items_per_kind: 12    # frontier items kept per kind (most deficient first)
 
@@ -27,7 +28,7 @@ operators:
   unexpanded: [zoom, expand]
   uncaused: [cause]
   thin: [history, document, perspective]
-  axis_gap: [expand, perspective]
+  axis_gap: [zoom, perspective, cause]   # fill gaps under/around existing entities
   low_score: [expand, cause]
 
 frontier:

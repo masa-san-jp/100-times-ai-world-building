@@ -2,56 +2,96 @@
 # It is not a template for any particular kind of world: every domain applies
 # to any world, and the descriptions carry no genre, era, or setting.
 # Every domain here always becomes an axis with at least `min_weight`.
+# `name` and `description` are keyed by language code; a language that is
+# absent falls back to `en`. A plain string is accepted and used for every
+# language.
 min_weight: 0.05            # floor for every axis (no axis may reach 0)
 ungrounded_max_weight: 0.3  # cap for an axis with no statement grounds
 max_added_axes: 6           # domains the input may add beyond this catalog
 
+# Reason recorded for an axis the input does not touch.
+no_input_reason:
+  en: not touched by the input but needed for the world to function
+  ja: 入力では触れられていないが、世界が成り立つために必要な領域
+
 domains:
   - id: geography_climate
-    name: Geography and climate
-    description: Terrain, places, distances, weather, seasons.
+    name: {en: Geography and climate, ja: 地理と気候}
+    description:
+      en: Terrain, places, distances, weather, seasons.
+      ja: 地形、場所、距離、天候、季節。
   - id: ecology
-    name: Ecology
-    description: Living things, habitats, food webs, relation to the environment.
+    name: {en: Ecology, ja: 生態}
+    description:
+      en: Living things, habitats, food webs, relation to the environment.
+      ja: 生き物、生息環境、食物連鎖、環境との関わり。
   - id: laws_of_nature
-    name: Physical and extra-natural laws
-    description: What is possible or impossible and how it behaves.
+    name: {en: Physical and extra-natural laws, ja: 自然の法則と法則外の理}
+    description:
+      en: What is possible or impossible and how it behaves.
+      ja: 何が可能で何が不可能か、それがどう振る舞うか。
   - id: technology_tools
-    name: Technology and tools
-    description: Means of making, moving, storing, and communicating.
+    name: {en: Technology and tools, ja: 技術と道具}
+    description:
+      en: Means of making, moving, storing, and communicating.
+      ja: 作る、運ぶ、蓄える、伝えるための手段。
   - id: resources_economy
-    name: Resources and economy
-    description: Shortage, production, exchange, value, ownership.
+    name: {en: Resources and economy, ja: 資源と経済}
+    description:
+      en: Shortage, production, exchange, value, ownership.
+      ja: 不足、生産、交換、価値、所有。
   - id: politics_power
-    name: Politics and power
-    description: Who decides, how authority is held, contested, and enforced.
+    name: {en: Politics and power, ja: 政治と権力}
+    description:
+      en: Who decides, how authority is held, contested, and enforced.
+      ja: 誰が決めるか、権威がどう保たれ、争われ、強制されるか。
   - id: law_norms
-    name: Law and norms
-    description: Written and unwritten rules, sanctions, procedures.
+    name: {en: Law and norms, ja: 法と規範}
+    description:
+      en: Written and unwritten rules, sanctions, procedures.
+      ja: 明文化された規則と暗黙の規則、制裁、手続き。
   - id: belief_thought
-    name: Belief and thought
-    description: Worldviews, rituals, explanations of how things are.
+    name: {en: Belief and thought, ja: 信仰と思想}
+    description:
+      en: Worldviews, rituals, explanations of how things are.
+      ja: 世界観、儀礼、物事のあり方についての説明。
   - id: language_writing
-    name: Language and writing
-    description: Speech, scripts, naming, records, forms of address.
+    name: {en: Language and writing, ja: 言語と文字}
+    description:
+      en: Speech, scripts, naming, records, forms of address.
+      ja: 話し言葉、文字、命名、記録、呼びかけの形式。
   - id: kinship_community
-    name: Kinship and community
-    description: Families, groups, belonging, obligations between people.
+    name: {en: Kinship and community, ja: 血縁と共同体}
+    description:
+      en: Families, groups, belonging, obligations between people.
+      ja: 家族、集団、所属、人々のあいだの義務。
   - id: daily_life
-    name: Daily life
-    description: Food, clothing, shelter, use of time, routines.
+    name: {en: Daily life, ja: 日々の暮らし}
+    description:
+      en: Food, clothing, shelter, use of time, routines.
+      ja: 食、衣、住、時間の使い方、日課。
   - id: occupations_labor
-    name: Occupations and labor
-    description: Kinds of work, training paths, division of labor.
+    name: {en: Occupations and labor, ja: 職業と労働}
+    description:
+      en: Kinds of work, training paths, division of labor.
+      ja: 仕事の種類、修業の経路、分業。
   - id: education_knowledge
-    name: Education and knowledge
-    description: How knowledge is kept, taught, verified, and lost.
+    name: {en: Education and knowledge, ja: 教育と知識}
+    description:
+      en: How knowledge is kept, taught, verified, and lost.
+      ja: 知識がどう保たれ、教えられ、確かめられ、失われるか。
   - id: arts_media
-    name: Arts, entertainment, and media
-    description: Expression, play, circulation of information.
+    name: {en: "Arts, entertainment, and media", ja: 芸術・娯楽・メディア}
+    description:
+      en: Expression, play, circulation of information.
+      ja: 表現、遊び、情報の流通。
   - id: history
-    name: History
-    description: Earlier developments, their layers, and how they are remembered.
+    name: {en: History, ja: 歴史}
+    description:
+      en: Earlier developments, their layers, and how they are remembered.
+      ja: 以前の出来事とその層、それがどう記憶されているか。
   - id: external_relations
-    name: External relations
-    description: Contact with outsiders, trade, conflict, borders.
+    name: {en: External relations, ja: 外部との関係}
+    description:
+      en: Contact with outsiders, trade, conflict, borders.
+      ja: 外部の者との接触、交易、対立、境界。
