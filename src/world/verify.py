@@ -98,6 +98,40 @@ def rules_for(rules: Mapping[str, Any], language: str) -> Dict[str, Any]:
     return merged
 
 
+def _pattern_hits(text: str, patterns: Iterable[str]) -> List[Tuple[str, int]]:
+    hits = []
+    for pat in patterns:
+        found = re.findall("(?:" + pat + ")", text, flags=re.IGNORECASE)
+        if found:
+            hits.append((re.search(pat, text, flags=re.IGNORECASE).group(0),
+                         len(found)))
+    return hits
+
+
+def _speech_spans(text: str, r: Mapping[str, Any]) -> List[str]:
+    """Quoted spans that look like an utterance rather than a quoted term."""
+    punct = str(r.get("speech_punct") or "")
+    limit = int(r.get("max_quote_chars") or 0)
+    after = [re.compile(p, re.IGNORECASE) for p in r.get("speech_after") or []]
+    before = [re.compile(p, re.IGNORECASE) for p in r.get("speech_before") or []]
+    out: List[str] = []
+    for pair in r.get("quote_pairs") or []:
+        if len(pair) != 2:
+            continue
+        o, c = re.escape(pair[0]), re.escape(pair[1])
+        for m in re.finditer(o + "([^" + c + "]+)" + c, text):
+            inner = m.group(1)
+            tail = text[m.end(): m.end() + 40]
+            head = text[max(0, m.start() - 40): m.start()]
+            tail = re.sub(r"^[\s,、，.]+", "", tail)
+            if (any(ch in inner for ch in punct)
+                    or (limit and len(inner) > limit)
+                    or any(a.match(tail) for a in after)
+                    or any(b.search(head) for b in before)):
+                out.append(m.group(0))
+    return out
+
+
 def _word_hits(text: str, words: Iterable[str]) -> List[Tuple[str, int]]:
     """Count each word; ASCII words match whole words, others as substrings."""
     hits = []
@@ -498,19 +532,17 @@ def verify_objectivity(
         d.append(Deduction("objectivity", "summary", code, msg,
                            float(pen.get(code, 0.3)), detail))
 
-    quoted = [pair for pair in r.get("quote_pairs") or []
-              if len(pair) == 2 and re.search(
-                  re.escape(pair[0]) + r"[^" + re.escape(pair[1]) + r"]+" + re.escape(pair[1]),
-                  summary)]
+    quoted = _speech_spans(summary, r)
     if quoted:
-        add("quotation", "quoted speech or wording in the summary; move "
-            "quotations into facts", marks=quoted)
+        add("quotation", "quoted speech in the summary; move quotations "
+            "into facts", spans=quoted[:3])
     for code, key, msg in (
         ("first_person", "first_person", "first-person voice"),
         ("second_person", "second_person", "addresses the reader"),
         ("flourish", "flourish", "rhetorical or promotional wording"),
     ):
-        hits = _word_hits(summary, r.get(key) or [])
+        hits = _word_hits(summary, r.get(key) or []) + \
+            _pattern_hits(summary, r.get(key + "_patterns") or [])
         if hits:
             add(code, msg + ": " + ", ".join(w for w, _ in hits),
                 words=[w for w, _ in hits])

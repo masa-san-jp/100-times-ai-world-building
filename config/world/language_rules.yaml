@@ -6,6 +6,11 @@ default:
   quote_pairs: ["「」", "『』", "“”", "‘’", "\"\"", "«»", "„“", "《》"]
   exclamation: ["!", "！", "‼", "!?"]
   question: ["?", "？"]
+  # A quoted span counts as speech only if it holds one of these marks,
+  # is next to a speech verb, or is longer than max_quote_chars. A quoted
+  # term or name ("X" is called ...) is not speech.
+  speech_punct: "!?！？"
+  max_quote_chars: 40
 
 ja:
   abstract_words:
@@ -14,39 +19,53 @@ ja:
     - 多様な
     - 重要な
     - 複雑な
-    - 豊かな
     - 独特な
-    - 独自の
-    - 特別な
     - 色々
     - いろいろ
     - 多くの
     - 非常に
     - 大きな影響
-    - 深い
     - 興味深い
-  first_person: [私, わたし, 僕, ぼく, 俺, おれ, 我々, わたくし, 吾輩]
-  second_person: [あなた, 貴方, 君, きみ, お前, おまえ, 貴殿]
+  # Person markers are regex patterns (single kanji also occur inside
+  # ordinary compounds, so they need a following particle or suffix).
+  first_person_patterns:
+    - (?<![公滅])私(?:は|が|の|を|に|も|で|たち|達|ども)
+    - わたし(?:は|が|の|を|に|も|たち)?
+    - わたくし
+    - (?<![公下従奴童])僕(?:は|が|の|を|に|も|たち|ら)
+    - ぼく(?:は|が|の|を|に|も|たち)?
+    - 俺(?:は|が|の|を|に|も|たち|ら)
+    - おれ(?:は|が|の|を|に|も|たち)
+    - 我々
+    - 吾輩
+  second_person_patterns:
+    - あなた
+    - 貴方(?:は|が|の|を|に|も|たち)
+    - (?<![諸暴名明賢幼聖])君(?:は|が(?!代)|の|を|に|も|たち|達|へ)
+    - きみ(?:は|が|の|を|に|も|たち)
+    - お前(?:は|が|の|を|に|も|たち|ら)
+    - おまえ(?:は|が|の|を|に|も|たち|ら)
+    - 貴殿
+  speech_punct: "。！？!?"
+  speech_after:
+    - と(?:言|いっ|述べ|叫|呟|つぶや|答え|尋ね|語っ|怒鳴|囁|ささや|問う)
+  speech_before: []
   flourish: [壮大な, 圧倒的, まさに, 驚くべき, 息をのむ, 決して忘れ, 運命の, 圧巻]
 
 en:
   abstract_words:
     - various
     - important
-    - complex
-    - rich
     - diverse
     - unique
-    - special
-    - significant
     - interesting
-    - many
-    - several
     - vibrant
     - fascinating
-    - deep
-    - influential
     - numerous
-  first_person: [I, me, my, mine, we, us, our, ours, myself]
+  first_person: [I, me, my, mine, we, our, ours, myself]
   second_person: [you, your, yours, yourself, thou]
   flourish: [breathtaking, unforgettable, awe-inspiring, truly, magnificent, destined, spellbinding, legendary]
+  speech_after:
+    - '(?:\w+\s+){0,2}(?:said|asked|replied|shouted|whispered|cried|exclaimed|answered|declared|yelled)\b'
+  speech_before:
+    - '\b(?:said|asked|replied|shouted|whispered|cried|exclaimed|answered|declared|yelled)\W*$'

@@ -259,6 +259,59 @@ def test_objectivity_japanese_and_unknown_language():
     assert {d.code for d in r.deductions} == {"quotation", "exclamation"}
 
 
+def _codes(summary, lang):
+    return {d.code for d in verify_objectivity(
+        cand(summary=summary), lang, RULES, CFG["objectivity"]).deductions}
+
+
+@pytest.mark.parametrize("text", [
+    "私有地は個人が所有する土地であり、私立の施設も含む。",
+    "君主制では君主が最終的な決定権を持つ。諸君という呼称は用いない。",
+    "公僕は役所に勤める者を指し、下僕とは区別される。",
+    "暴君は失政を重ね、名君は税を軽くした。",
+])
+def test_japanese_compounds_do_not_trigger_person_markers(text):
+    assert not _codes(text, "ja") & {"first_person", "second_person"}
+
+
+def test_japanese_person_voice_still_detected():
+    assert "first_person" in _codes("私はこの制度を好ましいと考える。", "ja")
+    assert "first_person" in _codes("僕たちの町は広い。", "ja")
+    assert "second_person" in _codes("君は港を見たことがあるか。", "ja")
+    assert "second_person" in _codes("あなたはこの規則に従う。", "ja")
+
+
+@pytest.mark.parametrize("text,lang", [
+    ("「水税」と呼ばれる制度が水の使用量に応じて課される。", "ja"),
+    ("「潮見台帳」は港の記録簿の名称である。", "ja"),
+    ("\u201cTidegate\u201d is the name of the lock office.", "en"),
+    ('The "Ledger" is kept at the pier.', "en"),
+])
+def test_quoted_terms_are_not_speech(text, lang):
+    assert "quotation" not in _codes(text, lang)
+
+
+@pytest.mark.parametrize("text,lang", [
+    ("「来るな！」と叫んだ。", "ja"),
+    ("「来るな」と叫んだ。", "ja"),
+    ("「これは規則である。」", "ja"),
+    ('"Leave now," she said.', "en"),
+    ('She said, "Leave now".', "en"),
+    ('"Leave now!"', "en"),
+])
+def test_quoted_utterances_are_speech(text, lang):
+    assert "quotation" in _codes(text, lang)
+
+
+def test_concrete_senses_are_not_abstract_words():
+    s = "The valley is deep, a rich seam runs through a complex of 4 halls."
+    r = verify_specificity(cand(summary=s), "en", RULES, CFG["specificity"])
+    assert all(d.code != "abstract_density" for d in r.deductions)
+    j = cand(summary="深い井戸は豊かな水脈に達する。")
+    assert all(d.code != "abstract_density" for d in verify_specificity(
+        j, "ja", RULES, CFG["specificity"]).deductions)
+
+
 # ------------------------------------------------------------------ novelty
 
 def test_novelty_good_and_bad():
