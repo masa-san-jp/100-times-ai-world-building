@@ -37,13 +37,13 @@ frontier:
 
 # Stop conditions. Budgets may be overridden by function arguments.
 budget:
-  max_iterations: 40
+  max_iterations: 200
   max_wall_seconds: null
   max_generation_calls: null
 
 coverage:
   enabled: true
   min_axis_entities: 1            # every axis must reach this many entities
-  depth: district                 # every scale down to this one is covered
+  depth: detail                   # every scale down to this one is covered (detail = finest)
   min_entities_per_scale: 2
   target_mean_reward: 0.6         # mean stored reward over the graph
