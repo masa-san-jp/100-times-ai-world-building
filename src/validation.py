@@ -198,6 +198,11 @@ def validate_artifact(
             )
         return errors
 
+    if artifact == "entity_graph":
+        from .world.graph import validate_graph
+
+        return validate_graph(value)
+
     if artifact == "keywords":
         return _list_errors(value, "keywords", maximum=10)
 
