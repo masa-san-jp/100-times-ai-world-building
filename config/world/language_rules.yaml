@@ -1,0 +1,52 @@
+# Language-keyed word lists for the rule-based verifiers.
+# Keys are language codes (the part before "-"). `default` holds
+# script-independent markers and applies to every language. A language
+# that is absent falls back to `default` and to structural metrics only.
+default:
+  quote_pairs: ["「」", "『』", "“”", "‘’", "\"\"", "«»", "„“", "《》"]
+  exclamation: ["!", "！", "‼", "!?"]
+  question: ["?", "？"]
+
+ja:
+  abstract_words:
+    - 様々な
+    - さまざまな
+    - 多様な
+    - 重要な
+    - 複雑な
+    - 豊かな
+    - 独特な
+    - 独自の
+    - 特別な
+    - 色々
+    - いろいろ
+    - 多くの
+    - 非常に
+    - 大きな影響
+    - 深い
+    - 興味深い
+  first_person: [私, わたし, 僕, ぼく, 俺, おれ, 我々, わたくし, 吾輩]
+  second_person: [あなた, 貴方, 君, きみ, お前, おまえ, 貴殿]
+  flourish: [壮大な, 圧倒的, まさに, 驚くべき, 息をのむ, 決して忘れ, 運命の, 圧巻]
+
+en:
+  abstract_words:
+    - various
+    - important
+    - complex
+    - rich
+    - diverse
+    - unique
+    - special
+    - significant
+    - interesting
+    - many
+    - several
+    - vibrant
+    - fascinating
+    - deep
+    - influential
+    - numerous
+  first_person: [I, me, my, mine, we, us, our, ours, myself]
+  second_person: [you, your, yours, yourself, thou]
+  flourish: [breathtaking, unforgettable, awe-inspiring, truly, magnificent, destined, spellbinding, legendary]
