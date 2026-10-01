@@ -1,0 +1,70 @@
+# Composite reward for world-entity candidates.
+# reward = sum(weight * score) / sum(weight) over the verifiers that ran,
+# so it stays in [0, 1]. Every verifier score is in [0, 1] (1 is best).
+weights:
+  genericity: 2.0
+  provenance: 1.0
+  specificity: 1.5
+  consistency: 1.5
+  objectivity: 1.0
+  novelty: 1.0
+
+# A candidate passes when every verifier score is at least its threshold
+# and the total reward is at least `total`.
+thresholds:
+  genericity: 0.5
+  provenance: 0.8
+  specificity: 0.5
+  consistency: 0.7
+  objectivity: 0.7
+  novelty: 0.5
+  total: 0.6
+
+# Verifiers that may also consult an LLM judge (only when a judge is given).
+llm_judges: []
+
+genericity:
+  ngram_size: 3
+  similarity_floor: 0.15   # similarity at or below this costs nothing
+  field_flag_similarity: 0.4  # a field this similar is reported on its own
+  contrast_count: 3
+
+novelty:
+  ngram_size: 3
+  similarity_floor: 0.4
+
+specificity:
+  min_fact_kinds: 3        # distinct fact kinds expected
+  min_proper_noun_facts: 1
+  require_numeral: true
+  max_abstract_density: 0.04   # share of characters made of abstract words
+  penalties:
+    kind_coverage: 0.4       # scaled by the shortfall
+    proper_noun: 0.25
+    numeral: 0.15
+    abstract_density: 0.4    # scaled by the excess, capped at this value
+    no_facts: 0.6
+
+consistency:
+  penalties:
+    graph_invalid: 0.5
+    self_relation: 0.5
+    relation_conflict: 0.4
+    location_conflict: 0.3
+    temporal_order: 0.5
+    number_conflict: 0.5
+
+objectivity:
+  penalties:
+    quotation: 0.4
+    first_person: 0.3
+    second_person: 0.3
+    exclamation: 0.2
+    question: 0.15
+    flourish: 0.15
+
+provenance:
+  penalties:
+    no_anchor: 1.0
+    unknown_reference: 0.4
+    missing_reason: 0.4
