@@ -773,7 +773,7 @@ def run_world_engine(
     operator_config: Optional[OperatorConfig] = None,
     verifier: Optional[RewardVerifier] = None,
     vision_backend: Any = None, source_name: Optional[str] = None,
-    resume: bool = True,
+    resume: bool = True, render: bool = True,
 ) -> ExplorationResult:
     """Input brief -> axes -> graph -> exploration loop, with no human input.
 
@@ -784,6 +784,8 @@ def run_world_engine(
     ``world/contrasts.json``, ``world/preferences.jsonl``,
     ``checkpoints/`` and ``run_manifest.json``.  With ``resume`` an
     existing brief, axes and checkpoint are reused instead of regenerated.
+    With ``render`` (default) the world reference material is written to
+    ``final/`` at the end (see :func:`src.world.render.render_world_package`).
     """
     from ..checkpoint_manager import CheckpointManager
     from ..run_manifest import RunManifest
@@ -831,6 +833,13 @@ def run_world_engine(
             max_wall_seconds=(budget or {}).get("max_wall_seconds"),
             max_generation_calls=(budget or {}).get("max_generation_calls"),
             resume=resume)
+        if render:
+            from .render import render_world_package
+            render_world_package(root, run_summary={
+                "stop_reason": result.stop_reason,
+                "iterations": result.iterations,
+                "counters": result.counters,
+            }, explore_config=loop.cfg)
     except BaseException as exc:
         manifest.set_status(
             "cancelled" if isinstance(exc, KeyboardInterrupt) else "failed",
