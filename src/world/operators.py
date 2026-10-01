@@ -34,6 +34,7 @@ from .graph import (
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 DEFAULT_PROMPT_PATH = CONFIG_DIR / "prompts" / "world" / "operators.yaml"
+DEFAULT_REVISION_PATH = CONFIG_DIR / "prompts" / "world" / "revision.yaml"
 
 OPERATORS = (
     "premise", "expand", "zoom", "cause", "perspective", "history", "document",
@@ -75,6 +76,11 @@ class OperatorConfig:
 def load_prompts(path: Any = None) -> Dict[str, Any]:
     return yaml.safe_load(
         Path(path or DEFAULT_PROMPT_PATH).read_text(encoding="utf-8"))
+
+
+def load_revision_prompts(path: Any = None) -> Dict[str, Any]:
+    return yaml.safe_load(
+        Path(path or DEFAULT_REVISION_PATH).read_text(encoding="utf-8"))
 
 
 # ------------------------------------------------------------------ helpers
@@ -151,10 +157,13 @@ class OperatorRunner:
         self, backend: LLMBackend,
         config: Optional[OperatorConfig] = None,
         prompts: Optional[Mapping[str, Any]] = None,
+        revision_prompts: Optional[Mapping[str, Any]] = None,
     ) -> None:
         self.backend = backend
         self.config = config or OperatorConfig()
         self.prompts = dict(prompts) if prompts else load_prompts()
+        self._revision_prompts = (
+            dict(revision_prompts) if revision_prompts else None)
 
     def run(
         self, operator: str, graph: Mapping[str, Any],
@@ -183,6 +192,79 @@ class OperatorRunner:
         response = self.backend.generate_json(prompt, **kwargs)
         return self._build(
             operator, graph, target_entity, place, n, response, brief, axes)
+
+    def revise(
+        self, candidate: Mapping[str, Any], findings: Sequence[Mapping[str, Any]],
+        graph: Mapping[str, Any], *,
+        brief: Optional[Mapping[str, Any]] = None,
+        axes: Optional[Sequence[Mapping[str, Any]]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Rewrite ``candidate`` to resolve structured review ``findings``.
+
+        Each finding is ``{"field", "code", "message"}``.  The result is a
+        validated candidate of the same operator and target, or ``None``
+        when the model returns nothing usable.  Placement, ids and
+        structural relations are assigned by code exactly as in ``run``.
+        """
+        if self._revision_prompts is None:
+            self._revision_prompts = load_revision_prompts()
+        cfg = self.config
+        operator = candidate["operator"]
+        target_id = candidate.get("target")
+        target = get_entity(graph, target_id) if target_id else None
+        if operator != "premise" and target is None:
+            raise OperatorError(f"unknown entity id: {target_id}")
+        place = placement(operator, graph, target)
+        entity = candidate["entity"]
+        draft = {
+            "type": entity.get("type"), "name": entity.get("name"),
+            "axes": list(entity.get("axes", [])),
+            "summary": entity.get("summary"),
+            "facts": [{"kind": f.get("kind"), "text": f.get("text")}
+                      for f in entity.get("facts", [])],
+            "statement_ids": list(
+                (entity.get("provenance") or {}).get("statement_ids", [])),
+            "derived_from": list(
+                (entity.get("provenance") or {}).get("derived_from", [])),
+            "reason": (entity.get("provenance") or {}).get("reason", ""),
+        }
+        statements = [
+            f"{s['id']}: {_clip(s.get('text'), cfg.max_text_chars)}"
+            for s in (brief or {}).get("statements", []) or []
+            if isinstance(s, Mapping) and s.get("id") and s.get("text")
+        ][: cfg.max_statements]
+        axis_lines = [
+            f"{a['id']}: {_clip(a.get('name'), 40)} - "
+            f"{_clip(a.get('meaning'), cfg.max_text_chars)}"
+            for a in axes or [] if isinstance(a, Mapping) and a.get("id")
+        ][: cfg.max_axes]
+        ctx = (_world_context(graph, cfg) if target is None
+               else local_context(graph, target["id"], cfg.context_limits))
+        need = _min_concrete(place["scale"], cfg)
+        concrete_rule = (
+            f"At least {need} of them must be of kind "
+            f"{'/'.join(CONCRETE_KINDS)}." if need else
+            "Prefer facts of kind " + "/".join(CONCRETE_KINDS) + ".")
+        lines = [
+            f"- {f.get('field', 'entity')} | {f.get('code', '')} | "
+            f"{_clip(f.get('message'), 200)}" for f in findings]
+        common = self._revision_prompts["common"]
+        prompt = common["user"].format(
+            language=(graph.get("meta") or {}).get("language", ""),
+            operator=operator,
+            target_note=(f" on the entity {target['id']}" if target else ""),
+            draft=json.dumps(draft, ensure_ascii=False, separators=(",", ":")),
+            findings=_lines(lines), statements=_lines(statements),
+            axes=_lines(axis_lines),
+            context=json.dumps(ctx, ensure_ascii=False, separators=(",", ":")),
+            min_facts=cfg.min_facts, concrete_rule=concrete_rule)
+        kwargs: Dict[str, Any] = {"system_prompt": common["system"]}
+        if cfg.temperature is not None:
+            kwargs["temperature"] = cfg.temperature
+        response = self.backend.generate_json(prompt, **kwargs)
+        out = self._build(
+            operator, graph, target, place, 1, response, brief, axes)
+        return out[0] if out else None
 
     # -- prompt
     def _render(self, operator, graph, target, place, n, brief, axes) -> str:
@@ -377,6 +459,6 @@ def run_operator(
 __all__ = [
     "CONCRETE_KINDS", "DEFAULT_MIN_CONCRETE_FACTS", "OPERATORS",
     "OperatorConfig", "OperatorError", "OperatorRunner", "cause", "document",
-    "expand", "history", "load_prompts", "perspective", "placement",
+    "expand", "history", "load_prompts", "load_revision_prompts", "perspective", "placement",
     "premise", "run_operator", "validate_candidate", "zoom",
 ]

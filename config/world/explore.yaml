@@ -1,0 +1,49 @@
+# Autonomous exploration loop: frontier evaluation, bandit selection,
+# generation, scoring, critique-and-rewrite and stop conditions.
+# Nothing here names a genre, era, setting or technology.
+
+selection:
+  strategy: ucb1            # ucb1 | thompson
+  exploration: 0.6          # UCB1 exploration coefficient (larger = explore more)
+  epsilon: 0.05             # chance of choosing a uniformly random pair
+  prior_mean: 0.5           # reward assumed for an arm that was never pulled
+  prior_strength: 1.0       # pseudo-observations behind prior_mean
+  item_prior_weight: 0.3    # influence of the frontier-item prior on the pick
+  deficit_weight: 0.7       # share of the item prior taken from frontier deficit
+  axis_weight: 0.3          # share of the item prior taken from axis weight
+  arm_by_axis: false        # also split arms by axis
+  max_items_per_kind: 12    # frontier items kept per kind (most deficient first)
+
+generation:
+  candidates: 3             # candidates per operator call
+  max_rewrites: 2           # critique-and-rewrite rounds per iteration
+  max_findings: 8           # deductions fed back into a rewrite
+  contrast_count: 3         # contrast candidates per slot (cached in the package)
+  discard_reward: 0.0       # arm reward recorded when nothing is accepted
+
+# Operators tried for each kind of frontier item.
+operators:
+  empty: [premise]
+  unexpanded: [zoom, expand]
+  uncaused: [cause]
+  thin: [history, document, perspective]
+  axis_gap: [expand, perspective]
+  low_score: [expand, cause]
+
+frontier:
+  min_facts: 3                    # entities with fewer facts are "thin"
+  low_score_threshold: 0.5        # stored verifier scores below this are "low_score"
+  low_score_verifiers: [genericity, specificity]
+
+# Stop conditions. Budgets may be overridden by function arguments.
+budget:
+  max_iterations: 40
+  max_wall_seconds: null
+  max_generation_calls: null
+
+coverage:
+  enabled: true
+  min_axis_entities: 1            # every axis must reach this many entities
+  depth: district                 # every scale down to this one is covered
+  min_entities_per_scale: 2
+  target_mean_reward: 0.6         # mean stored reward over the graph
