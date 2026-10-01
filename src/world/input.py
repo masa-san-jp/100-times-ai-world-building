@@ -53,15 +53,15 @@ class InputBriefBuilder:
     """Persist raw input and create a citation-checked input brief."""
 
     DEFAULT_SYSTEM_PROMPT = (
-        "You extract information from supplied material. Return JSON only. "
-        "Keep the material's uncertainty and do not add facts."
+        "You extract information from supplied material. "
+        "Return JSON only. Preserve uncertainty and do not add facts."
     )
     DEFAULT_USER_PROMPT = """SOURCE MATERIAL:
 {source_text}
 
 Return an object with exactly these arrays:
 - statements: explicit claims in the source. Each item has text and quote.
-- open_questions: unresolved points that later design may need to decide.
+- open_questions: points the source leaves unresolved and that later design may need to decide.
 - constraints: requirements or prohibitions explicitly stated by the source.
 
 For every statement, quote an exact contiguous substring of SOURCE MATERIAL.
@@ -69,16 +69,18 @@ Do not infer facts, classifications, causes, or requirements. A person or
 group mentioned in the source is only a statement unless the source says more.
 Do not write narrative prose or answer the open questions.
 
+open_questions and constraints are arrays of plain strings. Do not output
+ids; ids are assigned by the caller.
+
 JSON shape:
-{{"statements":[{{"text":"...","quote":"..."}}],
-"open_questions":[],"constraints":[]}}"""
+{{"statements":[{{"text":"...","quote":"..."}}],"open_questions":[],"constraints":[]}}"""
     DEFAULT_VISION_SYSTEM_PROMPT = (
         "Describe only directly observable information from the supplied "
         "image. "
         "Return JSON only and do not infer context or intent."
     )
     DEFAULT_VISION_USER_PROMPT = (
-        "Return {\"description\": "
+        "Return {\"description\":"
         "\"a concise description of directly observable information\"}."
     )
 
@@ -250,19 +252,25 @@ JSON shape:
                     item, "text", "statement", "content"
                 )
                 quote = item.get("quote")
-                if not text or not isinstance(quote, str) or not quote:
+                if not text or not isinstance(quote, str):
                     continue
-                if quote not in source_text:
+                if not quote.strip() or quote not in source_text:
                     continue
-                statements.append({"text": text, "quote": quote})
+                statements.append(
+                    {
+                        "id": f"s{len(statements) + 1}",
+                        "text": text,
+                        "quote": quote,
+                    }
+                )
 
         return {
             "statements": statements,
-            "open_questions": InputBriefBuilder._string_list(
-                response.get("open_questions", [])
+            "open_questions": InputBriefBuilder._identified_list(
+                response.get("open_questions", []), "q"
             ),
-            "constraints": InputBriefBuilder._string_list(
-                response.get("constraints", [])
+            "constraints": InputBriefBuilder._identified_list(
+                response.get("constraints", []), "c"
             ),
         }
 
@@ -275,13 +283,23 @@ JSON shape:
         return ""
 
     @staticmethod
-    def _string_list(value: Any) -> List[str]:
+    def _identified_list(value: Any, prefix: str) -> List[Dict[str, str]]:
+        """Return ``{id, text}`` items; ids are assigned here, never by the
+        model.  Items may be plain strings or objects with a text field."""
         if not isinstance(value, list):
             return []
-        result: List[str] = []
+        result: List[Dict[str, str]] = []
         for item in value:
-            if isinstance(item, str) and item.strip():
-                result.append(item.strip())
+            if isinstance(item, Mapping):
+                text = InputBriefBuilder._first_text(
+                    item, "text", "content", "question", "constraint"
+                )
+            elif isinstance(item, str):
+                text = item.strip()
+            else:
+                text = ""
+            if text:
+                result.append({"id": f"{prefix}{len(result) + 1}", "text": text})
         return result
 
 

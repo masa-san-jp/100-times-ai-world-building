@@ -1,6 +1,9 @@
 """Tests for format-free input acceptance."""
 
 import json
+from pathlib import Path
+
+import yaml
 
 from src.llm import FakeLLMBackend
 from src.pipeline import Pipeline
@@ -25,10 +28,14 @@ def test_input_brief_keeps_only_statements_with_verifiable_quotes(tmp_path):
     assert result.raw_path.read_text(encoding="utf-8") == raw
     assert result.brief == {
         "statements": [
-            {"text": "水路の維持が焦点", "quote": "焦点は水路の維持"}
+            {
+                "id": "s1",
+                "text": "水路の維持が焦点",
+                "quote": "焦点は水路の維持",
+            }
         ],
-        "open_questions": ["誰が判断を担うか"],
-        "constraints": ["判断は共同で行う"],
+        "open_questions": [{"id": "q1", "text": "誰が判断を担うか"}],
+        "constraints": [{"id": "c1", "text": "判断は共同で行う"}],
     }
     assert (
         json.loads(result.brief_path.read_text(encoding="utf-8"))
@@ -111,3 +118,94 @@ def test_pipeline_phase_zero_persists_brief_with_fake_backend(tmp_path):
 
     brief_path = tmp_path / "world_input-brief" / "input" / "input_brief.json"
     assert json.loads(brief_path.read_text(encoding="utf-8"))["statements"]
+
+
+def test_ids_are_assigned_by_code_in_order_after_filtering(tmp_path):
+    raw = "甲は乙。丙は丁。戊は己。"
+    backend = FakeLLMBackend(
+        json_responses={
+            "statements": [
+                {"id": "x9", "text": "a", "quote": "甲は乙"},
+                {"text": "dropped", "quote": "存在しない"},
+                {"text": "b", "quote": "戊は己"},
+            ],
+            "open_questions": ["q one", {"id": "zz", "text": "q two"}, ""],
+            "constraints": ["c one"],
+        }
+    )
+
+    brief = InputBriefBuilder(backend, tmp_path).build(raw).brief
+
+    assert [s["id"] for s in brief["statements"]] == ["s1", "s2"]
+    assert [q["id"] for q in brief["open_questions"]] == ["q1", "q2"]
+    assert brief["open_questions"][1]["text"] == "q two"
+    assert brief["constraints"] == [{"id": "c1", "text": "c one"}]
+
+
+def test_blank_or_whitespace_quotes_are_rejected(tmp_path):
+    raw = "前 後"
+    backend = FakeLLMBackend(
+        json_responses={
+            "statements": [
+                {"text": "blank", "quote": " "},
+                {"text": "empty", "quote": ""},
+                {"text": "newline", "quote": "\n"},
+            ],
+            "open_questions": [],
+            "constraints": [],
+        }
+    )
+
+    brief = InputBriefBuilder(backend, tmp_path).build(raw + "\n").brief
+
+    assert brief["statements"] == []
+
+
+BANNED_TERMS = [
+    "protagonist", "主人公", "plot", "プロット", "chapter", "章",
+    "novel", "小説", "story", "物語", "dialogue", "台詞", "character arc",
+    "future", "未来", "past", "過去", "fantasy", "ファンタジー",
+    "sci-fi", "science fiction", "SF", "medieval", "中世", "magic", "魔法",
+    "kingdom", "王国", "city", "都市", "robot", "ロボット", "cyberpunk",
+]
+
+
+def _input_prompt_texts():
+    config = Path(__file__).resolve().parent.parent / "config" / "prompts"
+    data = yaml.safe_load((config / "input_brief.yaml").read_text("utf-8"))
+    texts = []
+    for section in ("input_brief", "image_description"):
+        texts.extend(data[section].values())
+    for name in (
+        "DEFAULT_SYSTEM_PROMPT", "DEFAULT_USER_PROMPT",
+        "DEFAULT_VISION_SYSTEM_PROMPT", "DEFAULT_VISION_USER_PROMPT",
+    ):
+        texts.append(getattr(InputBriefBuilder, name))
+    return texts
+
+
+def test_input_prompts_have_no_story_or_genre_terms():
+    for text in _input_prompt_texts():
+        lowered = text.lower()
+        for term in BANNED_TERMS:
+            assert term.lower() not in lowered, term
+
+
+def test_default_prompts_match_yaml_config():
+    config = Path(__file__).resolve().parent.parent / "config" / "prompts"
+    data = yaml.safe_load((config / "input_brief.yaml").read_text("utf-8"))
+    norm = lambda t: " ".join(t.split())  # noqa: E731
+    pairs = [
+        (data["input_brief"]["system"], InputBriefBuilder.DEFAULT_SYSTEM_PROMPT),
+        (data["input_brief"]["user"], InputBriefBuilder.DEFAULT_USER_PROMPT),
+        (
+            data["image_description"]["system"],
+            InputBriefBuilder.DEFAULT_VISION_SYSTEM_PROMPT,
+        ),
+        (
+            data["image_description"]["user"],
+            InputBriefBuilder.DEFAULT_VISION_USER_PROMPT,
+        ),
+    ]
+    for yaml_text, default in pairs:
+        assert norm(yaml_text) == norm(default)

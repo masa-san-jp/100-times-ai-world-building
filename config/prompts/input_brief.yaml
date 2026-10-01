@@ -18,6 +18,9 @@ input_brief:
     group mentioned in the source is only a statement unless the source says more.
     Do not write narrative prose or answer the open questions.
 
+    open_questions and constraints are arrays of plain strings. Do not output
+    ids; ids are assigned by the caller.
+
     JSON shape:
     {{"statements":[{{"text":"...","quote":"..."}}],"open_questions":[],"constraints":[]}}
 
