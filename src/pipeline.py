@@ -32,6 +32,7 @@ from .validation import (
     validate_artifact,
     validate_phase_state,
 )
+from .world import InputBriefBuilder
 
 
 def phase_lifecycle(phase_name: str):
@@ -727,20 +728,38 @@ class Pipeline:
         Returns:
             User context as YAML string
         """
-        logger.info("=== Phase 0: User Context Extraction ===")
+        logger.info("=== Phase 0: Input Acceptance ===")
 
-        phase_config = self.config.get("phases", {}).get("phase0_context_extraction", {})
+        phases_config = self.config.get("phases", {})
+        phase_config = phases_config.get(
+            "phase0_input_acceptance",
+            phases_config.get("phase0_context_extraction", {}),
+        )
         images = list(image_paths or [])
 
         if user_input is None:
             user_input = input(
-                "物語のアイデアを入力してください（1行。画像だけの場合は空欄）: "
+                "入力をそのまま入力してください（画像だけの場合は空欄）: "
             ).strip()
 
-        # A supplied YAML/text context is already equivalent to Colab's
-        # editable `user_context` cell.  Extraction is opt-in for text and is
-        # automatically enabled when images are supplied.
-        if images or extract:
+        # New runs use the format-free input acceptance layer.  The presence
+        # check keeps old test fixtures and legacy configurations resumable.
+        input_prompt = self.prompts.get("input_brief")
+        if input_prompt:
+            accepted = InputBriefBuilder(
+                backend=self._client_for("structured"),
+                vision_backend=self._client_for("vision"),
+                input_dir=self.input_dir,
+                prompt=input_prompt,
+                vision_prompt=self.prompts.get("image_description"),
+            ).build(raw_input=user_input or "", images=images)
+            self.manifest.update(
+                input_brief_path=str(accepted.brief_path.relative_to(self.base_dir_path)),
+                input_raw_path=str(accepted.raw_path.relative_to(self.base_dir_path)),
+            )
+            user_context = accepted.source_for_brief
+        # Legacy phase-0 extraction remains available for old prompt sets.
+        elif images or extract:
             prompt_template = self.prompts.get("context_extraction", {})
             if not prompt_template:
                 logger.error("No context_extraction prompt found")

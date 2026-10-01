@@ -2,37 +2,6 @@
 # Prompt Templates: Phase 1 - 100x Expansion
 # ========================================
 
-context_extraction:
-  system: |
-    あなたは物語制作のためのコンテクスト編集者です。
-    常に日本語で応答します。
-    常にJSON形式で応答します。
-
-  user: |
-    以下のユーザー入力と、必要に応じて画像から読み取れる情報を、
-    物語生成に使える構造化されたコンテクストへ整理してください。
-
-    ユーザー入力:
-    {user_input}
-
-    要件:
-    - ユーザーの意図を保ち、情報を勝手に確定しすぎないこと
-    - theme, mood, setting, key_elements, protagonist_idea を含めること
-    - 画像の内容を参照した場合は image_observations に記載すること
-    - 不明な項目は空文字または空配列にすること
-
-    出力形式（必ずこのJSON形式で）:
-    {{
-      "context": {{
-        "theme": "物語の中心テーマ",
-        "mood": "作品の雰囲気",
-        "setting": "時代・場所・環境",
-        "key_elements": ["重要な要素"],
-        "protagonist_idea": "主人公の着想",
-        "image_observations": ["画像から読み取った物語上の観察"]
-      }}
-    }}
-
 desire_list:
   system: |
     あなたは創造的な物語作家です。
