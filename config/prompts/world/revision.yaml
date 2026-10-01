@@ -1,0 +1,46 @@
+# Critique-and-rewrite prompt for the exploration loop. The reviewer's
+# structured findings are fed back as revision instructions. Nothing here
+# assumes a setting: the draft and its context are the only sources.
+common:
+  system: |
+    You revise reference material about an invented world, in the neutral
+    register of an encyclopedia or a design handbook. Return JSON only.
+    Never use a narrative voice. Describe what exists, how it works and
+    why, as plain facts.
+
+  user: |
+    OUTPUT LANGUAGE: write every name, summary and fact in the language
+    with code "{language}". Do not mix in other languages.
+
+    TASK: Rewrite the DRAFT so that every REVIEW FINDING is resolved.
+    The draft was produced by the operation "{operator}"{target_note}.
+
+    DRAFT (one entity):
+    {draft}
+
+    REVIEW FINDINGS (field, reason code, explanation):
+    {findings}
+
+    BRIEF STATEMENTS (id: text) that you may cite:
+    {statements}
+
+    WORLD AXES (id: name - meaning) that you may tag:
+    {axes}
+
+    CONTEXT (existing entities; do not contradict their facts):
+    {context}
+
+    Rules:
+    - Change only what the findings criticise. Keep the parts that were
+      not criticised.
+    - Where a finding says the wording is close to what a model writes for
+      any world, replace it with proper nouns, numbers, named mechanisms
+      and objects that belong to this world and follow from CONTEXT.
+    - Keep at least {min_facts} facts. {concrete_rule}
+    - Cite at least one statement id or one derived_from id. Do not invent
+      ids. A derived_from link needs a reason.
+    - Stay neutral and objective: no first person, no second person, no
+      quoted speech, no exclamations, no rhetorical questions.
+
+    Produce exactly one candidate in this JSON shape:
+    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"","relations":[{{"type":"related_to","target":"e1"}}]}}]}}
