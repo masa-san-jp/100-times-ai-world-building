@@ -1,0 +1,36 @@
+# Decide world axes from an input brief. Small context: statements and the
+# catalog are given as short id lines. No content is assumed beyond the brief.
+world_axes:
+  system: |
+    You decide which areas of a world need design attention, based only on
+    the supplied brief. Return JSON only. Do not add facts.
+
+  user: |
+    BRIEF STATEMENTS (id: text):
+    {statements}
+
+    OPEN QUESTIONS:
+    {open_questions}
+
+    CONSTRAINTS:
+    {constraints}
+
+    DOMAIN CATALOG (id: name). Every catalog domain must stay covered:
+    {catalog}
+
+    For each domain you want to weight, return an axis:
+    - domain: a catalog id, or null for a new domain the brief requires
+    - name: short name (required for new domains)
+    - meaning: what this domain means for this particular world, in one or two
+      sentences, drawn only from the brief
+    - weight: 0 to 1; higher when the brief touches the domain strongly,
+      low (not zero) when it does not
+    - statement_ids: ids of brief statements that support the weight
+    - reason: when no statement supports it, why the domain is needed for the
+      world to function even though the brief does not touch it
+
+    Add a new domain only when the brief clearly needs one the catalog lacks.
+    Do not write narrative prose or describe the world's content.
+
+    JSON shape:
+    {{"axes":[{{"domain":"...","name":"...","meaning":"...","weight":0.5,"statement_ids":["s1"],"reason":""}}]}}

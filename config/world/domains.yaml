@@ -1,0 +1,57 @@
+# Generic coverage checklist of world domains.
+# It is not a template for any particular kind of world: every domain applies
+# to any world, and the descriptions carry no genre, era, or setting.
+# Every domain here always becomes an axis with at least `min_weight`.
+min_weight: 0.05            # floor for every axis (no axis may reach 0)
+ungrounded_max_weight: 0.3  # cap for an axis with no statement grounds
+max_added_axes: 6           # domains the input may add beyond this catalog
+
+domains:
+  - id: geography_climate
+    name: Geography and climate
+    description: Terrain, places, distances, weather, seasons.
+  - id: ecology
+    name: Ecology
+    description: Living things, habitats, food webs, relation to the environment.
+  - id: laws_of_nature
+    name: Physical and extra-natural laws
+    description: What is possible or impossible and how it behaves.
+  - id: technology_tools
+    name: Technology and tools
+    description: Means of making, moving, storing, and communicating.
+  - id: resources_economy
+    name: Resources and economy
+    description: Shortage, production, exchange, value, ownership.
+  - id: politics_power
+    name: Politics and power
+    description: Who decides, how authority is held, contested, and enforced.
+  - id: law_norms
+    name: Law and norms
+    description: Written and unwritten rules, sanctions, procedures.
+  - id: belief_thought
+    name: Belief and thought
+    description: Worldviews, rituals, explanations of how things are.
+  - id: language_writing
+    name: Language and writing
+    description: Speech, scripts, naming, records, forms of address.
+  - id: kinship_community
+    name: Kinship and community
+    description: Families, groups, belonging, obligations between people.
+  - id: daily_life
+    name: Daily life
+    description: Food, clothing, shelter, use of time, routines.
+  - id: occupations_labor
+    name: Occupations and labor
+    description: Kinds of work, training paths, division of labor.
+  - id: education_knowledge
+    name: Education and knowledge
+    description: How knowledge is kept, taught, verified, and lost.
+  - id: arts_media
+    name: Arts, entertainment, and media
+    description: Expression, play, circulation of information.
+  - id: history
+    name: History
+    description: Earlier developments, their layers, and how they are remembered.
+  - id: external_relations
+    name: External relations
+    description: Contact with outsiders, trade, conflict, borders.
