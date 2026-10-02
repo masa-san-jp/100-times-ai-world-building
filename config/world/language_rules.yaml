@@ -19,6 +19,58 @@ default:
   proper_noun_min_chars: 3
 
 ja:
+  measurement_subject_words:
+    - 量
+    - 率
+    - 比
+    - 数値
+    - 人口
+    - 降水
+    - 水深
+    - 距離
+    - 長さ
+    - 重さ
+    - 容量
+    - 料金
+    - 料
+    - 費
+    - 税
+    - 生産
+    - 搬出
+    - 日量
+    - 速度
+    - 温度
+    - 面積
+  self_describing_measure_units:
+    - 平方キロ
+    - キロメートル
+    - キロ
+    - メートル
+    - ヘクタール
+    - ミリ
+    - センチ
+    - リットル
+    - グラム
+    - トン
+    - パーセント
+    - 割
+    - 倍
+    - 円
+    - 年
+    - か月
+    - ヶ月
+    - 日間
+    - 時間
+    - 世紀
+    - 里
+    - 度
+  evaluation_words:
+    - 重要
+    - 貢献
+    - 有意義
+    - 重大
+    - 不可欠
+    - 効果的
   measure_units:
     - 平方キロ
     - キロメートル
@@ -83,6 +135,65 @@ ja:
 
 en:
   proper_noun_requires_capital: true
+  measurement_subject_words:
+    - amount
+    - rate
+    - ratio
+    - share
+    - value
+    - population
+    - rainfall
+    - depth
+    - distance
+    - length
+    - weight
+    - volume
+    - capacity
+    - fee
+    - cost
+    - tax
+    - output
+    - production
+    - throughput
+    - quota
+    - speed
+    - temperature
+    - area
+    - duration
+  self_describing_measure_units:
+    - km
+    - m
+    - cm
+    - mm
+    - kg
+    - g
+    - t
+    - ha
+    - l
+    - percent
+    - years
+    - year
+    - months
+    - days
+    - hours
+    - hour
+    - miles
+    - mile
+    - tons
+    - ton
+    - litres
+    - liters
+    - acres
+  evaluation_words:
+    - important
+    - contribute
+    - contributes
+    - contribution
+    - significant
+    - crucial
+    - vital
+    - effective
+    - major
   measure_units:
     - km
     - m
@@ -110,8 +221,6 @@ en:
     - square
     - cubic
     - times
-    - marks
-    - coins
   abstract_words:
     - various
     - important

@@ -50,6 +50,10 @@ STOP_REASONS = (
     "max_generation_calls", "frontier_exhausted", "too_many_failures",
 )
 
+# Operators that deliberately widen the world or add a second explanation
+# of an existing entity. They are policy data, not assumptions about content.
+BREADTH_OPERATORS = ("expand", "perspective", "cause", "history", "document")
+
 
 NO_CANDIDATES = object()  # the operator returned nothing usable
 
@@ -157,6 +161,60 @@ def _axis_target(
     return pool[0]["id"] if pool else None
 
 
+def operator_consumption(
+    graph: Mapping[str, Any],
+    operators: Optional[Sequence[str]] = None,
+) -> Dict[str, int]:
+    """Count entities produced by each breadth operator.
+
+    New entities carry ``origin_operator``. The relation/type fallback keeps
+    this useful for graphs written by earlier versions of the engine.
+    """
+    wanted = tuple(operators or BREADTH_OPERATORS)
+    used = {op: 0 for op in wanted}
+    for entity in graph.get("entities", []):
+        op = entity.get("origin_operator")
+        if op not in used:
+            if entity.get("type") == "document":
+                op = "document"
+            else:
+                rel_types = {r.get("type") for r in entity.get("relations", [])
+                             if isinstance(r, Mapping)}
+                if "causes" in rel_types:
+                    op = "cause"
+                elif "affects" in rel_types:
+                    op = "history"
+                elif "related_to" in rel_types:
+                    op = "perspective"
+                else:
+                    op = None
+        if op in used:
+            used[op] += 1
+    return used
+
+
+def _breadth_target(
+    graph: Mapping[str, Any], operator: str,
+    needs: Mapping[str, float],
+) -> Optional[str]:
+    """Choose a bounded, deterministic target for a missing breadth arm."""
+    entities = [e for e in graph.get("entities", [])
+                if e.get("type") != "document"] or list(graph.get("entities", []))
+    if not entities:
+        return None
+
+    def key(e: Mapping[str, Any]) -> Tuple[Any, ...]:
+        rank = SCALE_RANK.get(e.get("scale"), 0)
+        below = needs.get(SCALES[rank + 1], 0.0) if rank + 1 < len(SCALES) else 0.0
+        type_penalty = 0
+        if operator == "perspective":
+            type_penalty = 0 if e.get("type") in {
+                "institution", "place", "event", "group", "practice"
+            } else 1
+        return (type_penalty, -below, -rank, str(e.get("id")))
+    return min(entities, key=key).get("id")
+
+
 def evaluate_frontier(
     graph: Mapping[str, Any],
     axes: Optional[Sequence[Mapping[str, Any]]],
@@ -240,6 +298,28 @@ def evaluate_frontier(
                 add("axis_gap", target, (expected - used[axis_id]) / expected,
                     axis_id, shares.get(axis_id, 0.0) / top if top > 0 else 0.0)
 
+    # Scale coverage alone can be satisfied by repeatedly descending along
+    # one path. Make unserved widening/viewpoint operators first-class
+    # frontier items so the bandit can allocate budget to them.
+    bcfg = cfg.get("breadth", {})
+    if bcfg.get("enabled", True):
+        breadth_ops = tuple(bcfg.get("operators") or BREADTH_OPERATORS)
+        minimum = max(1, int(bcfg.get("min_entities_per_operator", 1)))
+        consumed = operator_consumption(graph, breadth_ops)
+        for operator in breadth_ops:
+            missing = max(0, minimum - consumed.get(operator, 0))
+            if not missing:
+                continue
+            target = _breadth_target(graph, operator, needs)
+            if target is None:
+                continue
+            entity = by_id[target]
+            add("breadth_gap", target, min(1.0, missing / minimum),
+                None, share_of(entity.get("axes", [])))
+            by_kind["breadth_gap"][-1]["operator"] = operator
+            by_kind["breadth_gap"][-1]["breadth_need"] = round(
+                min(1.0, missing / minimum), 6)
+
     items: List[Dict[str, Any]] = []
     for kind in sorted(by_kind):
         ranked = sorted(by_kind[kind], key=lambda i: (
@@ -252,8 +332,14 @@ def candidate_pairs(
     items: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any],
 ) -> List[Tuple[Dict[str, Any], str]]:
     ops = cfg.get("operators", {})
-    return [(dict(i), op) for i in items for op in ops.get(i["kind"], [])
-            if not (op == "zoom" and i.get("target_scale") == "detail")]
+    pairs = []
+    for item in items:
+        allowed = ([item.get("operator")] if item.get("kind") == "breadth_gap"
+                   else ops.get(item["kind"], []))
+        for op in allowed:
+            if op and not (op == "zoom" and item.get("target_scale") == "detail"):
+                pairs.append((dict(item), op))
+    return pairs
 
 
 # ------------------------------------------------------------------ bandit
@@ -368,6 +454,13 @@ def pair_prior(
     """
     sel = cfg.get("selection", {})
     base = item_prior(item, cfg)
+    if item.get("kind") == "breadth_gap":
+        bw = float(sel.get("breadth_weight", 0.0))
+        need = float(item.get("breadth_need", item.get("deficit", 0.0)))
+        item_weight = (float(sel.get("deficit_weight", 0.7))
+                       + float(sel.get("axis_weight", 0.3)))
+        if bw > 0 and item_weight + bw > 0:
+            base = (base * item_weight + bw * need) / (item_weight + bw)
     wd = float(sel.get("depth_weight", 0.0))
     need = item.get("depth_need")
     if wd <= 0 or not need:
@@ -984,8 +1077,9 @@ def run_world_engine(
 
 __all__ = [
     "Bandit", "BudgetExhausted", "ExplorationLoop", "ExplorationResult",
-    "PREFERENCES_RELATIVE_PATH", "STOP_REASONS", "arm_key", "axis_consumption",
+    "BREADTH_OPERATORS", "PREFERENCES_RELATIVE_PATH", "STOP_REASONS", "arm_key", "axis_consumption",
     "axis_shares", "candidate_pairs", "coverage_status", "evaluate_frontier",
     "NO_CANDIDATES", "extract_preference_pairs", "item_prior", "load_explore_config",
-    "mean_reward", "pair_prior", "scale_needs", "read_preference_log", "run_world_engine",
+    "mean_reward", "operator_consumption", "pair_prior", "scale_needs",
+    "read_preference_log", "run_world_engine",
 ]

@@ -399,10 +399,15 @@ class OperatorRunner:
             if rel not in relations:
                 relations.append(rel)
 
-        return make_entity(
+        entity = make_entity(
             new_id, etype, name, scale, axes=axes_,
             parent=place["parent"], relations=relations,
             summary=summary, facts=facts, provenance=provenance)
+        # Keep the operation that created an entity as provenance for the
+        # exploration policy. It is outside the canonical entity schema so
+        # older graphs without it remain readable.
+        entity["origin_operator"] = operator
+        return entity
 
 
 # ---------------------------------------------------------- public wrappers
