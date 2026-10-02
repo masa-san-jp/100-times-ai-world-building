@@ -11,8 +11,37 @@ default:
   # term or name ("X" is called ...) is not speech.
   speech_punct: "!?！？"
   max_quote_chars: 40
+  # Fact substance checks. A number is a measured quantity when it carries
+  # one of `measure_units`, a ratio/percent, or at least this much descriptive
+  # text; a bare count ("3 members") is not.
+  measure_min_chars: 5
+  measure_min_words: 2
+  proper_noun_min_chars: 3
 
 ja:
+  measure_units:
+    - 平方キロ
+    - キロメートル
+    - キロ
+    - メートル
+    - ヘクタール
+    - ミリ
+    - センチ
+    - リットル
+    - グラム
+    - トン
+    - パーセント
+    - 割
+    - 倍
+    - 円
+    - 年
+    - か月
+    - ヶ月
+    - 日間
+    - 時間
+    - 世紀
+    - 里
+    - 度
   abstract_words:
     - 様々な
     - さまざまな
@@ -53,6 +82,36 @@ ja:
   flourish: [壮大な, 圧倒的, まさに, 驚くべき, 息をのむ, 決して忘れ, 運命の, 圧巻]
 
 en:
+  proper_noun_requires_capital: true
+  measure_units:
+    - km
+    - m
+    - cm
+    - mm
+    - kg
+    - g
+    - t
+    - ha
+    - l
+    - percent
+    - years
+    - year
+    - months
+    - days
+    - hours
+    - hour
+    - miles
+    - mile
+    - tons
+    - ton
+    - litres
+    - liters
+    - acres
+    - square
+    - cubic
+    - times
+    - marks
+    - coins
   abstract_words:
     - various
     - important

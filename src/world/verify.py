@@ -23,7 +23,11 @@ from typing import (
 
 import yaml
 
-from .textsim import character_ngrams, jaccard, normalize_item
+from .coerce import as_list, text_of
+from .textsim import (
+    character_ngrams, echo_coverage, is_cjk_text, jaccard, ngrams_of,
+    normalize_item,
+)
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
 
@@ -176,6 +180,41 @@ def _penalty_from_similarity(sim: float, floor: float) -> float:
     return _clamp((sim - floor) / (1.0 - floor)) if floor < 1 else 0.0
 
 
+# ---------------------------------------------------------------- reference
+
+def reference_text(
+    graph: Mapping[str, Any], target_id: Optional[str],
+    brief: Optional[Mapping[str, Any]] = None,
+    limits: Optional[Mapping[str, int]] = None,
+) -> str:
+    """Wording a candidate may merely repeat: the brief and its local context.
+
+    Used to measure how much of a candidate is *new* information.  It holds
+    the brief's statements (text and quote), open questions and constraints,
+    plus the target, its parent, siblings and related entities (or the
+    world-scale entities when there is no target).
+    """
+    parts: List[str] = []
+    for key in ("statements", "open_questions", "constraints"):
+        for item in (brief or {}).get(key, []) or []:
+            if isinstance(item, Mapping):
+                parts += [str(item.get("text") or ""), str(item.get("quote") or "")]
+    views: List[Mapping[str, Any]] = []
+    if target_id and get_entity(graph, target_id):
+        ctx = local_context(graph, target_id, limits)
+        views = [ctx["entity"], ctx.get("parent") or {}] \
+            + list(ctx["siblings"]) + list(ctx["related"])
+    else:
+        views = [e for e in graph.get("entities", [])
+                 if e.get("scale") == "world"][:6]
+    for v in views:
+        parts.append(str(v.get("name") or ""))
+        parts.append(str(v.get("summary") or ""))
+        parts += [str(f.get("text") or "") for f in v.get("facts") or []
+                  if isinstance(f, Mapping)]
+    return "\n".join(x for x in parts if x)
+
+
 # ----------------------------------------------------------------- contrasts
 
 def _contrast_view(entity: Mapping[str, Any]) -> Dict[str, Any]:
@@ -267,48 +306,148 @@ class ContrastProvider:
 def verify_genericity(
     candidate: Mapping[str, Any], contrasts: Sequence[Mapping[str, Any]],
     similarity: Optional[Similarity] = None,
-    params: Optional[Mapping[str, Any]] = None,
+    params: Optional[Mapping[str, Any]] = None, *,
+    siblings: Optional[Sequence[Mapping[str, Any]]] = None,
+    reference: str = "",
 ) -> VerifierResult:
+    """How ordinary the candidate is *within its own topic*.
+
+    Three signals add up (each scaled by a weight in ``params``):
+
+    * convergence - wording shared with the other independent candidates
+      generated for the same slot (``siblings``); content that every
+      sample repeats is the model's default, not this world's own idea.
+      Wording that already appears in ``reference`` is ignored here.
+    * restatement - the summary or the name mostly repeats ``reference``
+      (the brief and the local context), so it adds little new.
+    * prior - closeness to the no-input contrast candidates (demoted:
+      such contrasts usually drift to another topic).
+    """
     p = params or {}
-    sim = similarity or (lambda a, b: ngram_similarity(a, b, int(p.get("ngram_size", 3))))
-    floor = float(p.get("similarity_floor", 0.15))
-    flag = float(p.get("field_flag_similarity", 0.4))
-    if not contrasts:
-        return VerifierResult("genericity", 1.0, [], skipped=True)
+    size = int(p.get("ngram_size", 3))
+    sim = similarity or (lambda a, b: ngram_similarity(a, b, size))
     entity = candidate["entity"]
-
-    def as_text(c: Mapping[str, Any]) -> str:
-        return "\n".join([c.get("name", ""), c.get("summary", "")] + list(c.get("facts", [])))
-
-    whole = [(sim(entity_text(entity), as_text(c)), c) for c in contrasts]
-    best, best_c = max(whole, key=lambda t: t[0])
-    penalty = _penalty_from_similarity(best, floor)
     deductions: List[Deduction] = []
-    if penalty > 0:
-        pool = [c.get("summary", "") for c in contrasts] + \
-               [t for c in contrasts for t in c.get("facts", [])]
-        fields = [("name", entity.get("name", "")),
-                  ("summary", entity.get("summary", ""))]
-        fields += [(f"facts[{i}]", f.get("text", ""))
-                   for i, f in enumerate(entity.get("facts") or [])]
-        for fname, text in fields:
-            if not text:
-                continue
-            ref = [c.get("name", "") for c in contrasts] if fname == "name" else pool
-            s = max((sim(text, r) for r in ref if r), default=0.0)
-            if s >= flag:
+    penalty = 0.0
+    sibs = [s.get("entity", s) for s in siblings or []
+            if s is not candidate and s.get("entity", s) is not entity]
+    if not contrasts and not sibs and not reference.strip():
+        return VerifierResult("genericity", 1.0, [], skipped=True)
+
+    # -- prior: the no-input contrast
+    if contrasts:
+        floor = float(p.get("similarity_floor", 0.15))
+        flag = float(p.get("field_flag_similarity", 0.4))
+        cw = float(p.get("contrast_weight", 1.0))
+
+        def as_text(c: Mapping[str, Any]) -> str:
+            return "\n".join([c.get("name", ""), c.get("summary", "")]
+                             + list(c.get("facts", [])))
+
+        whole = [(sim(entity_text(entity), as_text(c)), c) for c in contrasts]
+        best, best_c = max(whole, key=lambda t: t[0])
+        pen = _penalty_from_similarity(best, floor) * cw
+        penalty += pen
+        if pen > 0:
+            pool = [c.get("summary", "") for c in contrasts] + \
+                   [t for c in contrasts for t in c.get("facts", [])]
+            fields = [("name", entity.get("name", "")),
+                      ("summary", entity.get("summary", ""))]
+            fields += [(f"facts[{i}]", f.get("text", ""))
+                       for i, f in enumerate(entity.get("facts") or [])]
+            found = False
+            for fname, text in fields:
+                if not text:
+                    continue
+                ref = [c.get("name", "") for c in contrasts] \
+                    if fname == "name" else pool
+                s = max((sim(text, r) for r in ref if r), default=0.0)
+                if s >= flag:
+                    found = True
+                    deductions.append(Deduction(
+                        "genericity", fname, "resembles_prior",
+                        "close to what the model writes for this slot "
+                        "without any input; make it specific to this world",
+                        _penalty_from_similarity(s, floor) * cw,
+                        {"similarity": round(s, 4)}))
+            if not found:
                 deductions.append(Deduction(
-                    "genericity", fname, "resembles_prior",
-                    "close to what the model writes for this slot without "
-                    "any input; make it specific to this world",
-                    _penalty_from_similarity(s, floor), {"similarity": round(s, 4)}))
-        if not deductions:
-            deductions.append(Deduction(
-                "genericity", "entity", "resembles_prior",
-                "overall close to the no-input contrast candidate",
-                penalty, {"similarity": round(best, 4),
+                    "genericity", "entity", "resembles_prior",
+                    "overall close to the no-input contrast candidate",
+                    pen, {"similarity": round(best, 4),
                           "contrast_name": best_c.get("name", "")}))
-    return VerifierResult("genericity", 1.0 - penalty, deductions)
+
+    # -- convergence with the other samples of the same slot
+    csize = int(p.get("convergence_ngram_size", 4))
+    ref_c = ngrams_of(reference, csize) if reference else set()
+    if sibs:
+        floor = float(p.get("convergence_floor", 0.25))
+        flag = float(p.get("convergence_field_flag", 0.5))
+        cw = float(p.get("convergence_weight", 1.0))
+        min_g = int(p.get("min_fresh_grams", 8))
+        others: set = set()
+        for s in sibs:
+            others |= ngrams_of(entity_text(s), csize) - ref_c
+        mine = ngrams_of(entity_text(entity), csize) - ref_c
+        if len(mine) >= min_g:
+            share = len(mine & others) / len(mine)
+            pen = _penalty_from_similarity(share, floor) * cw
+            penalty += pen
+            if pen > 0:
+                fields = [("summary", entity.get("summary", ""))]
+                fields += [(f"facts[{i}]", f.get("text", ""))
+                           for i, f in enumerate(entity.get("facts") or [])]
+                found = False
+                for fname, text in fields:
+                    g = ngrams_of(text, csize) - ref_c
+                    if len(g) < 3:
+                        continue
+                    s = len(g & others) / len(g)
+                    if s >= flag:
+                        found = True
+                        deductions.append(Deduction(
+                            "genericity", fname, "converges_with_samples",
+                            "other independent samples for the same slot "
+                            "say the same; replace it with something only "
+                            "this world would have",
+                            _penalty_from_similarity(s, floor) * cw,
+                            {"shared": round(s, 4)}))
+                if not found:
+                    deductions.append(Deduction(
+                        "genericity", "entity", "converges_with_samples",
+                        "overall shares its wording with the other samples "
+                        "for the same slot", pen, {"shared": round(share, 4)}))
+
+    # -- restatement of the brief and local context
+    if reference.strip():
+        rsize = int(p.get("restatement_ngram_size", 3))
+        ref_r = ngrams_of(reference, rsize)
+        min_new = float(p.get("min_new_share", 0.6))
+        rw = float(p.get("restatement_weight", 0.8))
+        g = ngrams_of(entity.get("summary", ""), rsize)
+        if len(g) >= int(p.get("min_summary_grams", 6)) and min_new > 0:
+            new = len(g - ref_r) / len(g)
+            pen = _clamp((min_new - new) / min_new) * rw
+            penalty += pen
+            if pen > 0:
+                deductions.append(Deduction(
+                    "genericity", "summary", "restates_input",
+                    "the summary mostly repeats the input or the "
+                    "surrounding entities; add mechanisms, names, numbers "
+                    "or consequences that are not already stated",
+                    pen, {"new_share": round(new, 4)}))
+        ew = float(p.get("name_echo_weight", 0.5))
+        thr = float(p.get("name_echo_threshold", 0.5))
+        name = str(entity.get("name") or "")
+        cov = echo_coverage(name, reference, int(p.get("echo_min_chars", 2)))
+        if name and cov >= thr:
+            pen = ew * cov
+            penalty += pen
+            deductions.append(Deduction(
+                "genericity", "name", "name_echoes_input",
+                "the name is built from words of the input; give it a name "
+                "of its own", pen, {"coverage": round(cov, 4)}))
+    return VerifierResult("genericity", _clamp(1.0 - penalty), deductions)
 
 
 def verify_provenance(
@@ -350,21 +489,87 @@ def verify_provenance(
     return VerifierResult("provenance", _score(d), d)
 
 
+_MEASURE_PATTERNS = (r"\d\s*[:/]\s*\d", r"\d\.\d", r"\d\s*(?:%|‰|°)")
+
+
+def _is_measure(text: str, rl: Mapping[str, Any]) -> bool:
+    """A number tied to a unit, ratio, percentage or enough descriptive text."""
+    t = unicodedata.normalize("NFKC", text)
+    if any(re.search(pat, t) for pat in _MEASURE_PATTERNS):
+        return True
+    units = rl.get("measure_units") or []
+    if units and _word_hits(t, units):
+        return True
+    rest = re.sub(r"[\d\s.,:;/()\-+~約およそ頃ほど]+", " ", t).strip()
+    if is_cjk_text(rest):
+        return len(rest.replace(" ", "")) >= int(rl.get("measure_min_chars", 5))
+    return len(re.findall(r"[^\W\d_]{2,}", rest)) >= int(
+        rl.get("measure_min_words", 2))
+
+
+def _fact_hollowness(
+    fact: Mapping[str, Any], rl: Mapping[str, Any], reference: str,
+    p: Mapping[str, Any],
+) -> Optional[Tuple[str, str]]:
+    """Return ``(code, message)`` when a fact only fills in its kind label."""
+    kind, text = fact.get("kind"), str(fact.get("text") or "").strip()
+    if kind in ("proper_noun", "object") and reference.strip():
+        cov = echo_coverage(text, reference, int(p.get("echo_min_chars", 2)))
+        if cov >= float(p.get("fact_echo_threshold", 0.6)):
+            return ("echoes_input",
+                    f"this {kind} fact is made of words from the input or "
+                    "the surrounding entities; give a new, specific one")
+    if kind == "proper_noun":
+        compact = normalize_item(text)
+        if is_cjk_text(compact):
+            if len(compact) < int(rl.get("proper_noun_min_chars", 3)):
+                return ("generic_name",
+                        "a short common noun, not a proper name; give the "
+                        "particular name this thing carries")
+        elif rl.get("proper_noun_requires_capital") and not any(
+                c.isupper() for c in text):
+            return ("generic_name",
+                    "a common noun, not a proper name; give the particular "
+                    "name this thing carries")
+    if kind == "number" and any(
+            unicodedata.category(c) == "Nd"
+            for c in unicodedata.normalize("NFKC", text)):
+        if not _is_measure(text, rl):
+            return ("bare_count",
+                    "a bare count; give a measured quantity with a unit, "
+                    "a ratio, or a period, tied to what it measures")
+    return None
+
+
 def verify_specificity(
     candidate: Mapping[str, Any], language: str,
-    rules: Mapping[str, Any], params: Optional[Mapping[str, Any]] = None,
+    rules: Mapping[str, Any], params: Optional[Mapping[str, Any]] = None, *,
+    reference: str = "",
 ) -> VerifierResult:
     p = params or {}
     pen = p.get("penalties", {})
     entity = candidate["entity"]
+    rl = rules_for(rules, language)
     facts = [f for f in entity.get("facts") or [] if isinstance(f, Mapping)]
     d: List[Deduction] = []
+    hollow_total = 0.0
+    solid: List[Mapping[str, Any]] = []
+    for i, f in enumerate(facts):
+        h = _fact_hollowness(f, rl, reference, p)
+        if h is None:
+            solid.append(f)
+            continue
+        each = float(pen.get("hollow_fact", 0.2))
+        room = max(0.0, float(pen.get("hollow_cap", 0.5)) - hollow_total)
+        hollow_total += min(each, room)
+        d.append(Deduction("specificity", f"facts[{i}]", h[0], h[1],
+                           min(each, room), {"kind": f.get("kind")}))
     if not facts:
         d.append(Deduction("specificity", "facts", "no_facts",
                            "no concrete facts at all",
                            float(pen.get("no_facts", 0.6))))
     else:
-        kinds = {f.get("kind") for f in facts} - {"other", None}
+        kinds = {f.get("kind") for f in solid} - {"other", None}
         need = max(1, int(p.get("min_fact_kinds", 3)))
         if len(kinds) < need:
             d.append(Deduction(
@@ -373,7 +578,7 @@ def verify_specificity(
                 "number, period, procedure, object, expression",
                 float(pen.get("kind_coverage", 0.4)) * (1 - len(kinds) / need),
                 {"kinds": sorted(kinds)}))
-        nouns = sum(1 for f in facts if f.get("kind") == "proper_noun")
+        nouns = sum(1 for f in solid if f.get("kind") == "proper_noun")
         need_n = int(p.get("min_proper_noun_facts", 1))
         if nouns < need_n:
             d.append(Deduction(
@@ -390,7 +595,7 @@ def verify_specificity(
             d.append(Deduction("specificity", "facts", "numeral",
                                "no numeral, quantity or date anywhere",
                                float(pen.get("numeral", 0.15))))
-    words = rules_for(rules, language).get("abstract_words") or []
+    words = rl.get("abstract_words") or []
     if words and body.strip():  # unknown language: structural checks only
         hits = _word_hits(body, words)
         density = sum(len(w) * n for w, n in hits) / max(1, len(body))
@@ -599,12 +804,21 @@ class LLMJudge:
         self.context_limits = context_limits
 
     def judge(self, criterion: str, candidate: Mapping[str, Any],
-              graph: Mapping[str, Any]) -> Optional[List[Deduction]]:
+              graph: Mapping[str, Any],
+              brief: Optional[Mapping[str, Any]] = None,
+              ) -> Optional[List[Deduction]]:
         entity = candidate["entity"]
         context: Any = "(none)"
         if criterion == "consistency" and candidate.get("target") \
                 and get_entity(graph, candidate["target"]):
             context = local_context(graph, candidate["target"], self.context_limits)
+        elif criterion == "specificity":
+            # The judge needs the input wording to spot facts that only
+            # repeat it.
+            context = {"input_statements": [
+                str(s.get("text") or "")[:200]
+                for s in (brief or {}).get("statements", []) or []
+                if isinstance(s, Mapping)][:12]}
         view = {"name": entity.get("name"), "summary": entity.get("summary"),
                 "facts": [{"kind": f.get("kind"), "text": f.get("text")}
                           for f in entity.get("facts") or []]}
@@ -620,12 +834,14 @@ class LLMJudge:
             score = _clamp(float(resp["score"]))
         except (KeyError, TypeError, ValueError):
             return None
-        issues = [i for i in resp.get("issues") or [] if isinstance(i, Mapping)]
+        issues = [i for i in as_list(resp.get("issues"))
+                  if isinstance(i, Mapping)]
         if score >= 1.0:
             return []
         share = (1.0 - score) / max(1, len(issues))
-        out = [Deduction(criterion, str(i.get("field") or "entity"), "llm_judge",
-                         str(i.get("why") or "judged below standard"), share)
+        out = [Deduction(criterion, text_of(i.get("field")) or "entity",
+                         "llm_judge",
+                         text_of(i.get("why")) or "judged below standard", share)
                for i in issues]
         return out or [Deduction(criterion, "entity", "llm_judge",
                                  "judged below standard", 1.0 - score)]
@@ -634,7 +850,7 @@ class LLMJudge:
 __all__ = [
     "ContrastProvider", "Deduction", "LLMJudge", "Similarity", "VerifierResult",
     "embedding_similarity", "entity_text", "language_of", "load_language_rules",
-    "ngram_similarity", "rules_for", "verify_consistency", "verify_genericity",
+    "ngram_similarity", "reference_text", "rules_for", "verify_consistency", "verify_genericity",
     "verify_novelty", "verify_objectivity", "verify_provenance",
     "verify_specificity",
 ]

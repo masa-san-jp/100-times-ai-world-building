@@ -128,12 +128,12 @@ def test_resume_without_stored_input_is_an_error(tmp_path):
         make(tmp_path, run_id="r5").resume()
 
 
-def test_failed_run_is_recorded_and_can_be_resumed(tmp_path):
+def test_interrupted_run_is_recorded_and_can_be_resumed(tmp_path):
     p = make(tmp_path, run_id="r6", backend=make_backend(fail_after=6))
-    with pytest.raises(RuntimeError, match="interrupted"):
+    with pytest.raises(KeyboardInterrupt, match="interrupted"):
         p.run(RAW)
     m = json.loads((tmp_path / "world_r6" / "run_manifest.json").read_text("utf-8"))
-    assert m["status"] == "failed"
+    assert m["status"] == "cancelled"
     ok = make(tmp_path, run_id="r6").resume()
     assert ok.stop_reason == "max_iterations"
 

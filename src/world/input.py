@@ -24,6 +24,8 @@ from typing import (
 )
 
 from ..llm import LLMBackend
+from .graph import guess_language
+from .language import language_name
 
 
 RawInput = Union[str, bytes, Path]
@@ -72,6 +74,10 @@ Do not write narrative prose or answer the open questions.
 open_questions and constraints are arrays of plain strings. Do not output
 ids; ids are assigned by the caller.
 
+OUTPUT LANGUAGE: write the text of every statement, open question and
+constraint in {language_name} (language code "{language}"). The one exception
+is quote: it must stay exactly as written in SOURCE MATERIAL, never translated.
+
 JSON shape:
 {{"statements":[{{"text":"...","quote":"..."}}],"open_questions":[],"constraints":[]}}"""
     DEFAULT_VISION_SYSTEM_PROMPT = (
@@ -91,7 +97,9 @@ JSON shape:
         vision_backend: Optional[LLMBackend] = None,
         prompt: Optional[Mapping[str, str]] = None,
         vision_prompt: Optional[Mapping[str, str]] = None,
+        language: Optional[str] = None,
     ) -> None:
+        self.language = language
         self.backend = backend
         self.vision_backend = vision_backend or backend
         self.input_dir = Path(input_dir)
@@ -123,7 +131,10 @@ JSON shape:
                 )
 
         prompt_template = self.prompt.get("user", self.DEFAULT_USER_PROMPT)
-        prompt = prompt_template.format(source_text=source_for_brief)
+        lang = self.language or guess_language(raw_text or source_for_brief)
+        prompt = prompt_template.format(
+            source_text=source_for_brief, language=lang,
+            language_name=language_name(lang))
         response = self.backend.generate_json(
             prompt,
             system_prompt=self.prompt.get(
@@ -246,6 +257,9 @@ JSON shape:
         raw_statements = response.get("statements", [])
         if isinstance(raw_statements, list):
             for item in raw_statements:
+                if isinstance(item, str) and item.strip() \
+                        and item in source_text:
+                    item = {"text": item.strip(), "quote": item}
                 if not isinstance(item, Mapping):
                     continue
                 text = InputBriefBuilder._first_text(

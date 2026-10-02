@@ -17,6 +17,9 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 import yaml
 
 from ..llm import LLMBackend
+from .graph import guess_language
+from .coerce import id_list
+from .language import language_name, localized
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 DEFAULT_CATALOG_PATH = CONFIG_DIR / "world" / "domains.yaml"
@@ -73,7 +76,9 @@ class WorldAxesBuilder:
         output_dir: Union[str, Path],
         catalog: Optional[Mapping[str, Any]] = None,
         prompt: Optional[Mapping[str, str]] = None,
+        language: Optional[str] = None,
     ) -> None:
+        self.language = language
         self.backend = backend
         self.output_dir = Path(output_dir)
         self.catalog = dict(catalog) if catalog else load_catalog()
@@ -86,12 +91,25 @@ class WorldAxesBuilder:
         if not 0 < self.min_weight <= 1:
             raise CatalogError("min_weight must be in (0, 1]")
 
-    def build(self, brief: Mapping[str, Any]) -> WorldAxesResult:
+    def _language_of(self, brief: Mapping[str, Any],
+                     language: Optional[str] = None) -> str:
+        """Output language: explicit, else guessed from the brief's text."""
+        lang = language or self.language
+        if lang:
+            return lang
+        text = " ".join(
+            str(s.get("text") or "") for s in brief.get("statements") or []
+            if isinstance(s, Mapping))
+        return guess_language(text)
+
+    def build(self, brief: Mapping[str, Any],
+              language: Optional[str] = None) -> WorldAxesResult:
+        lang = self._language_of(brief, language)
         response = self.backend.generate_json(
-            self._render_prompt(brief),
+            self._render_prompt(brief, lang),
             system_prompt=self.prompt.get("system"),
         )
-        axes = self._validate(response, brief)
+        axes = self._validate(response, brief, lang)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         path = self.output_dir / "world_axes.json"
         path.write_text(
@@ -100,7 +118,8 @@ class WorldAxesBuilder:
         )
         return WorldAxesResult(axes=axes, axes_path=path)
 
-    def _render_prompt(self, brief: Mapping[str, Any]) -> str:
+    def _render_prompt(self, brief: Mapping[str, Any],
+                       language: Optional[str] = None) -> str:
         def lines(items: Any, with_id: bool = True) -> str:
             out = [
                 f"{i['id']}: {i['text']}" if with_id else str(i["text"])
@@ -110,9 +129,11 @@ class WorldAxesBuilder:
             return "\n".join(out) or "(none)"
 
         catalog = "\n".join(
-            f"{d['id']}: {d['name']}" for d in self.catalog["domains"]
+            f"{d['id']}: {localized(d['name'], language)}"
+            for d in self.catalog["domains"]
         )
         return self.prompt["user"].format(
+            language=language or "und", language_name=language_name(language),
             statements=lines(brief.get("statements")),
             open_questions=lines(brief.get("open_questions"), False),
             constraints=lines(brief.get("constraints"), False),
@@ -131,8 +152,11 @@ class WorldAxesBuilder:
         return value.strip() if isinstance(value, str) else ""
 
     def _validate(
-        self, response: Any, brief: Mapping[str, Any]
+        self, response: Any, brief: Mapping[str, Any],
+        language: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
+        no_input = localized(
+            self.catalog.get("no_input_reason"), language) or NO_INPUT_REASON
         valid_ids = {
             s["id"] for s in brief.get("statements", []) or []
             if isinstance(s, Mapping) and "id" in s
@@ -147,11 +171,8 @@ class WorldAxesBuilder:
         by_domain: Dict[str, Dict[str, Any]] = {}
         added: List[Dict[str, Any]] = []
         for p in proposals:
-            ids = p.get("statement_ids", [])
-            ids = [
-                i for i in dict.fromkeys(ids if isinstance(ids, list) else [])
-                if isinstance(i, str) and i in valid_ids
-            ]
+            ids = [i for i in id_list(p.get("statement_ids"))
+                   if i in valid_ids]
             reason = self._text(p.get("reason"))
             domain = p.get("domain")
             entry = {
@@ -172,15 +193,16 @@ class WorldAxesBuilder:
             entry = by_domain.get(domain_id)
             if entry is None:
                 axes.append(self._axis(
-                    domain_id, d["name"], d.get("description", ""),
-                    self.min_weight, [], NO_INPUT_REASON, "catalog",
+                    domain_id, localized(d["name"], language),
+                    localized(d.get("description"), language),
+                    self.min_weight, [], no_input, "catalog",
                 ))
                 continue
             axes.append(self._axis(
-                domain_id, d["name"],
-                entry["meaning"] or d.get("description", ""),
+                domain_id, localized(d["name"], language),
+                entry["meaning"] or localized(d.get("description"), language),
                 entry["weight"], entry["statement_ids"], entry["reason"],
-                "catalog",
+                "catalog", no_input,
             ))
         used = {a["id"] for a in axes}
         for entry in added:
@@ -193,17 +215,18 @@ class WorldAxesBuilder:
             used.add(axis_id)
             axes.append(self._axis(
                 axis_id, entry["name"], entry["meaning"], entry["weight"],
-                entry["statement_ids"], entry["reason"], "added",
+                entry["statement_ids"], entry["reason"], "added", no_input,
             ))
         return axes
 
     def _axis(
         self, axis_id: str, name: str, meaning: str, weight: float,
         statement_ids: List[str], reason: str, origin: str,
+        no_input: str = NO_INPUT_REASON,
     ) -> Dict[str, Any]:
         if not statement_ids:
             weight = min(weight, max(self.ungrounded_max, self.min_weight))
-            reason = reason or NO_INPUT_REASON
+            reason = reason or no_input
         return {
             "id": axis_id,
             "name": name,

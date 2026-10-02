@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 import yaml
 
 from ..llm import LLMBackend
+from .coerce import fact_items, id_list, relation_items, text_of
 from .graph import (
     ENTITY_TYPES, FACT_KINDS, RELATION_TYPES, SCALES, SCALE_RANK,
     get_entity, local_context, make_entity, validate_graph,
@@ -306,6 +307,8 @@ class OperatorRunner:
     # -- candidates
     def _build(self, operator, graph, target, place, n, response, brief, axes):
         raw = response.get("candidates") if isinstance(response, Mapping) else None
+        if isinstance(raw, Mapping):
+            raw = [raw]
         if not isinstance(raw, list):
             return []
         entities = graph.get("entities", [])
@@ -349,24 +352,21 @@ class OperatorRunner:
         existing_ids, statement_ids, axis_ids,
     ) -> Optional[Dict[str, Any]]:
         cfg = self.config
-        etype = item.get("type")
+        etype = text_of(item.get("type")).lower().replace(" ", "_")
         if operator == "document":
             etype = "document"
         if etype not in ENTITY_TYPES:
             return None
-        name, summary = item.get("name"), item.get("summary")
-        if not isinstance(name, str) or not name.strip():
-            return None
-        if not isinstance(summary, str) or not summary.strip():
+        name = text_of(item.get("name"))
+        summary = text_of(item.get("summary"))
+        if not name or not summary:
             return None
 
-        sids = [s for s in dict.fromkeys(_as_list(item.get("statement_ids")))
-                if isinstance(s, str) and s
-                and (statement_ids is None or s in statement_ids)]
-        srcs = [s for s in dict.fromkeys(_as_list(item.get("derived_from")))
-                if isinstance(s, str) and s in existing_ids]
-        reason = item.get("reason")
-        reason = reason.strip() if isinstance(reason, str) else ""
+        sids = [s for s in id_list(item.get("statement_ids"))
+                if statement_ids is None or s in statement_ids]
+        srcs = [s for s in id_list(item.get("derived_from"))
+                if s in existing_ids]
+        reason = text_of(item.get("reason"))
         if not sids and not srcs:
             return None  # no provenance: discard
         if srcs and not reason:
@@ -376,45 +376,33 @@ class OperatorRunner:
         provenance = {"statement_ids": sids, "derived_from": srcs,
                       "reason": reason}
 
-        facts = []
-        for f in _as_list(item.get("facts")):
-            if (isinstance(f, Mapping) and f.get("kind") in FACT_KINDS
-                    and isinstance(f.get("text"), str) and f["text"].strip()):
-                facts.append({
-                    "kind": f["kind"], "text": f["text"].strip(),
-                    "provenance": copy.deepcopy(provenance)})
+        facts = [{"kind": f["kind"], "text": f["text"],
+                  "provenance": copy.deepcopy(provenance)}
+                 for f in fact_items(item.get("facts"), FACT_KINDS)]
         scale = place["scale"]
         concrete = sum(1 for f in facts if f["kind"] in CONCRETE_KINDS)
         if len(facts) < cfg.min_facts or concrete < _min_concrete(scale, cfg):
             return None
 
-        axes_ = [a for a in dict.fromkeys(_as_list(item.get("axes")))
-                 if isinstance(a, str) and a
-                 and (axis_ids is None or a in axis_ids)]
+        axes_ = [a for a in id_list(item.get("axes"))
+                 if axis_ids is None or a in axis_ids]
         if not axes_ and target is not None:
             axes_ = [a for a in target.get("axes", [])
                      if axis_ids is None or a in axis_ids]
 
         relations: List[Dict[str, str]] = []
-        for r in _as_list(item.get("relations")):
-            if (isinstance(r, Mapping) and r.get("type") in RELATION_TYPES
-                    and r.get("target") in existing_ids):
-                rel = {"type": r["type"], "target": r["target"]}
-                if rel not in relations:
-                    relations.append(rel)
+        for rel in relation_items(item.get("relations"), RELATION_TYPES):
+            if rel["target"] in existing_ids and rel not in relations:
+                relations.append(rel)
         if target is not None and operator in _TARGET_RELATION:
             rel = {"type": _TARGET_RELATION[operator], "target": target["id"]}
             if rel not in relations:
                 relations.append(rel)
 
         return make_entity(
-            new_id, etype, name.strip(), scale, axes=axes_,
+            new_id, etype, name, scale, axes=axes_,
             parent=place["parent"], relations=relations,
-            summary=summary.strip(), facts=facts, provenance=provenance)
-
-
-def _as_list(value: Any) -> list:
-    return value if isinstance(value, list) else []
+            summary=summary, facts=facts, provenance=provenance)
 
 
 # ---------------------------------------------------------- public wrappers

@@ -90,6 +90,18 @@ def _setup_logging(args, log_name: str) -> None:
     )
 
 
+ERROR_STOP_REASONS = ("too_many_failures",)
+
+
+def _exit_code(result) -> int:
+    """Non-zero when the engine stopped because it kept failing."""
+    if getattr(result, "stop_reason", None) in ERROR_STOP_REASONS:
+        print(f"\n✗ The engine stopped early: {result.stop_reason}. "
+              "See the preference log and logs for the errors.")
+        return 1
+    return 0
+
+
 def _print_outputs(pipeline, result) -> None:
     root = pipeline.package_dir
     print(f"\nRun ID: {pipeline.run_id}")
@@ -139,7 +151,7 @@ def run_generate(args, backend=None):
     print("World generation complete")
     print("=" * 60)
     _print_outputs(pipeline, result)
-    return 0
+    return _exit_code(result)
 
 
 def run_batch_generate(args, backend=None):
@@ -245,7 +257,7 @@ def resume_run(args, backend=None):
     result = pipeline.resume()
     print(f"\n✓ Resumed run {pipeline.run_id}")
     _print_outputs(pipeline, result)
-    return 0
+    return _exit_code(result)
 
 
 def parse_args(argv=None):

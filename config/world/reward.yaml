@@ -4,7 +4,7 @@
 weights:
   genericity: 2.0
   provenance: 1.0
-  specificity: 1.5
+  specificity: 2.0
   consistency: 1.5
   objectivity: 1.0
   novelty: 1.0
@@ -18,16 +18,37 @@ thresholds:
   consistency: 0.7
   objectivity: 0.7
   novelty: 0.5
-  total: 0.6
+  total: 0.7
 
 # Verifiers that may also consult an LLM judge (only when a judge is given).
+# Real runs enable it through `engine.judge` in the backend configuration,
+# which supplies the judge and the criteria; the default stays off.
 llm_judges: []
 
+# Genericity measures how ordinary a candidate is within its own topic:
+#   convergence   wording shared with the other independent samples of the
+#                 same slot (their common content is the model's default)
+#   restatement   summary / name that mostly repeat the brief and context
+#   prior         closeness to the no-input contrast (demoted: it usually
+#                 drifts to another topic, so it cannot see in-topic clichés)
 genericity:
   ngram_size: 3
-  similarity_floor: 0.15   # similarity at or below this costs nothing
-  field_flag_similarity: 0.4  # a field this similar is reported on its own
+  similarity_floor: 0.15   # prior: similarity at or below this costs nothing
+  field_flag_similarity: 0.4  # prior: a field this similar is reported alone
   contrast_count: 3
+  contrast_weight: 0.5     # prior: scale of its penalty (1 = full strength)
+  convergence_ngram_size: 4
+  convergence_floor: 0.25  # shared share of fresh n-grams at or below: free
+  convergence_field_flag: 0.5
+  convergence_weight: 1.0
+  min_fresh_grams: 8       # fewer fresh n-grams than this: not measured
+  restatement_ngram_size: 3
+  min_new_share: 0.6       # summary must carry at least this share of new n-grams
+  min_summary_grams: 6
+  restatement_weight: 0.8
+  name_echo_threshold: 0.5 # share of the name made of input words
+  name_echo_weight: 0.7    # penalty = weight * covered share
+  echo_min_chars: 2
 
 novelty:
   ngram_size: 3
@@ -38,7 +59,11 @@ specificity:
   min_proper_noun_facts: 1
   require_numeral: true
   max_abstract_density: 0.04   # share of characters made of abstract words
+  fact_echo_threshold: 0.6     # proper_noun/object made of input words this much is hollow
+  echo_min_chars: 2
   penalties:
+    hollow_fact: 0.2         # per fact that only fills its kind label
+    hollow_cap: 0.5          # most the hollow facts can cost together
     kind_coverage: 0.4       # scaled by the shortfall
     proper_noun: 0.25
     numeral: 0.15
