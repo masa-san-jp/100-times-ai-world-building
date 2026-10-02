@@ -23,6 +23,7 @@ from typing import (
 
 import yaml
 
+from .coerce import as_list, text_of
 from .textsim import (
     character_ngrams, echo_coverage, is_cjk_text, jaccard, ngrams_of,
     normalize_item,
@@ -833,12 +834,14 @@ class LLMJudge:
             score = _clamp(float(resp["score"]))
         except (KeyError, TypeError, ValueError):
             return None
-        issues = [i for i in resp.get("issues") or [] if isinstance(i, Mapping)]
+        issues = [i for i in as_list(resp.get("issues"))
+                  if isinstance(i, Mapping)]
         if score >= 1.0:
             return []
         share = (1.0 - score) / max(1, len(issues))
-        out = [Deduction(criterion, str(i.get("field") or "entity"), "llm_judge",
-                         str(i.get("why") or "judged below standard"), share)
+        out = [Deduction(criterion, text_of(i.get("field")) or "entity",
+                         "llm_judge",
+                         text_of(i.get("why")) or "judged below standard", share)
                for i in issues]
         return out or [Deduction(criterion, "entity", "llm_judge",
                                  "judged below standard", 1.0 - score)]

@@ -41,6 +41,9 @@ budget:
   max_iterations: 200
   max_wall_seconds: null
   max_generation_calls: null
+  # An iteration that raises (bad model data, backend error, timeout) is
+  # recorded as discarded and the run continues; this many in a row stop it.
+  max_consecutive_failures: 5
 
 coverage:
   enabled: true

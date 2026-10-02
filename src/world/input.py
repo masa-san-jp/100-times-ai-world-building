@@ -257,6 +257,9 @@ JSON shape:
         raw_statements = response.get("statements", [])
         if isinstance(raw_statements, list):
             for item in raw_statements:
+                if isinstance(item, str) and item.strip() \
+                        and item in source_text:
+                    item = {"text": item.strip(), "quote": item}
                 if not isinstance(item, Mapping):
                     continue
                 text = InputBriefBuilder._first_text(

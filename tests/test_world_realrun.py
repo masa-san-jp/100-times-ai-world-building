@@ -444,3 +444,181 @@ def test_english_input_keeps_english_catalog_names(tmp_path):
     res = WorldAxesBuilder(FakeLLMBackend({"axes": []}), tmp_path).build(brief)
     names = {a["id"]: a["name"] for a in res.axes}
     assert names["geography_climate"] == "Geography and climate"
+
+
+# ------------------------------------------- malformed model output (#43 fix)
+
+from src.world.coerce import fact_items, id_list, relation_items, text_of  # noqa: E402
+from src.world.explore import STOP_REASONS, read_preference_log  # noqa: E402
+from src.world.graph import FACT_KINDS, RELATION_TYPES  # noqa: E402
+from src.world.operators import OperatorRunner  # noqa: E402
+
+
+def test_id_lists_are_coerced_from_every_shape():
+    assert id_list(["e1", "e2"]) == ["e1", "e2"]
+    assert id_list([{"id": "e1"}, {"target": "e2"}, {"entity_id": "e3"}]) \
+        == ["e1", "e2", "e3"]
+    assert id_list("s1, s2;s3") == ["s1", "s2", "s3"]
+    assert id_list([["s1", ["s2"]], 3, None, True, {"x": 1}]) == ["s1", "s2", "3"]
+    assert id_list("s1") == ["s1"] and id_list(None) == [] and id_list({}) == []
+    assert id_list("[s1, s1]") == ["s1"]
+
+
+def test_facts_and_relations_are_coerced_or_dropped():
+    facts = fact_items(["plain text", {"kind": "Proper Noun", "value": "Name"},
+                        {"type": "weird", "description": "d"}, {"kind": "number"},
+                        7, None, [1]], FACT_KINDS)
+    assert facts == [{"kind": "other", "text": "plain text"},
+                     {"kind": "proper_noun", "text": "Name"},
+                     {"kind": "other", "text": "d"},
+                     {"kind": "other", "text": "7"}]
+    rels = relation_items([{"type": "causes", "entity_id": "e1"},
+                           {"relation": "related-to", "target": {"id": "e2"}},
+                           {"type": "causes"}, "bad", {"type": "nope", "target": "e1"}],
+                          RELATION_TYPES)
+    assert rels == [{"type": "causes", "target": "e1"},
+                    {"type": "related_to", "target": "e2"}]
+    assert text_of({"text": {"value": "deep"}}) == "deep"
+
+
+def _runner_result(item, **kw):
+    g = world_only_graph()
+    brief = {"statements": [{"id": "s1", "text": "a"}, {"id": "s2", "text": "b"}]}
+    base = {"type": "concept", "name": "N", "summary": "S",
+            "facts": [{"kind": "proper_noun", "text": "Nn"}],
+            "statement_ids": ["s1"]}
+    base.update(item)
+    backend = FakeLLMBackend({"candidates": base if kw.get("single") else [base]})
+    return OperatorRunner(backend).run(
+        "expand", g, "e1", 1, brief=brief, axes=AXES)
+
+
+@pytest.mark.parametrize("derived", [
+    [{"id": "e1"}], [{"target": "e1"}], [{"entity_id": "e1"}], "e1", ["e1"],
+    [["e1"]], [None, 5, {"x": 1}, "e1"]])
+def test_derived_from_shapes_do_not_crash(derived):
+    out = _runner_result({"derived_from": derived, "reason": "because"})
+    assert len(out) == 1
+    assert out[0]["entity"]["provenance"]["derived_from"] == ["e1"]
+
+
+def test_other_malformed_fields_never_raise():
+    out = _runner_result({"statement_ids": "s1, s2", "axes": [{"id": "a1"}, 4],
+                          "relations": [{"type": "causes", "target": {"id": "e1"}},
+                                        {"type": "causes"}, "x"],
+                          "facts": ["bare string", {"kind": "number", "value": 3},
+                                    {"kind": ["x"], "text": ["y"]}, None],
+                          "reason": {"text": "why"}})
+    e = out[0]["entity"]
+    assert e["provenance"]["statement_ids"] == ["s1", "s2"]
+    assert e["axes"] == ["a1"]
+    assert [f["text"] for f in e["facts"]] == ["bare string", "3"]
+    assert {"type": "causes", "target": "e1"} in e["relations"]
+    for junk in ({"name": {"x": 1}}, {"summary": None}, {"type": ["concept"]},
+                 {"statement_ids": {"a": 1}}, {"facts": "one string"},
+                 {"derived_from": 5, "statement_ids": None}):
+        _runner_result(junk)  # dropped or coerced, never an exception
+    assert len(_runner_result({}, single=True)) == 1  # one object, not a list
+
+
+def test_axes_input_and_judge_parsing_survive_bad_shapes(tmp_path):
+    brief = {"statements": [{"id": "s1", "text": "t"}], "open_questions": [],
+             "constraints": []}
+    bad = {"axes": [{"domain": "history", "weight": 0.5, "meaning": ["x"],
+                     "statement_ids": [{"id": "s1"}, [["s9"]], None]},
+                    {"domain": {"a": 1}, "name": 3}, "junk"]}
+    res = WorldAxesBuilder(FakeLLMBackend(bad), tmp_path).build(brief)
+    hist = [a for a in res.axes if a["id"] == "history"][0]
+    assert hist["grounds"]["statement_ids"] == ["s1"]
+    built = InputBriefBuilder(FakeLLMBackend({
+        "statements": ["塩鉱業", {"text": 5, "quote": ["x"]}, None],
+        "open_questions": [None, {"text": "q"}, 3], "constraints": "c"}),
+        tmp_path / "i").build("塩鉱業で暮らす")
+    assert [s["text"] for s in built.brief["statements"]] == ["塩鉱業"]
+    judge = LLMJudge(FakeLLMBackend({"score": 0.5, "issues": 3}))
+    out = judge.judge("specificity", SPECIFIC[0], new_graph("ja"))
+    assert out and out[0].code == "llm_judge"
+    judge = LLMJudge(FakeLLMBackend({"score": [1], "issues": {"a": 1}}))
+    assert judge.judge("specificity", SPECIFIC[0], new_graph("ja")) is None
+
+
+# ----------------------------------------------- resilient loop (#43 fix)
+
+def flaky_backend(bad_calls, exc=lambda: TimeoutError("backend timed out")):
+    inner = make_backend()
+    calls = {"n": 0}
+
+    def respond(prompt):
+        calls["n"] += 1
+        if calls["n"] in bad_calls:
+            raise exc()
+        return inner.json_source(prompt) if hasattr(inner, "json_source") \
+            else inner.generate_json(prompt)
+    return FakeLLMBackend(respond)
+
+
+def run_loop(tmp_path, backend, iterations=8, **budget):
+    from tests.test_world_explore import BRIEF as EB, AXES as EA
+    c = load_explore_config()
+    c["budget"].update({"max_iterations": iterations, **budget})
+    c["coverage"]["enabled"] = False
+    return ExplorationLoop(backend, tmp_path, EB, EA, seed=3, language="en",
+                           config=c).run()
+
+
+def test_backend_errors_on_some_calls_do_not_stop_the_run(tmp_path):
+    result = run_loop(tmp_path, flaky_backend({3, 9, 10}))
+    assert result.stop_reason == "max_iterations" and result.iterations == 8
+    assert result.counters["errors"] >= 1
+    log = read_preference_log(tmp_path / "world" / "preferences.jsonl")
+    errs = [r for r in log if r["type"] == "iteration" and r["outcome"] == "error"]
+    assert errs and errs[0]["error"]["class"] == "TimeoutError"
+    assert errs[0]["arm_reward"] == 0.0 and errs[0]["accepted_id"] is None
+    assert any(r["outcome"] == "accepted" for r in log if r["type"] == "iteration")
+
+
+def test_malformed_model_output_in_the_loop_is_not_fatal(tmp_path):
+    inner = make_backend()
+
+    def respond(prompt):
+        out = inner.generate_json(prompt)
+        for c in (out or {}).get("candidates", []):
+            c["derived_from"] = [{"id": "e1"}, {"target": "e2"}]
+            c["facts"] = [f["text"] for f in c["facts"]]
+        return out
+    result = run_loop(tmp_path, FakeLLMBackend(respond), iterations=5)
+    assert result.stop_reason == "max_iterations"
+
+
+def test_consecutive_failure_limit_stops_with_a_clear_reason(tmp_path):
+    def boom():
+        return ValueError("invalid JSON after retries")
+    backend = flaky_backend(set(range(1, 1000)), boom)
+    result = run_loop(tmp_path, backend, iterations=50,
+                      max_consecutive_failures=3)
+    assert result.stop_reason == "too_many_failures"
+    assert "too_many_failures" in STOP_REASONS
+    assert result.iterations == 3 and result.counters["errors"] == 3
+    # checkpoint keeps the reason and a later resume can continue
+    again = run_loop(tmp_path, make_backend(), iterations=6,
+                     max_consecutive_failures=3)
+    assert again.stop_reason == "max_iterations"
+    assert again.counters["accepted"] >= 1
+
+
+def test_a_success_resets_the_consecutive_failure_count(tmp_path):
+    result = run_loop(tmp_path, flaky_backend({2, 3, 7, 8}), iterations=10,
+                      max_consecutive_failures=3)
+    assert result.stop_reason == "max_iterations"
+
+
+def test_example_run_exits_nonzero_on_too_many_failures():
+    import example_run
+
+    class R:
+        stop_reason = "too_many_failures"
+    assert example_run._exit_code(R()) == 1
+
+    class Ok:
+        stop_reason = "max_iterations"
+    assert example_run._exit_code(Ok()) == 0

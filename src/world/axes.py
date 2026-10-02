@@ -18,6 +18,7 @@ import yaml
 
 from ..llm import LLMBackend
 from .graph import guess_language
+from .coerce import id_list
 from .language import language_name, localized
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
@@ -170,11 +171,8 @@ class WorldAxesBuilder:
         by_domain: Dict[str, Dict[str, Any]] = {}
         added: List[Dict[str, Any]] = []
         for p in proposals:
-            ids = p.get("statement_ids", [])
-            ids = [
-                i for i in dict.fromkeys(ids if isinstance(ids, list) else [])
-                if isinstance(i, str) and i in valid_ids
-            ]
+            ids = [i for i in id_list(p.get("statement_ids"))
+                   if i in valid_ids]
             reason = self._text(p.get("reason"))
             domain = p.get("domain")
             entry = {

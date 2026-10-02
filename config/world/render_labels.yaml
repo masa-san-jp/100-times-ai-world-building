@@ -124,6 +124,7 @@ en:
     max_wall_seconds: time budget reached
     max_generation_calls: generation-call budget reached
     frontier_exhausted: no frontier left to develop
+    too_many_failures: stopped after too many consecutive failed iterations
 
 ja:
   readme_title: 世界設定資料
@@ -246,3 +247,4 @@ ja:
     max_wall_seconds: 時間の上限に達した
     max_generation_calls: 生成呼び出しの上限に達した
     frontier_exhausted: 深める箇所が尽きた
+    too_many_failures: 失敗が続いたため停止

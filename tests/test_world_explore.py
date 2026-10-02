@@ -75,7 +75,9 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
     def respond(prompt):
         calls["n"] += 1
         if fail_after is not None and calls["n"] > fail_after:
-            raise RuntimeError("interrupted")
+            # A user interrupt / kill: unlike a backend error, it is never
+            # swallowed by the loop's per-iteration failure handling.
+            raise KeyboardInterrupt("interrupted")
         if prompt.startswith("SOURCE MATERIAL"):
             return {"statements": [
                 {"text": "alpha rule", "quote": "alpha rule"},
@@ -323,7 +325,7 @@ def test_resume_after_interruption_matches_uninterrupted_run(tmp_path):
     loop(full, config=c).run()
 
     part = tmp_path / "part"
-    with pytest.raises(RuntimeError):
+    with pytest.raises(KeyboardInterrupt):
         loop(part, make_backend(fail_after=10), c).run()
     mid = json.loads((part / "world" / "graph.json").read_text())
     assert 0 < len(mid["entities"])

@@ -30,6 +30,7 @@ from typing import (
 )
 
 import yaml
+from loguru import logger
 
 from .graph import (
     SCALE_RANK, SCALES, GraphStore, guess_language, local_context,
@@ -46,8 +47,11 @@ STATE_VERSION = 1
 
 STOP_REASONS = (
     "coverage_met", "max_iterations", "max_wall_seconds",
-    "max_generation_calls", "frontier_exhausted",
+    "max_generation_calls", "frontier_exhausted", "too_many_failures",
 )
+
+
+NO_CANDIDATES = object()  # the operator returned nothing usable
 
 
 class BudgetExhausted(RuntimeError):
@@ -447,9 +451,10 @@ def _fresh_state(seed: int) -> Dict[str, Any]:
     return {
         "version": STATE_VERSION, "seed": seed, "iteration": 0,
         "counters": {"generation_calls": 0, "accepted": 0, "rejected": 0,
-                     "no_candidates": 0, "rewrites": 0},
+                     "no_candidates": 0, "rewrites": 0, "errors": 0},
         "elapsed_seconds": 0.0, "bandit": {"arms": {}}, "rng": None,
         "log_lines": 0, "max_entity_n": 0, "stop_reason": None,
+        "consecutive_failures": 0,
     }
 
 
@@ -517,7 +522,7 @@ class ExplorationLoop:
         counters.update({k: int(v) for k, v in data["counters"].items()})
         self.state.update({k: data[k] for k in (
             "iteration", "elapsed_seconds", "log_lines", "max_entity_n",
-            "stop_reason") if k in data})
+            "stop_reason", "consecutive_failures") if k in data})
         self.bandit.arms = Bandit(self.cfg.get("selection", {}), self.rng,
                                   data.get("bandit")).arms
         _set_rng_state(self.rng, data["rng"])
@@ -575,6 +580,10 @@ class ExplorationLoop:
         mc = budget.get("max_generation_calls")
         if mc is not None and s["counters"]["generation_calls"] >= int(mc):
             return "max_generation_calls"
+        mf = budget.get("max_consecutive_failures")
+        if mf is not None and int(mf) > 0 \
+                and s.get("consecutive_failures", 0) >= int(mf):
+            return "too_many_failures"
         return None
 
     # -- the loop
@@ -593,6 +602,7 @@ class ExplorationLoop:
         resumed = resume and self._load_state()
         if resumed:
             self.state["stop_reason"] = None
+            self.state["consecutive_failures"] = 0  # a resume is a fresh try
         language = self.language or guess_language(" ".join(
             str(s.get("text", "")) for s in self.brief.get("statements", [])))
         graph = self.store.load_or_create(language)
@@ -668,9 +678,24 @@ class ExplorationLoop:
         def score(cands, rnd, revision_of=None, findings=None, siblings=None):
             rows = []
             for idx, c in enumerate(cands):
-                res = self.verifier.verify(
-                    graph, c, brief=self.brief, axes=self.axes, store=True,
-                    siblings=cands if siblings is None else siblings)
+                try:
+                    res = self.verifier.verify(
+                        graph, c, brief=self.brief, axes=self.axes,
+                        store=True,
+                        siblings=cands if siblings is None else siblings)
+                except BudgetExhausted:
+                    raise
+                except Exception as exc:  # skip this candidate only
+                    logger.warning(
+                        f"candidate {idx} could not be verified: "
+                        f"{type(exc).__name__}: {exc}")
+                    self.state["counters"]["errors"] += 1
+                    records.append({
+                        "type": "candidate_error", "iteration": it,
+                        "round": rnd, "index": idx, "operator": operator,
+                        "error": {"class": type(exc).__name__,
+                                  "message": str(exc)[:300]}})
+                    continue
                 cid = f"i{it}.r{rnd}.c{idx}"
                 records.append({
                     "type": "candidate", "id": cid, "iteration": it,
@@ -686,59 +711,92 @@ class ExplorationLoop:
         def best_of(rows):
             return max(rows, key=lambda r: (r["res"].passed, r["res"].reward))
 
+        accepted = None
+        error: Optional[Dict[str, str]] = None
+        try:
+            accepted = self._attempt(
+                graph, operator, target, gen, gen_axes, score, best_of)
+            if accepted is not None and accepted is not NO_CANDIDATES:
+                graph = self._commit(graph, accepted["cand"]["entity"])
+        except BudgetExhausted:
+            raise
+        except Exception as exc:  # bad model data or a backend failure
+            error = {"class": type(exc).__name__, "message": str(exc)[:300]}
+            logger.warning(
+                f"iteration {it} ({arm}) failed: "
+                f"{error['class']}: {error['message']}")
+            accepted = None
+        if error is not None:
+            self.state["counters"]["errors"] += 1
+            self.state["consecutive_failures"] += 1
+        else:
+            self.state["consecutive_failures"] = 0
+        if accepted is NO_CANDIDATES:
+            accepted = None
+            self.state["counters"]["no_candidates"] += 1
+            self.state["counters"]["rejected"] += 1
+        elif accepted is not None:
+            decisions[accepted["id"]] = "accepted"
+            arm_reward = accepted["res"].reward
+            self.state["counters"]["accepted"] += 1
+        else:
+            self.state["counters"]["rejected"] += 1
+        if accepted is None:
+            arm_reward = float(gen.get("discard_reward", 0.0))
+        for r in records:
+            if "id" in r:
+                r["decision"] = decisions[r["id"]]
+        records.append({
+            "type": "iteration", "iteration": it, "arm": arm,
+            "operator": operator, "target": target,
+            "frontier": {k: item[k] for k in ("kind", "axis", "deficit")},
+            "context": context,
+            "outcome": ("error" if error else
+                        "accepted" if accepted else "discarded"),
+            "accepted_id": accepted["id"] if accepted else None,
+            "arm_reward": round(arm_reward, 4),
+            **({"error": error} if error else {})})
+        self.bandit.update(arm, arm_reward)
+        self._append_log(records)
+        self.state["max_entity_n"] = _max_entity_n(graph)
+        return graph, True
+
+    def _attempt(self, graph, operator, target, gen, gen_axes, score, best_of):
+        """Generate, score and rewrite; return the accepted row, ``None``
+        (nothing passed) or :data:`NO_CANDIDATES`."""
         try:
             cands = self.runner.run(
                 operator, graph, target, int(gen["candidates"]),
                 brief=self.brief, axes=gen_axes)
         except OperatorError:
             cands = []
-        accepted = None
         if not cands:
-            self.state["counters"]["no_candidates"] += 1
-        else:
-            base = best_of(score(cands, 0))
-            if base["res"].passed:
-                accepted = base
-            else:
-                for rnd in range(1, int(gen["max_rewrites"]) + 1):
-                    findings = self._findings(base["res"], int(gen["max_findings"]))
-                    revised = self.runner.revise(
-                        base["cand"], findings, graph,
-                        brief=self.brief, axes=gen_axes)
-                    self.state["counters"]["rewrites"] += 1
-                    if revised is None:
-                        break
-                    row = score([revised], rnd, base["id"], findings,
-                                siblings=[c for c in cands
-                                          if c is not base["cand"]])[0]
-                    if row["res"].passed:
-                        accepted = row
-                        break
-                    if row["res"].reward > base["res"].reward:
-                        base = row
-
-        if accepted is not None:
-            graph = self._commit(graph, accepted["cand"]["entity"])
-            decisions[accepted["id"]] = "accepted"
-            arm_reward = accepted["res"].reward
-            self.state["counters"]["accepted"] += 1
-        else:
-            arm_reward = float(gen.get("discard_reward", 0.0))
-            self.state["counters"]["rejected"] += 1
-        for r in records:
-            r["decision"] = decisions[r["id"]]
-        records.append({
-            "type": "iteration", "iteration": it, "arm": arm,
-            "operator": operator, "target": target,
-            "frontier": {k: item[k] for k in ("kind", "axis", "deficit")},
-            "context": context,
-            "outcome": "accepted" if accepted else "discarded",
-            "accepted_id": accepted["id"] if accepted else None,
-            "arm_reward": round(arm_reward, 4)})
-        self.bandit.update(arm, arm_reward)
-        self._append_log(records)
-        self.state["max_entity_n"] = _max_entity_n(graph)
-        return graph, True
+            return NO_CANDIDATES
+        rows = score(cands, 0)
+        if not rows:
+            return None
+        base = best_of(rows)
+        if base["res"].passed:
+            return base
+        for rnd in range(1, int(gen["max_rewrites"]) + 1):
+            findings = self._findings(base["res"], int(gen["max_findings"]))
+            revised = self.runner.revise(
+                base["cand"], findings, graph,
+                brief=self.brief, axes=gen_axes)
+            self.state["counters"]["rewrites"] += 1
+            if revised is None:
+                break
+            new_rows = score([revised], rnd, base["id"], findings,
+                             siblings=[c for c in cands
+                                       if c is not base["cand"]])
+            if not new_rows:
+                break
+            row = new_rows[0]
+            if row["res"].passed:
+                return row
+            if row["res"].reward > base["res"].reward:
+                base = row
+        return None
 
     @staticmethod
     def _findings(result, limit: int) -> List[Dict[str, Any]]:
@@ -928,6 +986,6 @@ __all__ = [
     "Bandit", "BudgetExhausted", "ExplorationLoop", "ExplorationResult",
     "PREFERENCES_RELATIVE_PATH", "STOP_REASONS", "arm_key", "axis_consumption",
     "axis_shares", "candidate_pairs", "coverage_status", "evaluate_frontier",
-    "extract_preference_pairs", "item_prior", "load_explore_config",
+    "NO_CANDIDATES", "extract_preference_pairs", "item_prior", "load_explore_config",
     "mean_reward", "pair_prior", "scale_needs", "read_preference_log", "run_world_engine",
 ]
