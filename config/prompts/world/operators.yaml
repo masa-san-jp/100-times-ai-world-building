@@ -33,6 +33,8 @@ common:
       cause and effect, stated neutrally
     - facts: at least {min_facts} concrete facts, each with a kind
       ({kinds}) and a text. {concrete_rule}
+      The object kind describes physical tools, facilities or items; use
+      another appropriate kind for people's attributes, relations or roles.
     - statement_ids: ids from BRIEF STATEMENTS that support the candidate
     - derived_from: ids of existing entities in CONTEXT it follows from
     - reason: why it follows from them (required for derived_from and
@@ -51,7 +53,10 @@ common:
     - Stay consistent with every existing fact and world_premises in CONTEXT.
       Absolute dates must have a defined calendar marker immediately before
       the number. Durations must be clearly labelled as durations. Only use
-      measurement units and technical capabilities defined in world_premises.
+      calendar markers from world_premises. New units or capabilities may be
+      proposed in premise_usage with a reason explaining how existing
+      capabilities permit the measurement or method. Stay within the limits
+      of technology.description; additions require consistency review.
       Do not import a calendar, era, apparatus or capability from familiarity.
     - Each fact must describe this entity: link objects to its ownership,
       use, location or procedure explicitly. Choose plausible quantities for

@@ -1,5 +1,5 @@
 # Optional LLM judges. Off by default. Each judge sees one candidate and,
-# for consistency, only its bounded local context. Return JSON only.
+# for consistency, only its bounded local context. Batch criteria in one call.
 common:
   system: |
     You are a strict reviewer of reference material about an invented world.
@@ -16,8 +16,8 @@ common:
     CONTEXT (world premises, local entities and explicit input; may be empty):
     {context}
 
-    Return {{"score": <number from 0 to 1, 1 is best>,
-    "issues": [{{"field": "summary|name|facts[i]", "why": "<short reason>", "code": "<reason code>"}}]}}
+    Evaluate every requested criterion separately in a single response.
+    For each return score (0 to 1, 1 is best) and issues (field, why, code).
 
 criteria:
   specificity: |
@@ -39,20 +39,34 @@ criteria:
     type, name, summary and relations). An object or quantity with no stated
     ownership, use, location or procedural link is unrelated_fact. A clear
     link is sufficient; do not require repeating the entity name in each fact.
-    Return a reason code for each issue: unrelated_fact or
+    An "object" fact must describe a physical tool, facility or item. A
+    person's attribute, relationship or role alone is non_object_fact,
+    even if it is concrete or linked to this entity.
+    Return a reason code for each issue: non_object_fact, unrelated_fact or
     purpose_without_mechanism where appropriate.
   consistency: |
     Does any statement of the candidate contradict a fact in CONTEXT
     (numbers, periods, locations, membership, cause and effect)? Low score
     when a contradiction exists; list each one.
     Follow the world_premises contract, never a familiar chronology or era.
-    A candidate may not extend its own allow lists. For an initial premise,
+    A candidate cannot rewrite the original calendar or technology limits.
+    For an initial premise,
     review its proposed world_premises against the explicit input and check
     that unspecified choices are derived, recorded and internally consistent.
     Check devices, methods and implied capabilities in prose even when
     premise_usage omits them: require support from the defined capabilities
-    and limits. Flag unsupported dates, devices or units, with reason codes
-    undefined_calendar, undefined_technology or undefined_unit.
+    and limits. A unit absent from technology.units is not itself a fault:
+    ask whether the quantity can be measured with the premise's technology.
+    Only penalize it as undefined_unit when its implied measurement means or
+    capability exceeds technology.description, explaining that contradiction.
+    Flag unsupported dates or devices as undefined_calendar or undefined_technology.
+    Review proposed_premise_extension, premise_usage and provenance.reason.
+    New units and capabilities may be derived from existing technology;
+    require a reason explaining the measurement means or method, and reject
+    additions that contradict technology.description limits. Return
+    approve_premise_extension: true only when ALL proposed additions have a
+    supported derivation and respect those limits. Otherwise return false.
+    Do not approve an extension merely because it is declared or familiar.
     Check each quantity's order of magnitude for the measured subject's type,
     purpose and dimensions within this world. Flag extreme or contradictory
     values as implausible_value. Do not apply universal numeric bounds or

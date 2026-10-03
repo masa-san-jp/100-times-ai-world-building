@@ -43,8 +43,12 @@ common:
       it from the brief, preserve explicit input and record the derivation.
       Each string is at most 160 characters; arrays at most 16 entries.
       Absolute dates require a defined marker directly before their number.
-      Use only defined capabilities and units. Return premise_usage with
+      New units or capabilities need premise_usage and a reason deriving
+      their measurement or method from existing technology, within the limits
+      of technology.description; they require consistency review. Return premise_usage with
       calendars, technologies and units arrays covering all such references.
+    - The object fact kind describes physical tools, facilities or items,
+      not people's attributes, relations or roles.
     - Tie each fact to this entity's use, ownership, location or procedure.
       Check quantities against the subject's kind, function and world limits.
       Replace aims and promotion with actions, conditions and results.

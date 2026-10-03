@@ -13,6 +13,7 @@ from ``config/world/language_rules.yaml`` keyed by language code.
 from __future__ import annotations
 
 import json
+import math
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -30,7 +31,7 @@ from .textsim import (
 )
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
-from .premises import world_premises
+from .premises import proposed_extension, world_premises
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 DEFAULT_RULES_PATH = CONFIG_DIR / "world" / "language_rules.yaml"
@@ -548,6 +549,9 @@ def _fact_hollowness(
 ) -> Optional[Tuple[str, str]]:
     """Return ``(code, message)`` when a fact only fills in its kind label."""
     kind, text = fact.get("kind"), str(fact.get("text") or "").strip()
+    if kind == "object" and _pattern_hits(text, rl.get("non_object_patterns") or []):
+        return ("non_object_fact", "an object fact must describe a physical tool, "
+                "facility or item; this describes a person's attribute, relation or role")
     if kind in ("proper_noun", "object") and reference.strip():
         cov = echo_coverage(text, reference, int(p.get("echo_min_chars", 2)))
         if cov >= float(p.get("fact_echo_threshold", 0.6)):
@@ -755,8 +759,10 @@ def verify_consistency(
     d: List[Deduction] = []
 
     def add(fld, code, msg, **detail):
-        d.append(Deduction("consistency", fld, code, msg,
-                           float(pen.get(code, 0.4)), detail))
+        # Unknown units and derived capability proposals are observations,
+        # not evidence that the world lacks the means to measure/use them.
+        penalty = 0.0 if code in {"undefined_unit", "technology_extension"} else float(pen.get(code, 0.4))
+        d.append(Deduction("consistency", fld, code, msg, penalty, detail))
 
     # A hierarchy edge is not only a scale edge. A place nested under an
     # institution at a broad scale usually means that an organization was
@@ -786,7 +792,8 @@ def verify_consistency(
     contract = world_premises(graph)
     proposed = entity.get("world_premises")
     if contract and proposed is not None:
-        if proposed != {k: v for k, v in contract.items() if k != "source_entity"}:
+        source = get_entity(graph, contract["source_entity"])
+        if proposed != source["world_premises"]:
             add("world_premises", "premise_conflict",
                 "the candidate changes the established calendar or technology contract")
     if not contract and candidate.get("operator") == "premise" and proposed:
@@ -859,6 +866,7 @@ def _verify_premise_usage(entity, contract, language, add):
     markers = [unicodedata.normalize("NFKC", value).strip()
                for value in [calendar["name"], *calendar["markers"]]]
     usage = entity.get("premise_usage") or {}
+    extension = proposed_extension(entity, contract)
     def unit_key(value):
         return unicodedata.normalize("NFKC", value).strip()
     for key, allowed, code in (
@@ -868,8 +876,9 @@ def _verify_premise_usage(entity, contract, language, add):
         for term in usage.get(key, []):
             norm = unit_key if key == "units" else normalize_item
             if norm(term) not in {norm(v) for v in allowed}:
-                add(f"premise_usage.{key}", code,
-                    f"{term!r} is not defined in the world's premises", term=term)
+                actual_code = "technology_extension" if key == "technologies" and extension else code
+                add(f"premise_usage.{key}", actual_code,
+                    f"{term!r} is not defined; review measurability and capability limits", term=term)
 
     rules = rules_for(load_language_rules(), language)
     fields = [("name", entity.get("name", "")),
@@ -929,7 +938,7 @@ def _verify_premise_usage(entity, contract, language, add):
                          and normalize_item(u) not in counters)
         if unknown:
             add(field_name, "undefined_unit",
-                "measurement units are not defined in the world's premises: "
+                "unregistered units; consistency judge must review measurability: "
                 + ", ".join(unknown), units=unknown)
 
 
@@ -1063,60 +1072,93 @@ class LLMJudge:
         self.context_limits = context_limits
 
     def judge(self, criterion: str, candidate: Mapping[str, Any],
-              graph: Mapping[str, Any],
-              brief: Optional[Mapping[str, Any]] = None,
+              graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
               ) -> Optional[List[Deduction]]:
+        """Compatibility entry point for a single criterion."""
+        result = self.judge_many([criterion], candidate, graph, brief).get(criterion)
+        return result.deductions if result else None
+
+    def judge_many(self, criteria: Sequence[str], candidate: Mapping[str, Any],
+                   graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
+                   ) -> Dict[str, "JudgeAssessment"]:
+        """Evaluate all requested criteria in one backend call, without retries."""
+        criteria = list(dict.fromkeys(c for c in criteria if c in self.prompts["criteria"]))
+        if not criteria:
+            return {}
         entity = candidate["entity"]
         context: Any = {}
-        if criterion == "consistency" and candidate.get("target") \
-                and get_entity(graph, candidate["target"]):
+        if "consistency" in criteria and candidate.get("target") and get_entity(graph, candidate["target"]):
             context = local_context(graph, candidate["target"], self.context_limits)
-        if criterion in {"specificity", "consistency"}:
-            context = {**context, "world_premises": world_premises(graph),
-                       "input_statements": [
-                str(s.get("text") or "")[:200]
-                for s in (brief or {}).get("statements", []) or []
-                if isinstance(s, Mapping)][:12],
-                       "input_constraints": [
-                           text_of(s)[:200] for s in
-                           (brief or {}).get("constraints", []) or []][:12]}
-        view = {"type": entity.get("type"), "scale": entity.get("scale"),
-                "parent": entity.get("parent"), "relations": entity.get("relations"),
-                "name": entity.get("name"), "summary": entity.get("summary"),
-                "facts": [{"kind": f.get("kind"), "text": f.get("text")}
-                          for f in entity.get("facts") or []]}
+        contract = world_premises(graph)
+        context = {**context, "world_premises": contract,
+                   "proposed_premise_extension": proposed_extension(entity, contract),
+                   "input_statements": [str(s.get("text") or "")[:200]
+                       for s in (brief or {}).get("statements", []) or []
+                       if isinstance(s, Mapping)][:12],
+                   "input_constraints": [text_of(s)[:200] for s in
+                       (brief or {}).get("constraints", []) or []][:12]}
+        view = {key: entity.get(key) for key in
+                ("type", "scale", "parent", "relations", "name", "summary", "provenance")}
+        view["facts"] = [{"kind": f.get("kind"), "text": f.get("text")}
+                         for f in entity.get("facts") or []]
         for key in ("world_premises", "premise_usage"):
             if key in entity:
                 view[key] = entity[key]
         prompt = self.prompts["common"]["user"].format(
-            language=language_of(graph), criterion=self.prompts["criteria"][criterion].strip(),
+            language=language_of(graph),
+            criterion="\n\n".join(c + ":\n" + self.prompts["criteria"][c].strip() for c in criteria),
             candidate=json.dumps(view, ensure_ascii=False),
             context=json.dumps(context, ensure_ascii=False, separators=(",", ":")))
-        resp = self.backend.generate_json(
-            prompt, system_prompt=self.prompts["common"]["system"])
+        shape = {c: {"score": "<number from 0 to 1>", "issues": [
+            {"field": "<field>", "why": "<short reason>", "code": "<reason code>"}]}
+                 for c in criteria}
+        if "consistency" in shape:
+            shape["consistency"]["approve_premise_extension"] = False
+        prompt += "\nReturn one result per requested criterion; use [] for no issues. JSON shape: " + json.dumps(shape)
+        resp = self.backend.generate_json(prompt, system_prompt=self.prompts["common"]["system"])
+        if not isinstance(resp, Mapping):
+            return {}
+        # Older single-criterion integrations may return a bare assessment.
+        if len(criteria) == 1 and "score" in resp:
+            resp = {criteria[0]: resp}
+        return {c: assessment for c in criteria
+                if (assessment := self._assessment(c, resp.get(c))) is not None}
+
+    @staticmethod
+    def _assessment(criterion: str, resp: Any) -> Optional["JudgeAssessment"]:
         if not isinstance(resp, Mapping):
             return None
         try:
-            score = _clamp(float(resp["score"]))
+            if isinstance(resp["score"], bool):
+                return None
+            value = float(resp["score"])
+            if not math.isfinite(value):
+                return None
+            score = _clamp(value)
         except (KeyError, TypeError, ValueError):
             return None
-        issues = [i for i in as_list(resp.get("issues"))
-                  if isinstance(i, Mapping)]
-        if score >= 1.0:
-            return []
-        share = (1.0 - score) / max(1, len(issues))
+        issues = [i for i in as_list(resp.get("issues")) if isinstance(i, Mapping)]
         reason_codes = {
-            "specificity": {"unrelated_fact", "purpose_without_mechanism"},
-            "consistency": {"undefined_calendar", "undefined_technology",
-                            "undefined_unit", "implausible_value"},
+            "specificity": {"unrelated_fact", "purpose_without_mechanism", "non_object_fact"},
+            "consistency": {"undefined_calendar", "undefined_technology", "undefined_unit", "implausible_value"},
         }.get(criterion, set())
-        out = [Deduction(criterion, text_of(i.get("field")) or "entity",
-                         i.get("code") if isinstance(i.get("code"), str)
-                         and i["code"] in reason_codes else "llm_judge",
-                         text_of(i.get("why")) or "judged below standard", share)
-               for i in issues]
-        return out or [Deduction(criterion, "entity", "llm_judge",
-                                 "judged below standard", 1.0 - score)]
+        share = (1.0 - score) / max(1, len(issues))
+        deductions = [Deduction(criterion, text_of(i.get("field")) or "entity",
+                       i.get("code") if isinstance(i.get("code"), str)
+                       and i["code"] in reason_codes else "llm_judge",
+                       text_of(i.get("why")) or "judged below standard", share)
+                      for i in issues] if score < 1 else []
+        if score < 1 and not deductions:
+            deductions = [Deduction(criterion, "entity", "llm_judge", "judged below standard", 1.0 - score)]
+        approved = (criterion == "consistency" and value == 1 and not issues
+                    and resp.get("issues") == [] and resp.get("approve_premise_extension") is True)
+        return JudgeAssessment(deductions, approved)
+
+
+@dataclass
+class JudgeAssessment:
+    deductions: List[Deduction]
+    extension_approved: bool = False
 
 
 __all__ = [

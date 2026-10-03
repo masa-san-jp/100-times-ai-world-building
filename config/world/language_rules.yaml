@@ -21,6 +21,10 @@ default:
   proper_noun_min_chars: 3
 
 ja:
+  # Predicate syntax describing people/roles, not a setting or device list.
+  non_object_patterns:
+    - '(?:は|が)[^。;；\n]*(?:代表|担当者|責任者|構成員|委員|出身|家系|血縁|親族|所属)(?:である|だ|です|となる|からなる|に属する)[。.!！]?\s*$'
+    - '(?:委員|担当者|構成員|責任者|住民|職員|代表|係員|人々|彼女?|人)(?:は|が)[^。;；\n]*(?:所属する|務める|に属する|を担う)[。.!！]?\s*$'
   duration_patterns:
     - '\d+\s*年(?:間|前|後|ごと|おき)'
     - '(?:期間|所要|継続|周期|間隔)[^。;；\n]{0,12}?\d+\s*[^\W\d_]+'
@@ -145,6 +149,9 @@ ja:
   flourish: [壮大な, 圧倒的, まさに, 驚くべき, 息をのむ, 決して忘れ, 運命の, 圧巻]
 
 en:
+  non_object_patterns:
+    - '\b(?:is|are|was|were)\s+(?:an?\s+|the\s+)?(?:representatives?|members?|delegates?|descendants?|relatives?)\b'
+    - '\b(?:clerks?|delegates?|members?|people|persons?)\b[^.!\n]{0,40}\b(?:belongs? to|serves? as|descends? from|responsible|in charge)\b'
   duration_patterns:
     - '\b(?:for|duration|interval|every)\s+\d+\s+years?\b'
   absolute_date_patterns:

@@ -144,6 +144,8 @@ def validate_candidate(
 
     The graph itself is not modified.  Pre-existing errors are not reported.
     """
+    if "premise_extension" in candidate["entity"]:
+        return ["premise_extension history is verifier-managed, not candidate content"]
     baseline = set(validate_graph(graph, axes, brief))
     trial = copy.deepcopy(dict(graph))
     trial.setdefault("entities", []).append(

@@ -81,11 +81,11 @@ def test_defined_chronology_and_durations_are_not_penalized(text):
 
 
 @pytest.mark.parametrize("unit", ["V", "kW", "qx"])
-def test_undefined_units_are_detected_without_a_technology_blacklist(unit):
+def test_undefined_units_are_warnings_without_a_technology_blacklist(unit):
     g, candidate, _ = generated(f"巻上げ装置の定格は1.5{unit}。", "number")
     result = score(g, candidate)
-    assert result.scores["consistency"] < 0.7
-    assert any(d.code == "undefined_unit" for d in result.deductions)
+    assert result.scores["consistency"] == 1
+    assert any(d.code == "undefined_unit" and d.penalty == 0 for d in result.deductions)
 
 
 def test_arbitrary_input_defined_calendar_capability_and_unit_are_allowed():
@@ -284,3 +284,264 @@ def test_optional_judge_is_not_called_when_disabled_or_returns_no_usable_score()
     baseline = score(g, candidate, judge)
     assert backend.json_prompts == []
     assert score(g, candidate, judge, ["consistency"]).scores == baseline.scores
+
+
+# Review regressions: measurability, reviewed growth, kind semantics and cost.
+def batch_judge(**assessments):
+    return FakeLLMBackend(assessments)
+
+
+def assessment(score=1, issues=None, approve=False):
+    return {"score": score, "issues": issues or [], "approve_premise_extension": approve}
+
+
+def test_new_weight_unit_is_measurable_and_needs_no_large_deduction():
+    g, candidate, _ = generated("照合所で受け取る札束の重さは2kg。", "number",
+        premise_usage={"units": ["kg"]})
+    backend = batch_judge(specificity=assessment(), consistency=assessment(approve=True))
+    result = score(g, candidate, LLMJudge(backend), ["specificity", "consistency"])
+    assert result.passed, result.to_dict()
+    assert result.scores["consistency"] == 1
+    assert result.premise_extension["units"] == ["kg"]
+    assert len(backend.json_prompts) == 1
+    assert "quantity can be measured" in backend.json_prompts[0]
+    assert "technology.description" in backend.json_prompts[0]
+    assert "provenance" in backend.json_prompts[0]
+    assert world_premises(g)["technology"]["units"] == CONTRACT["technology"]["units"]
+
+
+def test_voltage_unit_is_rejected_by_semantic_review_not_symbol_list():
+    g, candidate, _ = generated("巻上げ装置の定格は220V。", "number",
+        premise_usage={"units": ["V"]})
+    g["entities"][0]["world_premises"]["technology"]["description"] = "手動の装置と機械的測定のみ。電気の供給も利用もない。"
+    assert score(g, candidate).scores["consistency"] == 1  # unit symbols alone do not establish a violation
+    backend = batch_judge(specificity=assessment(), consistency=assessment(0.4, [
+        {"field": "facts[1]", "code": "undefined_unit", "why": "電圧の測定には前提にない電気の利用が必要"}]))
+    result = score(g, candidate, LLMJudge(backend), ["specificity", "consistency"])
+    assert not result.passed and "consistency" in result.failed
+    assert any(d.code == "undefined_unit" and d.penalty > 0 for d in result.deductions)
+    assert not result.premise_extension
+    assert len(backend.json_prompts) == 1
+    assert "電気の供給も利用もない" in backend.json_prompts[0]
+    assert "V" not in world_premises(g)["technology"]["units"]
+
+
+def test_accepted_extension_persists_and_reaches_next_candidate_and_revision(tmp_path):
+    from src.world.explore import ExplorationLoop
+    g, candidate, _ = generated("照合所で受け取る札束の重さは2kg。", "number",
+        premise_usage={"units": ["kg"], "technologies": ["刻み棒による荷重比較"]},
+        reason="刻み棒で巻上げ器のたわみを比較し、同じ札束を基準に荷重を量る。")
+    backend = batch_judge(specificity=assessment(), consistency=assessment(approve=True))
+    verifier = RewardVerifier(load_reward_config(overrides={"llm_judges": ["specificity", "consistency"]}), judge=LLMJudge(backend))
+    result = verifier.verify(g, candidate, brief=BRIEF)
+    assert result.passed, result.to_dict()
+    loop = ExplorationLoop(FakeLLMBackend(), tmp_path, BRIEF, [], verifier=verifier)
+    loop.store.save(g)
+    committed = loop._commit(g, candidate["entity"], result)
+    loaded = loop.store.load()
+    assert loaded == committed
+    assert not validate_graph(loaded, brief=BRIEF)
+    root = loaded["entities"][0]
+    assert root["world_premises"] == CONTRACT  # original limits are preserved
+    history = next(e for e in loaded["entities"] if e["id"] == candidate["entity"]["id"])["premise_extension"]
+    assert history == result.premise_extension
+    assert history["source_entity"] == "e1" and history["reason"] == candidate["entity"]["provenance"]["reason"]
+    contract = world_premises(loaded)
+    assert "kg" in contract["technology"]["units"]
+    assert "刻み棒による荷重比較" in contract["technology"]["capabilities"]
+    assert contract["technology"]["description"] == CONTRACT["technology"]["description"]
+    next_backend = FakeLLMBackend({"candidates": [raw("照合所の札束の重さは3kg。", "number", name="オルカ札束所", premise_usage={"units": ["kg"]})]})
+    runner = OperatorRunner(next_backend)
+    following = runner.run("expand", loaded, "e2", 1, brief=BRIEF)[0]
+    following_result = score(loaded, following)
+    assert following_result.scores["consistency"] == 1
+    assert not any(d.code == "undefined_unit" for d in following_result.deductions)
+    runner.revise(following, [], loaded, brief=BRIEF)
+    assert all('"kg"' in p for p in next_backend.json_prompts)
+    (tmp_path / "input").mkdir()
+    (tmp_path / "input/input_brief.json").write_text(json.dumps(BRIEF))
+    final = json.loads(render_world_package(tmp_path)["world_json"].read_text())
+    assert world_premises(final)["technology"] == contract["technology"]
+    # Removing a rolled-back contributor also removes its additions.
+    rolled_back = {**loaded, "entities": [e for e in loaded["entities"] if "premise_extension" not in e]}
+    assert "kg" not in world_premises(rolled_back)["technology"]["units"]
+
+
+@pytest.mark.parametrize("response", [
+    {}, {"consistency": {"score": []}},
+    {"consistency": assessment(approve=False)},
+    {"consistency": {"score": 1, "approve_premise_extension": True}},
+    {"consistency": assessment(0.4, approve=True)},
+    {"consistency": assessment(1, [{"code": "undefined_technology"}], approve=True)},
+    {"consistency": {"score": "NaN", "issues": [], "approve_premise_extension": True}},
+    {"consistency": {"score": 2, "issues": [], "approve_premise_extension": True}},
+    {"consistency": {"score": True, "issues": [], "approve_premise_extension": True}},
+])
+def test_extension_requires_explicit_usable_consistency_approval(response):
+    g, candidate, _ = generated("照合所の荷重比較装置の重さは2kg。", "number",
+        premise_usage={"units": ["kg"], "technologies": ["荷重比較装置"]})
+    backend = FakeLLMBackend(response)
+    result = score(g, candidate, LLMJudge(backend), ["specificity", "consistency"])
+    assert len(backend.json_prompts) == 1
+    assert not result.passed and "consistency" in result.failed
+    assert not result.premise_extension
+    assert "kg" not in world_premises(g)["technology"]["units"]
+
+
+@pytest.mark.parametrize("missing", ["usage", "reason", "judge"])
+def test_extension_requires_declared_usage_derivation_and_judge(missing):
+    g, candidate, _ = generated("照合所の札束の重さは2kg。", "number", premise_usage={"units": ["kg"]})
+    if missing == "usage":
+        candidate["entity"].pop("premise_usage")
+    if missing == "reason":
+        candidate["entity"]["provenance"]["reason"] = ""
+    backend = batch_judge(consistency=assessment(approve=True))
+    result = score(g, candidate, None if missing == "judge" else LLMJudge(backend), ["consistency"])
+    assert not result.premise_extension
+    assert "kg" not in world_premises(g)["technology"]["units"]
+
+
+def test_rejected_candidate_cannot_contribute_even_when_consistency_approves():
+    g, candidate, _ = generated("照合所の札束の重さは2kg。", "number", premise_usage={"units": ["kg"]})
+    backend = batch_judge(specificity=assessment(0.1), consistency=assessment(approve=True))
+    result = score(g, candidate, LLMJudge(backend), ["specificity", "consistency"])
+    assert not result.passed and not result.premise_extension
+    assert "kg" not in world_premises(g)["technology"]["units"]
+
+
+@pytest.mark.parametrize("language,text", [
+    ("ja", "委員は水番家系の代表である。"),
+    ("ja", "担当者は受付の責任者である。"),
+    ("en", "The delegates are representatives of the keepers."),
+    ("en", "The clerk belongs to the council."),
+])
+def test_person_attributes_relations_and_roles_are_not_object_facts(language, text):
+    from src.world.verify import load_language_rules, verify_specificity
+    g, candidate, _ = generated(text, "object")
+    result = verify_specificity(candidate, language, load_language_rules())
+    assert any(d.code == "non_object_fact" and d.field == "facts[1]" and d.penalty > 0 for d in result.deductions)
+    # A role cannot fill object kind coverage when no physical object exists.
+    candidate["entity"]["facts"].pop(2)
+    result = verify_specificity(candidate, language, load_language_rules())
+    assert all("object" not in d.detail["kinds"] for d in result.deductions if d.code == "kind_coverage")
+
+
+@pytest.mark.parametrize("language,text", [
+    ("ja", "委員は照合台に置いた刻み棒で札を測定する。"),
+    ("ja", "照合所は刻み棒を測定に使う。"),
+    ("ja", "手回し巻上げ器は荷揚げを担う。"),
+    ("en", "The clerk uses a marked rod at the desk."),
+    ("en", "The office keeps a ledger on its table."),
+    ("en", "The ledger belongs to the council."),
+    ("en", "The marked rod is responsible for comparing lengths."),
+])
+def test_physical_objects_linked_to_people_remain_object_facts(language, text):
+    from src.world.verify import load_language_rules, verify_specificity
+    _, candidate, _ = generated(text, "object")
+    result = verify_specificity(candidate, language, load_language_rules())
+    assert not any(d.code == "non_object_fact" for d in result.deductions)
+
+
+def test_semantic_judge_supplements_object_kind_rules_in_one_call():
+    g, candidate, _ = generated("照合所の受付は世襲で引き継がれる。", "object")
+    backend = batch_judge(specificity=assessment(0.4, [{"field": "facts[1]", "code": "non_object_fact", "why": "人の役割の記述"}]), consistency=assessment())
+    result = score(g, candidate, LLMJudge(backend), ["specificity", "consistency"])
+    assert len(backend.json_prompts) == 1
+    assert any(d.code == "non_object_fact" and d.penalty > 0 for d in result.deductions)
+    assert "physical tool, facility or item" in backend.json_prompts[0]
+
+
+@pytest.mark.parametrize("failure", ["threshold", "total", "structure"])
+def test_deterministic_rejection_skips_all_judging(failure):
+    g, candidate, _ = generated()
+    config = load_reward_config(overrides={"llm_judges": ["specificity", "consistency"]})
+    if failure == "threshold":
+        candidate["entity"]["summary"] = "重要な役割を持つ。"
+        candidate["entity"]["facts"] = []
+    elif failure == "total":
+        candidate["entity"]["facts"][2]["text"] = "照合所は刻み棒を測定に使う。持続可能な使用を推進する。"
+        assert score(g, candidate).failed == []
+        assert score(g, candidate).reward < 0.99
+        config["thresholds"]["total"] = 0.99
+    else:
+        candidate["entity"]["parent"] = "missing"
+    backend = batch_judge(specificity=assessment(), consistency=assessment())
+    result = RewardVerifier(config, judge=LLMJudge(backend)).verify(g, candidate, brief=BRIEF)
+    assert not result.passed
+    assert backend.json_prompts == []
+
+
+def test_batch_response_routes_scores_and_missing_criterion_does_not_retry():
+    g, candidate, _ = generated()
+    backend = FakeLLMBackend([{ "specificity": assessment(0.8), "consistency": assessment(0.4, [{"field": "facts[1]", "code": "implausible_value", "why": "measurement incompatible"}])},
+                              {"specificity": assessment(0.9)}])
+    judge = LLMJudge(backend)
+    baseline = score(g, candidate)
+    first = score(g, candidate, judge, ["specificity", "consistency", "specificity"])
+    assert first.scores["specificity"] == pytest.approx(baseline.scores["specificity"] - 0.2)
+    assert first.scores["consistency"] == pytest.approx(0.4)
+    second = score(g, candidate, judge, ["specificity", "consistency"])
+    assert second.scores["consistency"] == baseline.scores["consistency"]
+    assert len(backend.json_prompts) == 2
+
+
+@pytest.mark.parametrize("bad_extension", [
+    None, {"source_entity": []}, {"source_entity": "missing"},
+    {"source_entity": "e1", "units": "kg", "capabilities": [], "reason": "bad"},
+    {"source_entity": "e1", "units": ["undeclared"], "capabilities": [], "reason": "bad"},
+])
+def test_invalid_extension_history_is_rejected_without_crashing(bad_extension):
+    g, candidate, _ = generated("照合所の札束の重さは2kg。", "number", premise_usage={"units": ["kg"]})
+    candidate["entity"]["premise_extension"] = bad_extension
+    g["entities"].append(candidate["entity"])
+    assert any("premise_extension" in e for e in validate_graph(g))
+    assert "kg" not in world_premises(g)["technology"]["units"]
+
+
+def test_generator_cannot_supply_its_own_approval_history():
+    g, candidate, _ = generated("照合所の札束の重さは2kg。", "number", premise_usage={"units": ["kg"]})
+    from src.world.premises import proposed_extension
+    candidate["entity"]["premise_extension"] = proposed_extension(candidate["entity"], world_premises(g))
+    backend = batch_judge(consistency=assessment(approve=True))
+    result = score(g, candidate, LLMJudge(backend), ["consistency"])
+    assert not result.passed and not result.premise_extension
+    assert not backend.json_prompts
+    assert any(d.code == "graph_invalid" for d in result.deductions)
+
+
+def test_reviewed_growth_is_not_limited_to_bootstrap_array_size():
+    from src.world.premises import proposed_extension
+    g = graph()
+    for index in range(2):
+        units = [f"u{index}_{n}" for n in range(16)]
+        _, candidate, _ = generated(premise_usage={"units": units})
+        candidate["entity"]["id"] = f"e{index + 3}"
+        candidate["entity"]["premise_extension"] = proposed_extension(candidate["entity"], world_premises(g))
+        g["entities"].append(candidate["entity"])
+    assert not validate_graph(g)
+    assert len(world_premises(g)["technology"]["units"]) == len(CONTRACT["technology"]["units"]) + 32
+
+
+def test_exploration_uses_one_counted_judge_call_and_commits_history(tmp_path):
+    from types import SimpleNamespace
+    from src.world.explore import ExplorationLoop, load_explore_config, read_preference_log
+    def respond(prompt):
+        if "CRITERION:" in prompt:
+            return {"specificity": assessment(), "consistency": assessment(approve=True)}
+        return {"candidates": [raw("照合所の札束の重さは2kg。", "number", premise_usage={"units": ["kg"]})]}
+    backend = FakeLLMBackend(respond)
+    verifier = RewardVerifier(load_reward_config(overrides={"llm_judges": ["specificity", "consistency"]}),
+        judge=LLMJudge(backend), contrasts=SimpleNamespace(get=lambda *args: []))
+    config = load_explore_config()
+    config["coverage"]["enabled"] = False
+    config["generation"].update(candidates=1, max_rewrites=0)
+    loop = ExplorationLoop(backend, tmp_path, BRIEF, [], config=config, language="ja", verifier=verifier)
+    loop.store.save(graph())
+    result = loop.run(max_iterations=1, max_generation_calls=2)
+    assert result.counters["accepted"] == 1
+    assert result.counters["generation_calls"] == 2  # generation + batched review
+    assert sum("CRITERION:" in prompt for prompt in backend.json_prompts) == 1
+    assert "kg" in world_premises(result.graph)["technology"]["units"]
+    records = read_preference_log(tmp_path / "world/preferences.jsonl")
+    adopted = next(r for r in records if r["type"] == "candidate" and r["decision"] == "accepted")
+    assert adopted["result"]["premise_extension"]["units"] == ["kg"]

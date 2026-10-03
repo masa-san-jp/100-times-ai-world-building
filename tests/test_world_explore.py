@@ -101,7 +101,16 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
         ids = ids or ["s1"]
         rng = random.Random(zlib.crc32(prompt.encode("utf-8")))
         def with_contract(rows):
+            # Synthetic causes/history must precede their target. Otherwise
+            # wording changes to the prompt seed can create accidental time
+            # contradictions in tests of exploration policy.
+            temporal = ("Explain why" in prompt or "Link something" in prompt
+                        or 'operation "cause"' in prompt or 'operation "history"' in prompt)
             for row in rows:
+                if temporal:
+                    for fact in row["facts"]:
+                        if fact["kind"] == "period":
+                            fact["text"] = re.sub(r"\d+", "1", fact["text"])
                 row["world_premises"] = SYNTHETIC_PREMISES
                 row["reason"] = "Quota agreements determine record cycles and recording methods"
             return {"candidates": rows}

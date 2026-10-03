@@ -15,7 +15,7 @@ from __future__ import annotations
 import copy
 import json
 import re
-from .premises import premise_errors, usage_errors, world_premises
+from .premises import extension_errors, premise_errors, usage_errors, world_premises
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
@@ -252,6 +252,11 @@ def validate_graph(
             if e.get("scale") != "world" or e.get("origin_operator") != "premise":
                 errors.append(f"{w}: world_premises requires a world-scale premise")
             errors.extend(f"{w}: {err}" for err in premise_errors(e["world_premises"]))
+        if "premise_extension" in e:
+            extension = e["premise_extension"]
+            source_id = extension.get("source_entity") if isinstance(extension, Mapping) else None
+            source = by_id.get(source_id, {}) if isinstance(source_id, str) else {}
+            errors.extend(f"{w}: {err}" for err in extension_errors(extension, e, source))
         if "premise_usage" in e:
             errors.extend(f"{w}: {err}" for err in usage_errors(e["premise_usage"]))
         if e.get("type") not in ENTITY_TYPES:
