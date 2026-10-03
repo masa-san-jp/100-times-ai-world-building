@@ -500,6 +500,10 @@ def _is_measure(text: str, rl: Mapping[str, Any]) -> bool:
     units = rl.get("measure_units") or []
     if units and _word_hits(t, units):
         return True
+    # A named measurable subject can make a bare value meaningful even when
+    # the language omits a unit (for example "population 4200").
+    if _word_hits(t, rl.get("measurement_subject_words") or []):
+        return True
     rest = re.sub(r"[\d\s.,:;/()\-+~約およそ頃ほど]+", " ", t).strip()
     if is_cjk_text(rest):
         return len(rest.replace(" ", "")) >= int(rl.get("measure_min_chars", 5))
@@ -507,9 +511,39 @@ def _is_measure(text: str, rl: Mapping[str, Any]) -> bool:
         rl.get("measure_min_words", 2))
 
 
+def _measure_is_grounded(text: str, rl: Mapping[str, Any]) -> bool:
+    """Whether a numeric expression names what it measures.
+
+    Units make a quantity concrete, but a percentage or ratio still needs a
+    measured subject. This catches statements such as an unexplained
+    ``5% contribution`` without rejecting a value such as ``rainfall 41 mm``.
+    The vocabulary is language data, not a setting-specific rule.
+    """
+    t = unicodedata.normalize("NFKC", text)
+    subjects = rl.get("measurement_subject_words") or []
+    number_spans = list(re.finditer(r"\d[\d,]*(?:\.\d+)?", t))
+    windows = [t[max(0, m.start() - 48): min(len(t), m.end() + 48)]
+               for m in number_spans]
+    # A nearby evaluation word is evidence that the number is being used as
+    # rhetoric (for example "5% contribution"), not as a measurement.
+    if any(_word_hits(window, rl.get("evaluation_words") or [])
+           for window in windows):
+        return False
+    if any(_word_hits(window, subjects) for window in windows):
+        return True
+    # Absolute units identify their dimension without an extra noun (for
+    # example "500 square kilometres" or "41 mm"). Ratios and percentages do
+    # not: their subject is essential to their meaning.
+    if re.search(r"\d\s*(?:%|‰|°)|\d\s*[:/]\s*\d", t):
+        return False
+    free_units = rl.get("self_describing_measure_units") or rl.get(
+        "measure_units") or []
+    return bool(_word_hits(t, free_units))
+
+
 def _fact_hollowness(
     fact: Mapping[str, Any], rl: Mapping[str, Any], reference: str,
-    p: Mapping[str, Any],
+    p: Mapping[str, Any], context: str = "",
 ) -> Optional[Tuple[str, str]]:
     """Return ``(code, message)`` when a fact only fills in its kind label."""
     kind, text = fact.get("kind"), str(fact.get("text") or "").strip()
@@ -538,6 +572,10 @@ def _fact_hollowness(
             return ("bare_count",
                     "a bare count; give a measured quantity with a unit, "
                     "a ratio, or a period, tied to what it measures")
+        if not _measure_is_grounded(text + " " + context, rl):
+            return ("ungrounded_measure",
+                    "the numeric value has no named measured subject; tie it "
+                    "to a quantity, rate, ratio or other observable measure")
     return None
 
 
@@ -555,7 +593,8 @@ def verify_specificity(
     hollow_total = 0.0
     solid: List[Mapping[str, Any]] = []
     for i, f in enumerate(facts):
-        h = _fact_hollowness(f, rl, reference, p)
+        h = _fact_hollowness(
+            f, rl, reference, p, str(entity.get("summary") or ""))
         if h is None:
             solid.append(f)
             continue
@@ -608,10 +647,51 @@ def verify_specificity(
                 + ", ".join(w for w, _ in hits),
                 min(cap, cap * (density - limit) / max(limit, 1e-9)),
                 {"density": round(density, 4), "words": [w for w, _ in hits]}))
+    eval_hits = _word_hits(body, rl.get("evaluation_words") or [])
+    if eval_hits:
+        amount = float(pen.get("unsupported_evaluation", 0.25))
+        d.append(Deduction(
+            "specificity", "summary", "unsupported_evaluation",
+            "evaluation words need an observable criterion or measurement: "
+            + ", ".join(w for w, _ in eval_hits),
+            min(float(pen.get("unsupported_evaluation_cap", amount)), amount
+                * len(eval_hits)),
+            {"words": [w for w, _ in eval_hits]}))
     return VerifierResult("specificity", _score(d), d)
 
 
 _NUM = re.compile(r"\d+")
+_MEASURE_TOKEN = re.compile(
+    r"(?<![0-9A-Za-z])([0-9][0-9,]*(?:\.[0-9]+)?)[ \t]*"
+    r"(%|‰|°|[A-Za-z]+|[\u3040-\u30ff\u3400-\u9fff]{1,8})?"
+)
+
+
+def _measure_tokens(text: Any) -> set:
+    """Return normalized number+unit tokens suitable for repeat detection."""
+    normalized = unicodedata.normalize("NFKC", str(text or ""))
+    out = set()
+    for match in _MEASURE_TOKEN.finditer(normalized):
+        suffix = normalize_item(match.group(2) or "")
+        # A bare number is commonly a reference index or a count. Requiring a
+        # unit keeps this check focused on repeated measured values.
+        if suffix:
+            value = match.group(1).replace(",", "")
+            out.add(f"{value}:{suffix}")
+    return out
+
+
+def _entity_measure_occurrences(entity: Mapping[str, Any]) -> Dict[str, set]:
+    """Map a measured token to the normalized fields in which it occurs."""
+    texts = [entity.get("name", ""), entity.get("summary", "")]
+    texts += [f.get("text", "") for f in entity.get("facts") or []
+              if isinstance(f, Mapping)]
+    out: Dict[str, set] = {}
+    for text in texts:
+        normalized = normalize_item(text)
+        for token in _measure_tokens(text):
+            out.setdefault(token, set()).add(normalized)
+    return out
 
 
 def _ancestors(graph: Mapping[str, Any], eid: Optional[str]) -> List[str]:
@@ -665,6 +745,28 @@ def verify_consistency(
     def add(fld, code, msg, **detail):
         d.append(Deduction("consistency", fld, code, msg,
                            float(pen.get(code, 0.4)), detail))
+
+    # A hierarchy edge is not only a scale edge. A place nested under an
+    # institution at a broad scale usually means that an organization was
+    # mistaken for a container. A small site/detail can be an institution's
+    # physical location, while places may contain places at any lower scale.
+    parent_id = entity.get("parent")
+    parent_entity = get_entity(graph, parent_id) if parent_id else None
+    if parent_entity and entity.get("type") == "place":
+        parent_type = parent_entity.get("type")
+        child_scale = entity.get("scale")
+        allowed = parent_type == "place" or (
+            parent_type == "institution" and child_scale in {"site", "detail"}
+        )
+        if not allowed:
+            add(
+                "parent",
+                "parent_type",
+                "a place cannot be a broad-scale child of this parent type; "
+                "use a containing place or a site/detail location",
+                parent=parent_id, parent_type=parent_type,
+                child_type=entity.get("type"), child_scale=child_scale,
+            )
 
     for err in validate_candidate(graph, candidate, axes, brief):
         add("entity", "graph_invalid", err)
@@ -781,12 +883,62 @@ def verify_novelty(
         if s > best:
             best, best_id = s, other.get("id")
     penalty = _penalty_from_similarity(best, floor)
-    d = []
+    d: List[Deduction] = []
     if penalty > 0:
         d.append(Deduction(
             "novelty", "summary", "duplicate",
             f"substantially duplicates existing entity {best_id}",
             penalty, {"similarity": round(best, 4), "entity": best_id}))
+    # Detect repeated measurements even when the surrounding explanations are
+    # different, e.g. two entities both claiming the same output quantity.
+    own_measures = _entity_measure_occurrences(entity)
+    measure_penalty = 0.0
+    measure_cap = float(p.get("duplicate_measure_cap", 0.45))
+    each_measure = float(p.get("duplicate_measure_penalty", 0.3))
+    for other in graph.get("entities", []):
+        if other.get("id") == entity.get("id"):
+            continue
+        other_measures = _entity_measure_occurrences(other)
+        shared = sorted(
+            token for token in own_measures.keys() & other_measures.keys()
+            # An identical field is a copied detail, not evidence that two
+            # independently described entities reused a value.
+            if not own_measures[token] & other_measures[token])
+        if not shared:
+            continue
+        amount = min(each_measure, max(0.0, measure_cap - measure_penalty))
+        if amount <= 0:
+            break
+        measure_penalty += amount
+        d.append(Deduction(
+            "novelty", "facts", "duplicate_measure",
+            "reuses a measured value already assigned to another entity",
+            amount, {"entity": other.get("id"), "tokens": shared[:5]}))
+    penalty += measure_penalty
+
+    # Long shared character n-grams catch repeated wording that is not close
+    # enough for whole-entity Jaccard to flag it. The threshold is configured
+    # in characters, so it works for both spaced and CJK input.
+    phrase_size = int(p.get("duplicate_phrase_ngram_size", 8))
+    phrase_min = int(p.get("duplicate_phrase_min_ngrams", 3))
+    phrase_share = float(p.get("duplicate_phrase_share", 0.18))
+    own_phrases = ngrams_of(entity.get("summary", ""), phrase_size)
+    phrase_each = float(p.get("duplicate_phrase_penalty", 0.3))
+    if own_phrases:
+        for other in graph.get("entities", []):
+            if other.get("id") == entity.get("id"):
+                continue
+            shared = own_phrases & ngrams_of(other.get("summary", ""), phrase_size)
+            if len(shared) < phrase_min or len(shared) / len(own_phrases) < phrase_share:
+                continue
+            penalty += phrase_each
+            d.append(Deduction(
+                "novelty", "summary", "duplicate_phrase",
+                "reuses a long phrase from another entity",
+                phrase_each, {"entity": other.get("id"),
+                              "shared_ngrams": len(shared)}))
+            break
+    penalty = _clamp(penalty)
     return VerifierResult("novelty", 1.0 - penalty, d)
 
 

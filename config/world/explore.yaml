@@ -12,6 +12,7 @@ selection:
   deficit_weight: 0.7       # share of the item prior taken from frontier deficit
   axis_weight: 0.3          # share of the item prior taken from axis weight
   depth_weight: 1.0         # weight of the depth shortage (empty lower scales) in the pair prior
+  breadth_weight: 0.8       # weight of an unserved widening/viewpoint operator
   arm_by_axis: false        # also split arms by axis
   max_items_per_kind: 12    # frontier items kept per kind (most deficient first)
 
@@ -30,6 +31,13 @@ operators:
   thin: [history, document, perspective]
   axis_gap: [zoom, perspective, cause]   # fill gaps under/around existing entities
   low_score: [expand, cause]
+
+# Keep long runs from spending all their budget on one descent path. These
+# are operation categories, not assumptions about the world's content.
+breadth:
+  enabled: true
+  operators: [expand, perspective, cause, history, document]
+  min_entities_per_operator: 1
 
 frontier:
   min_facts: 3                    # entities with fewer facts are "thin"

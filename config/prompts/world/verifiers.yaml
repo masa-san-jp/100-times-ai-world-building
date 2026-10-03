@@ -28,7 +28,9 @@ criteria:
     merely assembled from words of the input statements is hollow; a
     "number" fact that is only a count of members or parts (for example a
     number followed by a counter word) is hollow unless it is a measured
-    quantity, ratio or period tied to a named thing; a summary that only
+    quantity, ratio or period tied to a named thing; a percentage or ratio
+    without a named measured subject is also hollow. Unsupported evaluation
+    words such as "important" do not establish a fact. A summary that only
     restates the input statements adds nothing. List each hollow fact as
     an issue with its field.
   consistency: |
