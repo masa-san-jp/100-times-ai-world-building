@@ -85,6 +85,13 @@
 - **予算と停止**：反復回数・経過時間・生成呼び出し回数のいずれかに達するか、被覆条件を満たすか、フロンティアが
   尽きると停止し、停止理由を記録します。途中から再開できます。
 
+
+#### 用語を読むための例
+
+架空の入力「二つの集落が一つの水源を共有している」を考えると、「世界の軸」は水の配分・制度・暮らしなどの調査領域、「エンティティ」は集落や配分を担う組織、「ズーム」は集落から地区・施設・細部へ下る操作を指します。「由来」は入力の明示事項と、そこから生成した設定の関係です。例えば未記載の配分制度を生成した場合、入力に書かれた事実とは区別して扱います。
+
+これは[オペレータ](src/world/operators.py)とグラフの用語を説明する例で、既定の入力・固定ジャンル・実測出力ではありません。検証器の高得点も作品としての完成や実世界の事実性を保証しません。
+
 ### クイックスタート
 
 ```bash
@@ -231,8 +238,9 @@ An objective, encyclopedia-style description layer is always produced as well.
 #### Verification status
 
 The new engine is tested **only with a deterministic fake backend** (no real LLM is contacted).
-**It has not yet been run end-to-end on a real local model (Ollama, etc.).** Real run time, output
-quality and behaviour on 20B-class models are unverified.
+The implementation notes record a short Ollama + `gpt-oss:20b` smoke run (four iterations, about 12 minutes),
+followed by an attempted rerun that exposed a model-output parsing failure. Fixes were added, but a complete
+post-fix real-model rerun and long-duration validation are still unverified. See [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
 
 ### Documents
 
