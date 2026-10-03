@@ -75,6 +75,7 @@ specificity:
     abstract_density: 0.4    # scaled by the excess, capped at this value
     unsupported_evaluation: 0.25
     unsupported_evaluation_cap: 0.4
+    purpose_without_mechanism: 0.25
     no_facts: 0.6
 
 consistency:
@@ -86,6 +87,10 @@ consistency:
     parent_type: 0.5
     temporal_order: 0.5
     number_conflict: 0.5
+    premise_conflict: 0.5
+    undefined_calendar: 0.4
+    undefined_technology: 0.4
+    undefined_unit: 0.4
 
 objectivity:
   penalties:

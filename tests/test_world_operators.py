@@ -12,6 +12,8 @@ from src.world.operators import (
     load_prompts, run_operator, validate_candidate, zoom,
 )
 
+from tests.test_world_explore import SYNTHETIC_PREMISES
+
 CONFIG = Path(__file__).resolve().parent.parent / "config"
 
 BRIEF = {"statements": [{"id": "s1", "text": "alpha rule", "quote": "alpha"},
@@ -40,7 +42,8 @@ def _cand(name="N", **kw):
                   {"kind": "number", "text": "42 units"},
                   {"kind": "object", "text": "brass seal"},
                   {"kind": "object", "text": "tin cup"}],
-        "statement_ids": ["s1"], "derived_from": [], "reason": "",
+        "statement_ids": ["s1"], "derived_from": [], "reason": "derived recording order",
+        "world_premises": SYNTHETIC_PREMISES,
     }
     c.update(kw)
     return c

@@ -30,6 +30,7 @@ from .textsim import (
 )
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
+from .premises import world_premises
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 DEFAULT_RULES_PATH = CONFIG_DIR / "world" / "language_rules.yaml"
@@ -657,6 +658,17 @@ def verify_specificity(
             min(float(pen.get("unsupported_evaluation_cap", amount)), amount
                 * len(eval_hits)),
             {"words": [w for w, _ in eval_hits]}))
+    for field_name, text in [("summary", entity.get("summary", ""))] + [
+            (f"facts[{i}]", f.get("text", "")) for i, f in enumerate(facts)]:
+        hits = _word_hits(str(text), rl.get("purpose_words") or [])
+        if hits:
+            d.append(Deduction(
+                "specificity", field_name, "purpose_without_mechanism",
+                "a stated aim or promotion does not describe observable action; "
+                "give the actor, procedure and measurable result: "
+                + ", ".join(w for w, _ in hits),
+                float(pen.get("purpose_without_mechanism", 0.25)),
+                {"words": [w for w, _ in hits]}))
     return VerifierResult("specificity", _score(d), d)
 
 
@@ -771,6 +783,17 @@ def verify_consistency(
     for err in validate_candidate(graph, candidate, axes, brief):
         add("entity", "graph_invalid", err)
 
+    contract = world_premises(graph)
+    proposed = entity.get("world_premises")
+    if contract and proposed is not None:
+        if proposed != {k: v for k, v in contract.items() if k != "source_entity"}:
+            add("world_premises", "premise_conflict",
+                "the candidate changes the established calendar or technology contract")
+    if not contract and candidate.get("operator") == "premise" and proposed:
+        contract = proposed
+    if contract:
+        _verify_premise_usage(entity, contract, language_of(graph), add)
+
     rels = [r for r in entity.get("relations") or [] if isinstance(r, Mapping)]
     by_target: Dict[str, set] = {}
     for i, r in enumerate(rels):
@@ -824,6 +847,90 @@ def verify_consistency(
                         f"{label!r} differs from existing {other['id']}",
                         entity=other["id"])
     return VerifierResult("consistency", _score(d), d)
+
+
+def _verify_premise_usage(entity, contract, language, add):
+    """Lexical checks against the contract, plus declared semantic references.
+
+    Prose alone cannot reliably identify all apparatus or implied capabilities;
+    the optional consistency judge checks those and missing declarations.
+    """
+    calendar, technology = contract["calendar"], contract["technology"]
+    markers = [unicodedata.normalize("NFKC", value).strip()
+               for value in [calendar["name"], *calendar["markers"]]]
+    usage = entity.get("premise_usage") or {}
+    def unit_key(value):
+        return unicodedata.normalize("NFKC", value).strip()
+    for key, allowed, code in (
+            ("calendars", markers, "undefined_calendar"),
+            ("technologies", technology["capabilities"], "undefined_technology"),
+            ("units", technology["units"], "undefined_unit")):
+        for term in usage.get(key, []):
+            norm = unit_key if key == "units" else normalize_item
+            if norm(term) not in {norm(v) for v in allowed}:
+                add(f"premise_usage.{key}", code,
+                    f"{term!r} is not defined in the world's premises", term=term)
+
+    rules = rules_for(load_language_rules(), language)
+    fields = [("name", entity.get("name", "")),
+              ("summary", entity.get("summary", ""))]
+    fields += [(f"facts[{i}]", f.get("text", ""))
+               for i, f in enumerate(entity.get("facts", []))]
+    allowed_units = {unit_key(v) for v in technology["units"]}
+    for field_name, text in fields:
+        text = unicodedata.normalize("NFKC", str(text))
+        date_text = text
+        for pattern in rules.get("duration_patterns", []):
+            date_text = re.sub(pattern, lambda m: " " * len(m.group(0)),
+                               date_text, flags=re.IGNORECASE)
+        # The syntax recognizes dates, not any particular calendar. Require
+        # a declared marker next to each absolute date; ranges share a marker.
+        patterns = list(rules.get("absolute_date_patterns", []))
+        period_pattern = r"(?<![\d.])\d{3,}(?:\s*[-–~〜]\s*\d+)?(?![\d.A-Za-z])"
+        if field_name.startswith("facts["):
+            index = int(field_name[6:-1])
+            if entity["facts"][index].get("kind") == "period":
+                patterns.append(period_pattern)
+        seen_dates = set()
+        for pattern in patterns:
+            for match in re.finditer(pattern, date_text, re.IGNORECASE):
+                if any(a <= match.start() < b for a, b in seen_dates):
+                    continue
+                if pattern == period_pattern:
+                    suffix = date_text[match.end():].lstrip()
+                    if any(suffix.startswith(u) and (
+                            not u.isascii() or len(suffix) == len(u)
+                            or not suffix[len(u)].isalpha())
+                           for u in technology["units"]):
+                        continue  # a duration/measurement, not a bare year
+                seen_dates.add(match.span())
+                prefix = date_text[max(0, match.start() - 48):match.start()]
+                if not any(re.search(re.escape(marker) + r"\s*$", prefix,
+                                     re.IGNORECASE) for marker in markers):
+                    add(field_name, "undefined_calendar",
+                        "absolute date lacks a calendar marker defined in the premises",
+                        date=match.group(0))
+        # Unknown symbolic units can be detected without enumerating devices
+        # or technical units. Natural-language units use language syntax data.
+        units = set(re.findall(
+            r"(?<![A-Za-z\d])[-+]?\d[\d,]*(?:\.\d+)?(?:[eE][-+]?\d+)?\s*"
+            r"([A-Za-zµΩ]+(?:\^?[-+]?\d+)?"
+            r"(?:/[A-Za-zµΩ]+(?:\^?[-+]?\d+)?)*|[%‰°])(?![A-Za-z])",
+            text))
+        natural_units = sorted({u for u in (rules.get("measure_units", [])
+                                + technology["units"]) if not u.isascii()},
+                               key=len, reverse=True)
+        if natural_units:
+            units.update(re.findall(r"\d\s*(" + "|".join(
+                re.escape(u) for u in natural_units) + ")", text))
+        # Counter nouns are quantity syntax, not technical measurement units.
+        counters = {normalize_item(v) for v in rules.get("count_units", [])}
+        unknown = sorted(u for u in units if unit_key(u) not in allowed_units
+                         and normalize_item(u) not in counters)
+        if unknown:
+            add(field_name, "undefined_unit",
+                "measurement units are not defined in the world's premises: "
+                + ", ".join(unknown), units=unknown)
 
 
 def verify_objectivity(
@@ -960,20 +1067,27 @@ class LLMJudge:
               brief: Optional[Mapping[str, Any]] = None,
               ) -> Optional[List[Deduction]]:
         entity = candidate["entity"]
-        context: Any = "(none)"
+        context: Any = {}
         if criterion == "consistency" and candidate.get("target") \
                 and get_entity(graph, candidate["target"]):
             context = local_context(graph, candidate["target"], self.context_limits)
-        elif criterion == "specificity":
-            # The judge needs the input wording to spot facts that only
-            # repeat it.
-            context = {"input_statements": [
+        if criterion in {"specificity", "consistency"}:
+            context = {**context, "world_premises": world_premises(graph),
+                       "input_statements": [
                 str(s.get("text") or "")[:200]
                 for s in (brief or {}).get("statements", []) or []
-                if isinstance(s, Mapping)][:12]}
-        view = {"name": entity.get("name"), "summary": entity.get("summary"),
+                if isinstance(s, Mapping)][:12],
+                       "input_constraints": [
+                           text_of(s)[:200] for s in
+                           (brief or {}).get("constraints", []) or []][:12]}
+        view = {"type": entity.get("type"), "scale": entity.get("scale"),
+                "parent": entity.get("parent"), "relations": entity.get("relations"),
+                "name": entity.get("name"), "summary": entity.get("summary"),
                 "facts": [{"kind": f.get("kind"), "text": f.get("text")}
                           for f in entity.get("facts") or []]}
+        for key in ("world_premises", "premise_usage"):
+            if key in entity:
+                view[key] = entity[key]
         prompt = self.prompts["common"]["user"].format(
             language=language_of(graph), criterion=self.prompts["criteria"][criterion].strip(),
             candidate=json.dumps(view, ensure_ascii=False),
@@ -991,8 +1105,14 @@ class LLMJudge:
         if score >= 1.0:
             return []
         share = (1.0 - score) / max(1, len(issues))
+        reason_codes = {
+            "specificity": {"unrelated_fact", "purpose_without_mechanism"},
+            "consistency": {"undefined_calendar", "undefined_technology",
+                            "undefined_unit", "implausible_value"},
+        }.get(criterion, set())
         out = [Deduction(criterion, text_of(i.get("field")) or "entity",
-                         "llm_judge",
+                         i.get("code") if isinstance(i.get("code"), str)
+                         and i["code"] in reason_codes else "llm_judge",
                          text_of(i.get("why")) or "judged below standard", share)
                for i in issues]
         return out or [Deduction(criterion, "entity", "llm_judge",

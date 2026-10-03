@@ -36,6 +36,12 @@ GENERIC_FACTS = [
     {"kind": "number", "text": "50 members"},
     {"kind": "object", "text": "oak table"},
     {"kind": "object", "text": "iron lamp"}]
+SYNTHETIC_PREMISES = {
+    "calendar": {"name": "Vela Count", "origin": "first quota agreement",
+                 "markers": ["Vela Count"]},
+    "technology": {"description": "Seals and hand-written ledgers; no automated records",
+                   "capabilities": ["seal", "ledger"], "units": ["term", "quota"]}}
+
 OPS = {"Propose": "premise", "Add sibling": "expand", "Add child": "zoom",
        "Explain why": "cause", "Describe how": "perspective",
        "Link something": "history", "Create a document": "document"}
@@ -94,17 +100,23 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
                if re.match(r"s\d+:", l)] if m else []
         ids = ids or ["s1"]
         rng = random.Random(zlib.crc32(prompt.encode("utf-8")))
+        def with_contract(rows):
+            for row in rows:
+                row["world_premises"] = SYNTHETIC_PREMISES
+                row["reason"] = "Quota agreements determine record cycles and recording methods"
+            return {"candidates": rows}
+
         if "REVIEW FINDINGS" in prompt:
             if always_generic:
-                return {"candidates": [_generic(0, ids)]}
-            return {"candidates": [_specific(rng, ids, axis_ids)]}
+                return with_contract([_generic(0, ids)])
+            return with_contract([_specific(rng, ids, axis_ids)])
         n = int(re.search(r"exactly (\d+) candidates", prompt).group(1))
         task = re.search(r"TASK: (.*)", prompt).group(1)
         op = next(v for k, v in OPS.items() if task.startswith(k))
         no_input = ids == ["s1"] and "(none)" in prompt
         if no_input or always_generic or op in generic_ops:
-            return {"candidates": [_generic(i, ids) for i in range(n)]}
-        return {"candidates": [_specific(rng, ids, axis_ids) for _ in range(n)]}
+            return with_contract([_generic(i, ids) for i in range(n)])
+        return with_contract([_specific(rng, ids, axis_ids) for _ in range(n)])
 
     backend = FakeLLMBackend(respond)
     backend.calls = calls
@@ -243,7 +255,9 @@ def test_loop_runs_without_human_input_to_coverage(tmp_path, monkeypatch):
     assert result.coverage["met"]
     graph = json.loads((tmp_path / "world" / "graph.json").read_text("utf-8"))
     assert validate_graph(graph, AXES, BRIEF) == []
-    assert graph["entities"][0]["scale"] == "world"  # premise first
+    # Persistence sorts ids lexically; e10 can precede the first accepted e3.
+    first = min(graph["entities"], key=lambda e: int(e["id"][1:]))
+    assert first["scale"] == "world"  # premise first
     log = read_preference_log(tmp_path / "world" / "preferences.jsonl")
     assert any(r["type"] == "candidate" and r["decision"] == "accepted"
                for r in log)

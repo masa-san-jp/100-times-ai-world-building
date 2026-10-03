@@ -277,7 +277,7 @@ def test_pipeline_enables_the_judge_for_real_backends_only(tmp_path):
     p.backend_name = "ollama"
     assert p.judge_enabled()
     v = p._build_verifier()
-    assert v.judge is not None and v.config["llm_judges"] == ["specificity"]
+    assert v.judge is not None and v.config["llm_judges"] == ["specificity", "consistency"]
     p.judge_config = {"enabled": False}
     assert p._build_verifier() is None
     p.backend_name = "fake"

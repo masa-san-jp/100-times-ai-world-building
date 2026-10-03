@@ -3,6 +3,8 @@
 # script-independent markers and applies to every language. A language
 # that is absent falls back to `default` and to structural metrics only.
 default:
+  absolute_date_patterns:
+    - '(?<![\d.])\d{3,}\s*[-–~〜]\s*\d+(?![\d.])'
   quote_pairs: ["「」", "『』", "“”", "‘’", "\"\"", "«»", "„“", "《》"]
   exclamation: ["!", "！", "‼", "!?"]
   question: ["?", "？"]
@@ -19,6 +21,15 @@ default:
   proper_noun_min_chars: 3
 
 ja:
+  duration_patterns:
+    - '\d+\s*年(?:間|前|後|ごと|おき)'
+    - '(?:期間|所要|継続|周期|間隔)[^。;；\n]{0,12}?\d+\s*[^\W\d_]+'
+  absolute_date_patterns:
+    - '(?<![\d.])\d+(?:\s*[-–~〜]\s*\d+)?\s*年(?!間)'
+    - '(?:設立年|創立年|建設年|紀年)\s*[:：]?\s*\d+'
+    - '(?<![\d.])\d{3,}\s*[-–~〜]\s*\d+(?![\d.])'
+  count_units: [人, 個, 枚, 本, 件, 部, members, parts]
+  purpose_words: [推進している, 推進する, 目的としている, 目的とする, 目指している, 持続可能]
   measurement_subject_words:
     - 量
     - 率
@@ -134,6 +145,13 @@ ja:
   flourish: [壮大な, 圧倒的, まさに, 驚くべき, 息をのむ, 決して忘れ, 運命の, 圧巻]
 
 en:
+  duration_patterns:
+    - '\b(?:for|duration|interval|every)\s+\d+\s+years?\b'
+  absolute_date_patterns:
+    - '\b(?:year|founded|established|since|in)\s+\d{3,}(?:\s*[-–~]\s*\d+)?\b'
+    - '(?<![\d.])\d{3,}\s*[-–~]\s*\d+(?![\d.])'
+  count_units: [members, parts, people, items, copies]
+  purpose_words: [promotes, aims to, seeks to, sustainable, has the purpose of]
   proper_noun_requires_capital: true
   measurement_subject_words:
     - amount

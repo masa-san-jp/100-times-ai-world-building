@@ -15,6 +15,7 @@ from __future__ import annotations
 import copy
 import json
 import re
+from .premises import premise_errors, usage_errors, world_premises
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
@@ -233,6 +234,10 @@ def validate_graph(
     id_set = set(ids)
     by_id = {e["id"]: e for e in entities
              if isinstance(e, Mapping) and e.get("id") in id_set}
+    contracts = [e["world_premises"] for e in entities
+                 if isinstance(e, Mapping) and "world_premises" in e]
+    if contracts and any(c != contracts[0] for c in contracts[1:]):
+        errors.append("world_premises: conflicting world contracts")
 
     for n, e in enumerate(entities):
         if not isinstance(e, Mapping):
@@ -243,6 +248,12 @@ def validate_graph(
             errors.append(f"entities[{n}]: id is required")
             continue
         w = f"entity {eid}"
+        if "world_premises" in e:
+            if e.get("scale") != "world" or e.get("origin_operator") != "premise":
+                errors.append(f"{w}: world_premises requires a world-scale premise")
+            errors.extend(f"{w}: {err}" for err in premise_errors(e["world_premises"]))
+        if "premise_usage" in e:
+            errors.extend(f"{w}: {err}" for err in usage_errors(e["premise_usage"]))
         if e.get("type") not in ENTITY_TYPES:
             errors.append(f"{w}: invalid type {e.get('type')!r}")
         if not isinstance(e.get("name"), str) or not e["name"].strip():
@@ -458,6 +469,7 @@ def local_context(
     chosen_rel = related[: lim["max_related"]]
     return {
         "language": (graph.get("meta") or {}).get("language"),
+        "world_premises": world_premises(graph),
         "entity": {
             **_brief_view(focus, lim),
             "axes": list(focus.get("axes", [])),

@@ -13,11 +13,11 @@ common:
     CANDIDATE:
     {candidate}
 
-    CONTEXT (existing entities, or the input statements for specificity; may be empty):
+    CONTEXT (world premises, local entities and explicit input; may be empty):
     {context}
 
     Return {{"score": <number from 0 to 1, 1 is best>,
-    "issues": [{{"field": "summary|name|facts[i]", "why": "<short reason>"}}]}}
+    "issues": [{{"field": "summary|name|facts[i]", "why": "<short reason>", "code": "<reason code>"}}]}}
 
 criteria:
   specificity: |
@@ -32,11 +32,31 @@ criteria:
     without a named measured subject is also hollow. Unsupported evaluation
     words such as "important" do not establish a fact. A summary that only
     restates the input statements adds nothing. List each hollow fact as
-    an issue with its field.
+    an issue with its field. Claims about aims, promotion or intended value
+    need an observable actor, procedure, condition and result; flag wording
+    that substitutes an intention for what happens.
+    Check whether each fact actually describes the candidate entity (use its
+    type, name, summary and relations). An object or quantity with no stated
+    ownership, use, location or procedural link is unrelated_fact. A clear
+    link is sufficient; do not require repeating the entity name in each fact.
+    Return a reason code for each issue: unrelated_fact or
+    purpose_without_mechanism where appropriate.
   consistency: |
     Does any statement of the candidate contradict a fact in CONTEXT
     (numbers, periods, locations, membership, cause and effect)? Low score
     when a contradiction exists; list each one.
+    Follow the world_premises contract, never a familiar chronology or era.
+    A candidate may not extend its own allow lists. For an initial premise,
+    review its proposed world_premises against the explicit input and check
+    that unspecified choices are derived, recorded and internally consistent.
+    Check devices, methods and implied capabilities in prose even when
+    premise_usage omits them: require support from the defined capabilities
+    and limits. Flag unsupported dates, devices or units, with reason codes
+    undefined_calendar, undefined_technology or undefined_unit.
+    Check each quantity's order of magnitude for the measured subject's type,
+    purpose and dimensions within this world. Flag extreme or contradictory
+    values as implausible_value. Do not apply universal numeric bounds or
+    assume familiar technology. List the offending facts and explain why.
   objectivity: |
     Is the summary a neutral explanation of structure, cause and effect?
     Low score when it uses a narrative voice, quoted speech, a viewpoint

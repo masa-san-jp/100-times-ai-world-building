@@ -28,6 +28,7 @@ import yaml
 
 from ..llm import LLMBackend
 from .coerce import fact_items, id_list, relation_items, text_of
+from .premises import normalize_premises, usage_errors, world_premises
 from .graph import (
     ENTITY_TYPES, FACT_KINDS, RELATION_TYPES, SCALES, SCALE_RANK,
     get_entity, local_context, make_entity, validate_graph,
@@ -101,6 +102,7 @@ def _world_context(graph: Mapping[str, Any], cfg: OperatorConfig) -> Dict[str, A
              if e.get("scale") == "world"][:6]
     return {
         "language": (graph.get("meta") or {}).get("language"),
+        "world_premises": world_premises(graph),
         "entities": [
             {"id": e["id"], "type": e.get("type"),
              "name": _clip(e.get("name"), 60),
@@ -229,6 +231,9 @@ class OperatorRunner:
                 (entity.get("provenance") or {}).get("derived_from", [])),
             "reason": (entity.get("provenance") or {}).get("reason", ""),
         }
+        for key in ("world_premises", "premise_usage"):
+            if key in entity:
+                draft[key] = copy.deepcopy(entity[key])
         statements = [
             f"{s['id']}: {_clip(s.get('text'), cfg.max_text_chars)}"
             for s in (brief or {}).get("statements", []) or []
@@ -407,6 +412,20 @@ class OperatorRunner:
         # exploration policy. It is outside the canonical entity schema so
         # older graphs without it remain readable.
         entity["origin_operator"] = operator
+        if operator == "premise":
+            if "world_premises" in item:
+                contract = normalize_premises(item["world_premises"])
+                if contract is None or not reason:
+                    return None
+                entity["world_premises"] = contract
+            elif not world_premises(graph):
+                return None  # never bootstrap a new world with implicit defaults
+        if "premise_usage" in item:
+            if usage_errors(item["premise_usage"]):
+                return None
+            entity["premise_usage"] = {
+                key: list(item["premise_usage"].get(key, []))
+                for key in ("calendars", "technologies", "units")}
         return entity
 
 

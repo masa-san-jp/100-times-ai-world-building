@@ -4,6 +4,13 @@
 # carry no genre, era, setting or narrative vocabulary.
 
 en:
+  world_premises: World premises
+  calendar: Calendar
+  calendar_origin: Counting origin
+  calendar_markers: Date markers
+  technology: Technical capabilities and limits
+  capabilities: Defined apparatus and methods
+  units: Permitted measurement units
   readme_title: World Reference
   overview: Overview
   overview_empty: No world-scale entity has been recorded.
@@ -127,6 +134,13 @@ en:
     too_many_failures: stopped after too many consecutive failed iterations
 
 ja:
+  world_premises: 世界の前提
+  calendar: 暦・紀年
+  calendar_origin: 紀年の起点
+  calendar_markers: 日付の表記
+  technology: 技術の能力と限界
+  capabilities: 定義された装置・手法
+  units: 使用する測定単位
   readme_title: 世界設定資料
   overview: 概観
   overview_empty: 世界スケールのエンティティは記録されていません。
