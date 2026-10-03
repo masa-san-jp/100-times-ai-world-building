@@ -9,6 +9,12 @@ from unittest.mock import Mock, patch
 from src.ollama_client import OllamaClient
 
 
+def fake_response(text):
+    response = Mock()
+    response.json.return_value = {"response": text, "done_reason": "stop"}
+    return response
+
+
 class TestOllamaClient:
     """Test cases for OllamaClient"""
 
@@ -24,6 +30,12 @@ class TestOllamaClient:
         assert client.model == "gpt-oss:20b"
         assert client.timeout == 300
         assert client.max_retries == 3
+        assert client.json_mode == "auto"
+
+    @pytest.mark.parametrize("mode", ["invalid", "", None])
+    def test_invalid_json_mode_is_rejected(self, mode):
+        with pytest.raises(ValueError, match="json_mode"):
+            OllamaClient(json_mode=mode)
 
     def test_check_server_success(self):
         """Test server check when server is running"""
@@ -103,6 +115,170 @@ class TestOllamaClient:
         assert "format" not in second
         assert second["think"] is False
         assert first["options"]["seed"] == second["options"]["seed"] == 42
+
+    @patch('requests.post')
+    def test_auto_remembers_prompt_mode_after_empty_format_response(self, mock_post):
+        """Only the first logical call pays for failed format requests."""
+        client = OllamaClient(model="test-model", max_retries=3, retry_delay=0)
+
+        def respond(url, *, json, timeout):
+            return fake_response("" if json.get("format") == "json" else '{"ok": true}')
+
+        mock_post.side_effect = respond
+        with patch("src.ollama_client.logger.info") as log_info:
+            assert client.generate_json("Create an object", seed=42) == {"ok": True}
+            assert mock_post.call_count == 4  # three empty requests, one fallback
+            assert client.generate_json("Create another object", seed=43) == {"ok": True}
+            assert mock_post.call_count == 5
+            assert client.generate_json("Create a third object", seed=44) == {"ok": True}
+            assert mock_post.call_count == 6
+
+        payloads = [call.kwargs["json"] for call in mock_post.call_args_list]
+        assert [p.get("format") for p in payloads] == ["json"] * 3 + [None] * 3
+        assert all(p["think"] is False for p in payloads[3:])
+        assert [p["options"]["seed"] for p in payloads[3:]] == [42, 43, 44]
+        transitions = [call.args[0] for call in log_info.call_args_list
+                       if "JSON request mode switched" in call.args[0]]
+        assert transitions == [
+            "JSON request mode switched from format to prompt for model: test-model"
+        ]
+
+    @pytest.mark.parametrize("mode", ["prompt", "format"])
+    @pytest.mark.parametrize("text", ['{"ok": true}', "not JSON", ""])
+    @patch('requests.post')
+    def test_fixed_json_modes_never_try_the_other_mode(self, mock_post, mode, text):
+        client = OllamaClient(json_mode=mode, max_retries=2, retry_delay=0)
+        mock_post.return_value = fake_response(text)
+
+        for _ in range(2):
+            result = client.generate_json("Create an object", think=True)
+            assert result == ({"ok": True} if text.startswith("{") else None)
+
+        assert mock_post.call_count == (4 if text == "" else 2)
+        for call in mock_post.call_args_list:
+            payload = call.kwargs["json"]
+            assert payload.get("format") == ("json" if mode == "format" else None)
+            assert payload["think"] is (mode == "format")
+            assert "JSON" in payload["prompt"]
+            assert "json_mode" not in payload["options"]
+
+    @patch('requests.post')
+    def test_auto_keeps_format_when_format_succeeds(self, mock_post):
+        client = OllamaClient(max_retries=1, retry_delay=0)
+        mock_post.return_value = fake_response('{"ok": true}')
+
+        assert client.generate_json("JSON") == {"ok": True}
+        assert client.generate_json("JSON") == {"ok": True}
+        assert mock_post.call_count == 2
+        assert all(call.kwargs["json"]["format"] == "json"
+                   for call in mock_post.call_args_list)
+
+    @patch('requests.post')
+    def test_auto_does_not_learn_from_a_failed_fallback(self, mock_post):
+        client = OllamaClient(max_retries=1, retry_delay=0)
+        mock_post.side_effect = [fake_response(text) for text in
+                                 ["", "invalid", "", '{"ok": true}', '{"ok": true}']]
+
+        assert client.generate_json("JSON") is None
+        assert client.generate_json("JSON") == {"ok": True}
+        assert client.generate_json("JSON") == {"ok": True}
+        payloads = [call.kwargs["json"] for call in mock_post.call_args_list]
+        assert [p.get("format") for p in payloads] == ["json", None, "json", None, None]
+
+    @pytest.mark.parametrize("failure", ["", "not JSON"])
+    @patch('requests.post')
+    def test_auto_reverts_after_consecutive_prompt_failures(self, mock_post, failure):
+        client = OllamaClient(model="test-model", max_retries=1, retry_delay=0)
+        mock_post.side_effect = [fake_response(text) for text in
+                                 ["", '{"ok": true}', failure, failure,
+                                  '{"ok": true}', '{"ok": true}']]
+
+        with patch("src.ollama_client.logger.info") as log_info:
+            assert client.generate_json("JSON", think=True) == {"ok": True}
+            assert client.generate_json("JSON", think=True) is None
+            assert mock_post.call_count == 3
+            assert client.generate_json("JSON", think=True) == {"ok": True}
+            assert client.generate_json("JSON", think=True) == {"ok": True}
+
+        payloads = [call.kwargs["json"] for call in mock_post.call_args_list]
+        assert [p.get("format") for p in payloads] == ["json", None, None, None, "json", "json"]
+        assert [p["think"] for p in payloads] == [True, False, False, False, True, True]
+        transitions = [call.args[0] for call in log_info.call_args_list
+                       if "JSON request mode switched" in call.args[0]]
+        assert transitions == [
+            "JSON request mode switched from format to prompt for model: test-model",
+            "JSON request mode switched from prompt to format for model: test-model",
+        ]
+
+    @patch('requests.post')
+    def test_auto_prompt_success_resets_consecutive_failures(self, mock_post):
+        client = OllamaClient(max_retries=1, retry_delay=0)
+        mock_post.side_effect = [fake_response(text) for text in
+                                 ["", '{"ok": true}', "invalid", '{"ok": true}',
+                                  "invalid", '{"ok": true}']]
+
+        assert client.generate_json("JSON") == {"ok": True}
+        assert client.generate_json("JSON") is None
+        assert client.generate_json("JSON") == {"ok": True}
+        assert client.generate_json("JSON") is None
+        assert client.generate_json("JSON") == {"ok": True}
+        payloads = [call.kwargs["json"] for call in mock_post.call_args_list]
+        assert [p.get("format") for p in payloads] == ["json"] + [None] * 5
+
+    @patch('requests.post')
+    def test_auto_learns_per_model_and_per_client(self, mock_post):
+        client = OllamaClient(model="first-model", max_retries=1, retry_delay=0)
+
+        def respond(url, *, json, timeout):
+            return fake_response("" if json.get("format") == "json" else '{"ok": true}')
+
+        mock_post.side_effect = respond
+        assert client.generate_json("JSON") == {"ok": True}
+        client.model = "second-model"
+        assert client.generate_json("JSON") == {"ok": True}
+        client.model = "first-model"
+        assert client.generate_json("JSON") == {"ok": True}
+        fresh = OllamaClient(model="first-model", max_retries=1, retry_delay=0)
+        assert fresh.generate_json("JSON") == {"ok": True}
+
+        payloads = [call.kwargs["json"] for call in mock_post.call_args_list]
+        assert [p.get("format") for p in payloads] == ["json", None, "json", None, None, "json", None]
+        assert [p["model"] for p in payloads] == [
+            "first-model", "first-model", "second-model", "second-model",
+            "first-model", "first-model", "first-model",
+        ]
+
+    @patch('requests.post')
+    def test_auto_fallback_preserves_generation_options(self, mock_post):
+        client = OllamaClient(max_retries=1, retry_delay=0)
+        mock_post.side_effect = [fake_response(""), fake_response('{"ok": true}')]
+        assert client.generate_json(
+            "Create an object", system_prompt="Follow the schema",
+            temperature=0.2, max_tokens=100, images=[b"image"],
+            num_ctx=1024, seed=42, top_p=0.8, think=True,
+        ) == {"ok": True}
+
+        first, second = [call.kwargs["json"] for call in mock_post.call_args_list]
+        assert first["think"] is True
+        assert second["think"] is False
+        assert first["format"] == "json"
+        assert "format" not in second
+        assert first["options"] == second["options"] == {
+            "temperature": 0.2, "num_predict": 100, "num_ctx": 1024,
+            "seed": 42, "top_p": 0.8,
+        }
+        assert first["prompt"] == second["prompt"]
+        assert first["prompt"].startswith("Follow the schema\n\nCreate an object")
+        assert first["images"] == second["images"] == [base64.b64encode(b"image").decode("ascii")]
+
+    @patch('requests.post')
+    def test_validate_false_does_not_trigger_compatibility_retry(self, mock_post):
+        client = OllamaClient(max_retries=1, retry_delay=0)
+        mock_post.return_value = fake_response('```json\n{"ok": true}\n```')
+
+        assert client.generate_json("JSON", validate=False) is None
+        assert mock_post.call_count == 1
+        assert mock_post.call_args.kwargs["json"]["format"] == "json"
 
     @patch('requests.post')
     def test_generate_forwards_top_level_think(self, mock_post):
