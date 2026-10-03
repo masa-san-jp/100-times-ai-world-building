@@ -33,6 +33,11 @@ server:
   timeout: 900  # seconds per request
   max_retries: 3
   retry_delay: 5  # seconds
+  # Structured JSON: format = always use format="json"; prompt = always use
+  # a JSON instruction with thinking disabled; auto = start with format and
+  # remember a successful prompt fallback per client/model for this run.
+  # After two consecutive failed prompt calls, auto switches back to format.
+  json_mode: "auto"
 
 # Ollama models
 # ----------------------------------------

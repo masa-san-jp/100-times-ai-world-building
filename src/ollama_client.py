@@ -27,6 +27,7 @@ class OllamaClient(LLMBackend):
         timeout: int = 300,
         max_retries: int = 3,
         retry_delay: int = 5,
+        json_mode: str = "auto",
     ):
         """
         Initialize Ollama client
@@ -38,12 +39,19 @@ class OllamaClient(LLMBackend):
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries on failure
             retry_delay: Delay between retries in seconds
+            json_mode: Structured output requests use "format", "prompt", or
+                "auto" (learn a compatible mode per model for this client).
         """
+        if json_mode not in ("format", "prompt", "auto"):
+            raise ValueError("json_mode must be 'format', 'prompt', or 'auto'")
         self.base_url = f"{host}:{port}"
         self.model = model
         self.timeout = timeout
         self.max_retries = max_retries
         self.retry_delay = retry_delay
+        self.json_mode = json_mode
+        self._json_modes: Dict[Optional[str], str] = {}
+        self._json_prompt_failures: Dict[Optional[str], int] = {}
         self.last_response_meta: Dict[str, Any] = {}
 
         logger.info(f"Initialized OllamaClient: {self.base_url}, model: {self.model}")
@@ -286,6 +294,11 @@ class OllamaClient(LLMBackend):
         """
         Generate JSON output
 
+        In auto mode, a successful prompt-only fallback is remembered per
+        model. Two consecutive failed prompt-only calls (each exhausting the
+        normal request retries) switch back to format mode and probe it again.
+        Learned modes are local to this client and are not persisted.
+
         Args:
             prompt: Input prompt
             temperature: Generation temperature
@@ -300,55 +313,73 @@ class OllamaClient(LLMBackend):
         if "JSON" not in prompt and "json" not in prompt:
             prompt = f"{prompt}\n\n重要: 必ず有効なJSON形式で出力してください。"
 
-        response = self.generate(
-            prompt=prompt,
-            format="json",
-            temperature=temperature,
-            max_tokens=max_tokens,
-            system_prompt=system_prompt,
-            images=images,
-            num_ctx=num_ctx,
+        mode = self.json_mode
+        if mode == "auto":
+            mode = self._json_modes.get(self.model, "format")
+        request_kwargs = {
             **kwargs,
-        )
-
-        if response is None:
-            return None
-
-        parsed = self._parse_json(response, validate=validate)
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "system_prompt": system_prompt,
+            "images": images,
+            "num_ctx": num_ctx,
+        }
+        parsed = self._generate_json_mode(prompt, mode, validate, **request_kwargs)
         if parsed is not None:
+            self._json_prompt_failures.pop(self.model, None)
             return parsed
 
-        # Some local reasoning models may accept
-        # ``format=json`` but return their planning text instead of a JSON
-        # document. Preserve the configured structured-format request above,
-        # then make one explicit compatibility fallback. The same kwargs,
-        # including the request seed, are reused for this logical retry.
-        if validate:
-            logger.warning(
-                "Structured JSON response was invalid; retrying with prompt-"
-                "constrained JSON and thinking disabled"
-            )
-            fallback_kwargs = dict(kwargs)
-            fallback_kwargs.pop("think", None)
-            fallback = self.generate(
-                prompt=prompt,
-                format="",
-                temperature=temperature,
-                max_tokens=max_tokens,
-                system_prompt=system_prompt,
-                images=images,
-                num_ctx=num_ctx,
-                think=False,
-                **fallback_kwargs,
-            )
-            if fallback:
-                parsed = self._parse_json(fallback, validate=True)
+        # Fixed modes never try the other request mode. Keep validate=False's
+        # existing behavior of parsing once without a compatibility retry.
+        if self.json_mode == "auto" and validate:
+            if mode == "format":
+                logger.warning(
+                    "Structured JSON response failed; retrying with prompt-"
+                    "constrained JSON and thinking disabled"
+                )
+                parsed = self._generate_json_mode(
+                    prompt, "prompt", validate, **request_kwargs
+                )
                 if parsed is not None:
-                    logger.info("JSON compatibility fallback succeeded")
+                    self._set_json_mode("prompt")
                     return parsed
+            else:
+                failures = self._json_prompt_failures.get(self.model, 0) + 1
+                self._json_prompt_failures[self.model] = failures
+                if failures >= 2:
+                    self._set_json_mode("format")
+                    parsed = self._generate_json_mode(
+                        prompt, "format", validate, **request_kwargs
+                    )
+                    if parsed is not None:
+                        return parsed
 
         logger.error("Failed to parse JSON after all retries")
         return None
+
+    def _generate_json_mode(
+        self, prompt: str, mode: str, validate: bool, **kwargs
+    ) -> Optional[Union[Dict[str, Any], List[Any]]]:
+        """Reuse generation options, including the seed, across mode probes."""
+        if mode == "prompt":
+            kwargs["think"] = False
+        response = self.generate(
+            prompt=prompt, format="json" if mode == "format" else "", **kwargs
+        )
+        if response is None:
+            return None
+        return self._parse_json(response, validate=validate)
+
+    def _set_json_mode(self, mode: str) -> None:
+        """Log each learned mode transition once, rather than every success."""
+        previous = self._json_modes.get(self.model, "format")
+        self._json_modes[self.model] = mode
+        self._json_prompt_failures.pop(self.model, None)
+        if previous != mode:
+            logger.info(
+                f"JSON request mode switched from {previous} to {mode} "
+                f"for model: {self.model}"
+            )
 
     @staticmethod
     def _parse_json(

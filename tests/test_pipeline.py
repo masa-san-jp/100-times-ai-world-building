@@ -90,6 +90,26 @@ def test_missing_model_is_an_error(tmp_path):
         Pipeline(config_path=cfg, output_dir=tmp_path, backend="anthropic")
 
 
+@pytest.mark.parametrize("mode", ["auto", "prompt", "format"])
+def test_ollama_json_mode_is_loaded_from_config(tmp_path, mode):
+    cfg = write_config(tmp_path, server={"json_mode": mode})
+    p = Pipeline(config_path=cfg, output_dir=tmp_path, backend="ollama")
+    assert p.client.json_mode == mode
+    assert p.vision_client.json_mode == mode
+
+
+def test_ollama_json_mode_defaults_to_auto_for_older_configs(tmp_path):
+    cfg = write_config(tmp_path, server={})
+    p = Pipeline(config_path=cfg, output_dir=tmp_path, backend="ollama")
+    assert p.client.json_mode == p.vision_client.json_mode == "auto"
+
+
+def test_invalid_ollama_json_mode_in_config_is_rejected(tmp_path):
+    cfg = write_config(tmp_path, server={"json_mode": "invalid"})
+    with pytest.raises(ValueError, match="json_mode"):
+        Pipeline(config_path=cfg, output_dir=tmp_path, backend="ollama")
+
+
 def test_unsupported_backend_is_rejected(tmp_path):
     with pytest.raises(ValueError, match="Unsupported"):
         Pipeline(config_path=str(CONFIG), output_dir=tmp_path,
