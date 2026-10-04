@@ -316,3 +316,273 @@ def test_valid_measurement_review_without_extension_approval_cannot_register_a_u
     assert result.premise_review["state"] == "reviewed"
     assert result.premise_review["extension_status"] == "unapproved"
     assert any(d.code == "extension_unapproved" for d in result.deductions)
+
+
+@pytest.mark.parametrize("unit", ["m^3/日", "kg/年", "m3/日", "m³/日", "kg*日", "(m^3/日)^2", "kg/年^2"])
+@pytest.mark.parametrize("declared", [False, True])
+def test_registered_unit_algebra_needs_no_extension_approval(unit, declared):
+    g = graph()
+    g["entities"][0]["world_premises"]["technology"]["units"] = ["m^3", "kg", "日"]
+    item = raw(f"比較容器の搬出量は3{unit}。")
+    if declared:
+        item["premise_usage"] = {"units": [unit]}
+    candidate, _ = generate(g, item)
+    result, backend = verify(g, candidate, {"consistency": assessment()})
+    assert result.passed, result.to_dict()
+    assert not result.premise_extension and not result.premise_review["proposal"]
+    assert not any(d.code in {"undefined_unit", "extension_unapproved"} for d in result.deductions)
+    assert len(backend.json_prompts) == 1  # measurability is still reviewed
+
+
+@pytest.mark.parametrize("unit", ["人", "名", "people", "members"])
+def test_declared_counter_is_outside_measurement_contract(unit):
+    g = graph("en" if unit.isascii() else "ja", society=False)
+    item = raw("照合台は照環紀3年に設置された。", "period", premise_usage={"units": [unit]})
+    if unit.isascii():
+        item["facts"][1] = {"kind": "procedure", "text": "The clerk removes a broken token after comparison."}
+    candidate, _ = generate(g, item)
+    result, backend = verify(g, candidate, {"consistency": assessment()})
+    assert not candidate["entity"]["premise_usage"]["units"]
+    assert not result.premise_review["observed_units"]
+    assert not result.premise_review["proposal"]
+    assert not result.deductions_for("consistency")
+    assert backend.json_prompts == []
+    # Also protect callers that bypass OperatorRunner normalization.
+    candidate["entity"]["premise_usage"]["units"] = [unit]
+    follow, follow_backend = verify(g, candidate, {"consistency": assessment()})
+    assert follow_backend.json_prompts == []
+    assert not follow.premise_review["proposal"]
+    assert not follow.deductions_for("consistency")
+
+
+APPROVAL_FORMS = [
+    {"approve_premise_extension": "yes"},
+    {"extension_approved": True},
+    {"approval": "yes"},
+    {"approvePremiseExtension": "yes"},
+    {"premise-extension-approval": "yes"},
+    {"premise_extension_approvals": {"units": [{"unit": "qx", "approved": "yes"}], "capabilities": []}},
+    {"approvals": {"units": {"qx": True}}},
+    {"extension_approvals": [{"unit": "qx", "decision": "yes"}]},
+    {"approve_extension": [True]},
+    {"premise_extension_approvals": {"units": ["yes"]}},
+]
+
+
+@pytest.mark.parametrize("approval", APPROVAL_FORMS)
+def test_explicit_approval_variants_are_recorded_and_usable_next_iteration(tmp_path, approval):
+    item = raw("比較容器の容量は2.5qx。", reason="比較容器の同じ基準量をqxと記して読み取る。")
+    response = {"consistency": {"score": 1, "issues": [], **approval}}
+    def respond(prompt):
+        return response if "CRITERION:" in prompt else {"candidates": [item]}
+    backend = FakeLLMBackend(respond)
+    verifier = RewardVerifier(load_reward_config(), judge=LLMJudge(backend),
+                              contrasts=SimpleNamespace(get=lambda *args: []))
+    config = load_explore_config()
+    config["coverage"]["enabled"] = False
+    config["generation"].update(candidates=1, max_rewrites=0)
+    loop = ExplorationLoop(backend, tmp_path, BRIEF, AXES, config=config, language="ja", verifier=verifier)
+    loop.store.save(graph())
+    result = loop.run(max_iterations=1, max_generation_calls=2)
+    assert result.counters["accepted"] == 1
+    assert result.counters["generation_calls"] == 2
+    assert "qx" in world_premises(result.graph)["technology"]["units"]
+    assert not validate_graph(result.graph, brief=BRIEF)
+    candidate_record = next(r for r in read_preference_log(tmp_path / "world/preferences.jsonl")
+                            if r["type"] == "candidate" and r["decision"] == "accepted")
+    review = candidate_record["result"]["premise_review"]
+    assert review["raw_response"] == response and review["extension_status"] == "recorded"
+    next_item = raw("交換棚の許容量は3qxで、照合の前に比較容器を満たす。", name="フィル容器所",
+                    summary="交換前に当番が空の容器を傾け、縁の欠けを検査する。")
+    next_item["facts"][0]["text"] = "交換棚の呼称はフィル棚。"
+    next_item["facts"][2]["text"] = "検査台には欠片を集める浅い受け皿を置く。"
+    next_candidate, next_backend = generate(result.graph, next_item)
+    next_result, _ = verify(result.graph, next_candidate, {"consistency": assessment()})
+    assert next_result.passed, next_result.to_dict()
+    assert not next_result.premise_extension and not next_result.premise_review["proposal"]
+    assert '"qx"' in next_backend.json_prompts[0]
+    (tmp_path / "input").mkdir()
+    (tmp_path / "input/input_brief.json").write_text(json.dumps(BRIEF))
+    exported = json.loads(render_world_package(tmp_path)["world_json"].read_text())
+    assert exported["premise_extensions"] == [{"entity": result.graph["entities"][-1]["id"],
+                                              **result.graph["entities"][-1]["premise_extension"]}]
+    prompt = next(p for p in backend.json_prompts if "CRITERION:" in p)
+    assert '"unit": "qx"' in prompt and '"approved": "<yes or no>"' in prompt
+    assert "existing dimension" in prompt
+
+
+@pytest.mark.parametrize("unit", ["m", "mm", "メートル"])
+def test_same_measurable_dimension_can_be_explicitly_approved_without_unit_catalog(unit):
+    g = graph()
+    g["entities"][0]["world_premises"]["technology"]["units"] = ["m^3", "kg", "日"]
+    candidate, _ = generate(g, raw(f"刻み棒で測る長さは3{unit}。", premise_usage={"units": [unit]},
+        reason="既存の刻み棒の目盛を比較して長さを読む。同じ長さを別の表記で記す。"))
+    result, _ = verify(g, candidate, {"consistency": {"score": 1, "issues": [],
+        "premise_extension_approvals": {"units": [{"unit": unit, "approved": "yes"}]}}})
+    assert result.passed and result.premise_extension["units"] == [unit]
+    candidate["entity"]["premise_extension"] = result.premise_extension
+    g["entities"].append(candidate["entity"])
+    assert unit in world_premises(g)["technology"]["units"]
+
+
+@pytest.mark.parametrize("approval", [
+    {"approved": "no"}, {"approved": "yesterday"}, {"approved": 1},
+    {"approvals": {"units": []}},
+    {"approvals": {"units": [{"unit": "other", "approved": "yes"}]}},
+    {"approvals": {"units": [{"unit": "qx", "approved": "no"}]}, "approved": True},
+    {"approvals": {"units": [{"unit": "qx", "approved": "yes"}, {"unit": "qx", "approved": False}]}},
+    {"approvals": {"units": [{"unit": "qx", "approved": "yes"}], "capabilities": []}},
+])
+def test_missing_conflicting_and_negative_item_approvals_cannot_add_capabilities(approval):
+    g = graph()
+    candidate, _ = generate(g, raw("比較容器の容量は3qx。", premise_usage={"units": ["qx"],
+        "technologies": ["交互比較法"]}, reason="比較容器を交互に入れ替えて量を読む。"))
+    result, _ = verify(g, candidate, {"consistency": {"score": 1, "issues": [], **approval}})
+    assert not result.passed and not result.premise_extension
+    assert result.premise_review["extension_status"] == "unapproved"
+
+
+def test_item_yes_for_unit_and_capability_is_approved_but_contradictions_still_fail():
+    g = graph()
+    candidate, _ = generate(g, raw("比較容器の容量は3qx。", premise_usage={"units": ["qx"],
+        "technologies": ["交互比較法"]}, reason="比較容器を交互に入れ替えて量を読む。"))
+    approvals = {"units": [{"unit": "qx", "approved": "yes"}],
+                 "capabilities": [{"capability": "交互比較法", "approved": True}]}
+    result, backend = verify(g, candidate, {"consistency": {"score": 1, "issues": [],
+        "premise_extension_approvals": approvals}})
+    assert result.passed and result.premise_extension["capabilities"] == ["交互比較法"]
+    assert '"capability": "交互比較法"' in backend.json_prompts[0]
+    contradicted, _ = verify(g, candidate, {"consistency": {"score": 0.4, "issues": [
+        {"field": "facts[1]", "code": "undefined_technology", "why": "測定手段が限界を超える。"}],
+        "premise_extension_approvals": approvals}})
+    assert not contradicted.passed and not contradicted.premise_extension
+
+
+def test_judge_response_is_logged_before_parsing_even_when_invalid(caplog):
+    g = graph()
+    candidate, _ = generate(g, raw("比較容器の容量は3qx。"))
+    response = {"consistency": {"score": 1, "approval": "yes"}}
+    with caplog.at_level("DEBUG", logger="src.world.verify"):
+        result, _ = verify(g, candidate, response)
+    assert result.premise_review["raw_response"] == response
+    assert "world judge response" in caplog.text and "approval" in caplog.text
+    assert not result.passed and not result.premise_extension
+
+
+@pytest.mark.parametrize("text", ["メンバー 12 名", "照合番の参加者は１２人。", "札束 12 本。", "箱 3個である。",
+                                 "Twelvefold assembly: 12 people."])
+@pytest.mark.parametrize("kind", ["number", "object", "proper_noun"])
+def test_count_only_syntax_does_not_depend_on_label_vocabulary_or_kind(text, kind):
+    g = graph("en" if text.isascii() else "ja")
+    candidate, _ = generate(g, raw(text, kind))
+    result, _ = verify(g, candidate)
+    assert any(d.field == "facts[1]" and d.code in {"thin_fact", "bare_count"} and d.penalty > 0 for d in result.deductions)
+    assert result.scores["specificity"] < 1
+
+
+@pytest.mark.parametrize("text", ["メンバー12名が交替ごとに札を照合する。", "箱3個は破損している。",
+                                 "The 12 people compare tokens after each exchange."])
+def test_count_with_property_or_procedure_is_not_a_count_only_fragment(text):
+    candidate, _ = generate(graph("en" if text.isascii() else "ja"), raw(text, "procedure"))
+    result, _ = verify(graph("en" if text.isascii() else "ja"), candidate)
+    assert not any(d.field == "facts[1]" and d.code in {"thin_fact", "bare_count"} for d in result.deductions)
+
+
+@pytest.mark.parametrize("text", ["環境を保護する。", "低影響。", "水資源の過剰利用を防止する。",
+                                 "安定供給を目的としている。", "The office prevents excessive use.", "Low impact."])
+@pytest.mark.parametrize("field", ["summary", "facts"])
+def test_unsupported_purpose_or_effect_is_penalized_in_its_own_field(text, field):
+    g = graph("en" if text.isascii() else "ja")
+    item = raw(text, "procedure") if field == "facts" else raw(summary=text)
+    candidate, _ = generate(g, item)
+    result, _ = verify(g, candidate)
+    expected = "facts[1]" if field == "facts" else "summary"
+    assert any(d.field == expected and d.code in {"purpose_without_mechanism", "unsupported_evaluation"}
+               and d.penalty > 0 for d in result.deductions)
+    assert result.scores["specificity"] < 1
+
+
+@pytest.mark.parametrize("text", [
+    "照合番は安定供給を目的として、札が欠けたときに割当札を回収し、停止した件数を記録する。",
+    "The clerk aims to maintain stable supply and removes damaged tokens when a comparison fails, and records the stopped exchanges.",
+])
+def test_purpose_with_actor_procedure_condition_and_observed_result_is_grounded(text):
+    g = graph("en" if text.isascii() else "ja")
+    candidate, _ = generate(g, raw(summary=text))
+    result, _ = verify(g, candidate)
+    assert not any(d.field == "summary" and d.code in {"purpose_without_mechanism", "unsupported_evaluation"}
+                   for d in result.deductions)
+
+
+def test_unrelated_procedure_sentence_does_not_justify_an_effect_claim():
+    candidate, _ = generate(graph(), raw(summary="照合番は札が欠けたときに回収し、停止した件数を記録する。環境を保護する。"))
+    result, _ = verify(graph(), candidate)
+    assert any(d.field == "summary" and d.code == "purpose_without_mechanism" for d in result.deductions)
+
+
+def test_semantic_judge_can_penalize_paraphrased_effect_without_new_call():
+    g = graph()
+    candidate, _ = generate(g, raw(summary="すべての負担が解消される。"))
+    result, backend = verify(g, candidate, {"consistency": assessment(), "specificity": {
+        "score": 0.4, "issues": [{"field": "summary", "code": "purpose_without_mechanism",
+                                   "why": "負担が消える手順や観測結果がない。"}]}}, criteria=["specificity"])
+    assert not result.passed
+    assert any(d.code == "purpose_without_mechanism" and d.penalty > 0 for d in result.deductions)
+    assert len(backend.json_prompts) == 1
+    assert "protection" in backend.json_prompts[0]
+
+
+@pytest.mark.parametrize("registered,unit", [
+    (["qx"], "qx²"), (["qx^3"], "qx3"), (["qx^3"], "ｑｘ³"),
+    (["qx^3", "槽"], "qx^6/槽"), (["qx/uv", "uv/zr"], "qx/zr"),
+    (["qx/uv"], "(qx/uv)^2"),
+])
+def test_unit_algebra_works_for_invented_symbols_and_registered_composites(registered, unit):
+    g = graph()
+    g["entities"][0]["world_premises"]["technology"]["units"] = registered
+    candidate, _ = generate(g, raw(f"比較容器の容量は3{unit}。", premise_usage={"units": [unit]}))
+    result, _ = verify(g, candidate, {"consistency": assessment()})
+    assert result.passed, result.to_dict()
+    assert not result.premise_review["proposal"]
+    assert not any(d.code == "undefined_unit" for d in result.deductions)
+
+
+@pytest.mark.parametrize("registered,unit", [
+    (["qx^3"], "qx"), (["qx"], "QX"), (["qx/uv"], "qx"),
+    (["qx"], "uv/uv"), (["qx"], "(qx/uv)^2"), (["qx"], "qx^"),
+])
+def test_algebra_cannot_register_unknown_factors_roots_or_malformed_expressions(registered, unit):
+    g = graph()
+    g["entities"][0]["world_premises"]["technology"]["units"] = registered
+    candidate, _ = generate(g, raw(f"比較容器の容量は3{unit}。", premise_usage={"units": [unit]}))
+    result, _ = verify(g, candidate, {"consistency": assessment()})
+    assert not result.passed and not result.premise_extension
+    assert result.premise_review["proposal"]
+    assert any(d.code == "extension_unapproved" for d in result.deductions)
+
+
+def test_unparsed_backend_response_text_is_saved_even_when_json_review_is_invalid(caplog):
+    class RawResponseBackend(FakeLLMBackend):
+        def generate_json(self, *args, **kwargs):
+            self.last_response_meta = {"response": 'approval=yes; units=[qx]'}
+            return super().generate_json(*args, **kwargs)
+    g = graph()
+    candidate, _ = generate(g, raw("比較容器の容量は3qx。"))
+    backend = RawResponseBackend({})
+    verifier = RewardVerifier(load_reward_config(), judge=LLMJudge(backend))
+    with caplog.at_level("DEBUG", logger="src.world.verify"):
+        result = verifier.verify(g, candidate, brief=BRIEF, axes=AXES)
+    assert result.premise_review["raw_response"] == {}
+    assert result.premise_review["raw_response_text"] == 'approval=yes; units=[qx]'
+    assert 'approval=yes; units=[qx]' in caplog.text
+    assert not result.passed and not result.premise_extension
+
+
+def test_top_level_approval_is_read_and_conflicting_envelopes_are_rejected():
+    candidate, _ = generate(graph(), raw("比較容器の容量は3qx。"))
+    response = {"consistency": {"score": 1, "issues": []}, "extension_approval": "yes"}
+    result, _ = verify(graph(), candidate, response)
+    assert result.passed and result.premise_extension["units"] == ["qx"]
+    response["consistency"]["extension_approval"] = "no"
+    refused, _ = verify(graph(), candidate, response)
+    assert not refused.passed and not refused.premise_extension

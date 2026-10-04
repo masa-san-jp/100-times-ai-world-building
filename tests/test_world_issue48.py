@@ -117,8 +117,8 @@ def test_unit_symbols_preserve_case_and_fullwidth_numeric_text_is_normalized():
     assert any(d.code == "undefined_unit" for d in score(g, candidate).deductions)
 
 
-@pytest.mark.parametrize("unit", ["m/s", "%", "m²"])
-def test_compound_and_symbolic_units_require_the_exact_defined_notation(unit):
+@pytest.mark.parametrize("unit", ["m/s", "%", "qx²"])
+def test_compound_and_symbolic_units_with_unregistered_factors_need_registration(unit):
     g, candidate, _ = generated(f"荷揚げの測定値は12{unit}。", "number")
     assert any(d.code == "undefined_unit" for d in score(g, candidate).deductions)
     g["entities"][0]["world_premises"]["technology"]["units"].append(unit)

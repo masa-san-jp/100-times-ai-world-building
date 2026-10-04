@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 import yaml
 
 from .premises import proposed_extension, world_premises
-from .quantities import observed_units
+from .quantities import is_counter, observed_units
 
 from .verify import (
     ContrastProvider, Deduction, LLMJudge, Similarity, VerifierResult,
@@ -151,11 +151,14 @@ class RewardVerifier:
         entity = candidate["entity"]
         contract = world_premises(graph) or entity.get("world_premises", {})
         units = observed_units(entity, contract, rules_for(self.rules, lang))
-        extension = proposed_extension(entity, world_premises(graph))
+        extension = proposed_extension(entity, world_premises(graph), rules_for(self.rules, lang))
         approved = False
+        raw_response = None
+        raw_response_text = None
         # Review every surviving quantity and social claim, even if the
         # configured optional criteria omit consistency. No extra call.
-        required = bool(contract and (units or (entity.get("premise_usage") or {}).get("units")
+        required = bool(contract and (units or any(not is_counter(u, rules_for(self.rules, lang))
+                        for u in (entity.get("premise_usage") or {}).get("units", []))
                         or contract.get("society") or extension))
         criteria = []
         review_state = "disabled" if self.judge is None else "deterministic_rejection"
@@ -166,6 +169,8 @@ class RewardVerifier:
             if required and "consistency" not in criteria:
                 criteria.append("consistency")
             assessments = self.judge.judge_many(criteria, candidate, graph, brief, axes=axes)
+            raw_response = copy.deepcopy(self.judge.last_response)
+            raw_response_text = self.judge.last_response_text
             consistency = assessments.get("consistency")
             review_state = ("reviewed" if consistency and consistency.review_usable
                             else "missing_or_invalid" if "consistency" in criteria else "not_requested")
@@ -204,6 +209,7 @@ class RewardVerifier:
                     "reason_missing" if not (entity.get("provenance") or {}).get("reason") else
                     "proposed" if extension else "no_new_terms"),
                 "criteria": list(dict.fromkeys(criteria)), "state": review_state,
+                "raw_response": raw_response, "raw_response_text": raw_response_text,
                 "extension_status": ("eligible" if approved and passed and extension else
                     "candidate_rejected" if approved and extension else
                     "unapproved" if extension else "no_proposal"),

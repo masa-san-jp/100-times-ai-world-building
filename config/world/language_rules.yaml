@@ -21,6 +21,13 @@ default:
   proper_noun_min_chars: 3
 
 ja:
+  count_only_patterns:
+    - '^[^\d。;；\nをにで]+?\s*(?:は|が|[:：])?\s*{number}\s*{counter}(?:だけ|のみ)?(?:である|です|だ)?[。.]?\s*$'
+    - '^\s*{number}\s*{counter}(?:だけ|のみ)?(?:である|です|だ)?[。.]?\s*$'
+  mechanism_actor_patterns: ['[^\s。;；]+(?:は|が)']
+  mechanism_procedure_patterns: ['(?:照合|比較|回収|配分|測定|測る|計測|交換|取り除|閉じ|開け|渡す|記入|並べ|運ぶ)']
+  mechanism_condition_patterns: ['(?:とき|時に|場合|ごと|際に|以上|以下|未満|なら|たら)']
+  mechanism_result_patterns: ['(?:記録する|記録され|記す|残る|残す|数える|確認する|表示する|減る|増える|停止する)']
   # Grammar only: identifier/count fragments, and time-basis words.
   thin_fact_patterns:
     - '^[^。;；\n]*?(?:番号|識別子|メンバー数|構成員数|会員数|人数|個数|件数)\s*(?:は|が)?\s*[:：]?\s*[A-Za-z]*\d+(?:\s*[-/]\s*\d+)*(?:\s*(?:人|個|件|名))?[。.]?\s*$'
@@ -38,8 +45,8 @@ ja:
     - '(?<![\d.])\d+(?:\s*[-–~〜]\s*\d+)?\s*年(?!間)'
     - '(?:設立年|創立年|建設年|紀年)\s*[:：]?\s*\d+'
     - '(?<![\d.])\d{3,}\s*[-–~〜]\s*\d+(?![\d.])'
-  count_units: [人, 個, 枚, 本, 件, 部, members, parts]
-  purpose_words: [推進している, 推進する, 目的としている, 目的とする, 目指している, 持続可能]
+  count_units: [人, 名, 個, 枚, 本, 件, 部, members, parts]
+  purpose_words: [推進している, 推進する, 目的として, 目的とする, 目指している, 持続可能, 保護する, 防止する]
   measurement_subject_words:
     - 量
     - 率
@@ -92,6 +99,8 @@ ja:
     - 重大
     - 不可欠
     - 効果的
+    - 低影響
+    - 安定供給
   measure_units:
     - 平方キロ
     - キロメートル
@@ -155,6 +164,12 @@ ja:
   flourish: [壮大な, 圧倒的, まさに, 驚くべき, 息をのむ, 決して忘れ, 運命の, 圧巻]
 
 en:
+  count_only_patterns:
+    - '^(?:[A-Za-z][A-Za-z\s\x27-]*?(?:[:：]|is|are)?\s*)?{number}\s+{counter}(?:\s+only)?[.]?\s*$'
+  mechanism_actor_patterns: ['\b[A-Za-z][A-Za-z -]*\s+(?:compares?|checks?|collects?|measures?|records?|closes?|opens?|exchanges?|removes?|distributes?)\b']
+  mechanism_procedure_patterns: ['\b(?:compares?|checks?|collects?|measures?|closes?|opens?|exchanges?|removes?|distributes?)\b']
+  mechanism_condition_patterns: ['\b(?:when|if|whenever|every|above|below|after|before)\b']
+  mechanism_result_patterns: ['\b(?:records?|recorded|remains?|counts?|displays?|stops?|decreases?|increases?)\b']
   thin_fact_patterns:
     - '^[^.!;\n]*\b(?:number|identifier|id|member count|count of members|members|parts|items)\s*[:#]?\s*\d+(?:\s*[-/]\s*\d+)*(?:\s+(?:members|parts|items))?[.]?\s*$'
     - '^\s*\d+\s+(?:members|parts|items)[.]?\s*$'
@@ -170,7 +185,7 @@ en:
     - '\b(?:year|founded|established|since|in)\s+\d{3,}(?:\s*[-–~]\s*\d+)?\b'
     - '(?<![\d.])\d{3,}\s*[-–~]\s*\d+(?![\d.])'
   count_units: [members, parts, people, items, copies]
-  purpose_words: [promotes, aims to, seeks to, sustainable, has the purpose of]
+  purpose_words: [promotes, aims to, seeks to, sustainable, has the purpose of, protects, prevents]
   proper_noun_requires_capital: true
   measurement_subject_words:
     - amount
@@ -230,6 +245,8 @@ en:
     - crucial
     - vital
     - effective
+    - low impact
+    - stable supply
     - major
   measure_units:
     - km

@@ -34,7 +34,10 @@ criteria:
     restates the input statements adds nothing. List each hollow fact as
     an issue with its field. Claims about aims, promotion or intended value
     need an observable actor, procedure, condition and result; flag wording
-    that substitutes an intention for what happens.
+    that substitutes an intention for what happens. Also inspect protection,
+    prevention, low impact and stable supply claims: other facts with unrelated
+    procedures do not justify these effects. Accept such wording when its own
+    actor, procedure, condition and observable result actually support it.
     Check whether each fact actually describes the candidate entity (use its
     type, name, summary and relations). An object or quantity with no stated
     ownership, use, location or procedural link is unrelated_fact. A clear
@@ -81,8 +84,16 @@ criteria:
     New units and capabilities may be derived from existing technology;
     require a reason explaining the measurement means or method, and reject
     additions that contradict technology.description limits. Return
-    approve_premise_extension: true only when ALL proposed additions have a
-    supported derivation and respect those limits. Otherwise return false.
+    premise_extension_approvals with separate units and capabilities arrays.
+    For EACH proposed term, return its exact unit/capability, approved: "yes"
+    or "no", and why. Say yes for a new notation or scale in an already
+    measurable dimension when the stated method respects the original limits.
+    Different names, prefixes or a missing registry entry are not technology
+    contradictions; do not demand a new device for each notation. Reject
+    incompatible measurement means, precision or capability and explain why.
+    Every proposed addition needs an explicit answer, including recovered units.
+    Registered products, quotients and powers and linguistic time words need
+    no extension approval. Counter words are outside the unit contract.
     Do not approve an extension merely because it is declared or familiar.
     Unit declarations recovered from prose are proposals too; require their
     derivation reason and measurement means before approving. A harmless new
