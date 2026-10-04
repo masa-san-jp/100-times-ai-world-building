@@ -9,8 +9,22 @@ import yaml
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 DEFAULT_LANGUAGES_PATH = CONFIG_DIR / "world" / "languages.yaml"
+DEFAULT_RULES_PATH = CONFIG_DIR / "world" / "language_rules.yaml"
 
 FALLBACK_LANGUAGE = "en"
+
+
+def load_language_rules(path: Any = None) -> Dict[str, Any]:
+    return yaml.safe_load(
+        Path(path or DEFAULT_RULES_PATH).read_text(encoding="utf-8")) or {}
+
+
+def rules_for(rules: Mapping[str, Any], language: str) -> Dict[str, Any]:
+    """Grammar shared by normalization and verification, with default fallback."""
+    code = str(language or "").split("-")[0].split("_")[0].lower()
+    merged = dict(rules.get("default") or {})
+    merged.update(rules.get(code) or {})
+    return merged
 
 
 def load_language_names(path: Any = None) -> Dict[str, str]:
@@ -46,4 +60,4 @@ def localized(value: Any, language: Optional[str],
 
 
 __all__ = ["FALLBACK_LANGUAGE", "language_name", "load_language_names",
-           "localized"]
+           "localized", "load_language_rules", "rules_for"]

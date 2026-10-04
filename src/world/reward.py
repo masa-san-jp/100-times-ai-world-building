@@ -24,10 +24,11 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 import yaml
 
 from .premises import proposed_extension, world_premises
+from .quantities import observed_units
 
 from .verify import (
     ContrastProvider, Deduction, LLMJudge, Similarity, VerifierResult,
-    language_of, load_language_rules, reference_text, verify_consistency, verify_genericity,
+    language_of, load_language_rules, rules_for, reference_text, verify_consistency, verify_genericity,
     verify_novelty, verify_objectivity, verify_provenance, verify_specificity,
 )
 
@@ -67,6 +68,7 @@ class VerificationResult:
     deductions: List[Deduction] = field(default_factory=list)
     skipped: List[str] = field(default_factory=list)
     premise_extension: Dict[str, Any] = field(default_factory=dict)
+    premise_review: Dict[str, Any] = field(default_factory=dict)
 
     def deductions_for(self, verifier: str) -> List[Deduction]:
         return [d for d in self.deductions if d.verifier == verifier]
@@ -77,6 +79,7 @@ class VerificationResult:
             "reward": round(self.reward, 4), "passed": self.passed,
             "failed": list(self.failed), "skipped": list(self.skipped),
             "premise_extension": copy.deepcopy(self.premise_extension),
+            "premise_review": copy.deepcopy(self.premise_review),
             "deductions": [d.to_dict() for d in self.deductions],
         }
 
@@ -145,26 +148,46 @@ class RewardVerifier:
             failed = [n for n in ran if results[n].score < float(thresholds.get(n, 0.0))]
             return reward, failed, not failed and reward >= float(thresholds.get("total", 0.0))
 
-        extension = proposed_extension(candidate["entity"], world_premises(graph))
+        entity = candidate["entity"]
+        contract = world_premises(graph) or entity.get("world_premises", {})
+        units = observed_units(entity, contract, rules_for(self.rules, lang))
+        extension = proposed_extension(entity, world_premises(graph))
         approved = False
+        # Review every surviving quantity and social claim, even if the
+        # configured optional criteria omit consistency. No extra call.
+        required = bool(contract and (units or (entity.get("premise_usage") or {}).get("units")
+                        or contract.get("society") or extension))
+        criteria = []
+        review_state = "disabled" if self.judge is None else "deterministic_rejection"
         # Judges only deduct, so a deterministic rejection cannot be rescued.
         # Pending capability proposals are resolved after this check.
         if self.judge is not None and verdict()[2]:
             criteria = [n for n in cfg.get("llm_judges") or [] if n in results]
-            assessments = self.judge.judge_many(criteria, candidate, graph, brief)
+            if required and "consistency" not in criteria:
+                criteria.append("consistency")
+            assessments = self.judge.judge_many(criteria, candidate, graph, brief, axes=axes)
+            consistency = assessments.get("consistency")
+            review_state = ("reviewed" if consistency and consistency.review_usable
+                            else "missing_or_invalid" if "consistency" in criteria else "not_requested")
             for name, assessment in assessments.items():
                 r = results[name]
                 r.deductions += assessment.deductions
                 r.score = max(0.0, r.score - sum(d.penalty for d in assessment.deductions))
                 if name == "consistency":
                     approved = assessment.extension_approved
-        if extension.get("capabilities") and not approved:
+            if required and review_state == "missing_or_invalid":
+                r = results["consistency"]
+                amount = float(cfg.get("consistency", {}).get("penalties", {}).get("review_missing", 0.4))
+                r.deductions.append(Deduction("consistency", "entity", "review_missing",
+                    "quantity or social premises need a usable consistency review; repair the review response", amount))
+                r.score = max(0.0, r.score - amount)
+        if extension and not approved and (extension.get("capabilities") or self.judge is not None):
             r = results["consistency"]
             amount = float(cfg.get("consistency", {}).get("penalties", {}).get("undefined_technology", 0.4))
             r.deductions.append(Deduction(
-                "consistency", "premise_usage.technologies", "undefined_technology",
-                "new capabilities need explicit consistency approval of their derivation within technology.description limits",
-                amount, {"capabilities": extension["capabilities"]}))
+                "consistency", "premise_usage", "undefined_technology" if extension.get("capabilities") else "extension_unapproved",
+                "new units or capabilities need explicit consistency approval of their derivation within technology.description limits",
+                amount, {"proposal": extension}))
             r.score = max(0.0, r.score - amount)
         reward, failed, passed = verdict()
         scores = {n: results[n].score for n in ran}
@@ -172,7 +195,20 @@ class RewardVerifier:
             scores=scores, reward=reward, passed=passed, failed=failed,
             deductions=[d for n in VERIFIERS for d in results[n].deductions],
             skipped=[n for n in VERIFIERS if results[n].skipped],
-            premise_extension=extension if approved and passed else {})
+            premise_extension=extension if approved and passed else {},
+            premise_review={"usage": copy.deepcopy(entity.get("premise_usage", {})),
+                "inferred": copy.deepcopy(entity.get("premise_usage_inferred", {})),
+                "observed_units": units, "proposal": copy.deepcopy(extension),
+                "proposal_state": ("no_contract" if not world_premises(graph) else
+                    "no_usage" if not entity.get("premise_usage") else
+                    "reason_missing" if not (entity.get("provenance") or {}).get("reason") else
+                    "proposed" if extension else "no_new_terms"),
+                "criteria": list(dict.fromkeys(criteria)), "state": review_state,
+                "extension_status": ("eligible" if approved and passed and extension else
+                    "candidate_rejected" if approved and extension else
+                    "unapproved" if extension else "no_proposal"),
+                "extension_approved": approved,
+                "reason_present": bool((entity.get("provenance") or {}).get("reason"))})
         if store:
             candidate["entity"]["scores"] = {
                 **candidate["entity"].get("scores", {}),

@@ -42,6 +42,10 @@ criteria:
     An "object" fact must describe a physical tool, facility or item. A
     person's attribute, relationship or role alone is non_object_fact,
     even if it is concrete or linked to this entity.
+    An identifier, serial number or headcount alone is thin_fact. A label
+    or numeral adds substance only when it establishes a condition, procedure,
+    allocation or consequence about this entity; a summary cannot supply
+    the missing substance of an unrelated numeric fragment.
     Return a reason code for each issue: non_object_fact, unrelated_fact or
     purpose_without_mechanism where appropriate.
   consistency: |
@@ -60,6 +64,19 @@ criteria:
     Only penalize it as undefined_unit when its implied measurement means or
     capability exceeds technology.description, explaining that contradiction.
     Flag unsupported dates or devices as undefined_calendar or undefined_technology.
+    Check ALL quantities in name, summary and facts, including registered
+    units, observed_units and references omitted from premise_usage. Registration
+    is not evidence that this subject can measure that quantity or precision.
+    Check totals and rate denominators; incompatible bases are dimension_conflict.
+    Check institutions and implied social concepts in prose even when undeclared.
+    Ground their powers, obligations and procedures in world_premises.society,
+    explicit input, world_axes and existing entities. When society is absent
+    in an older world, use those other grounds; absence grants no familiar
+    administrative assumptions. Mere axis labels are not evidence of a rule.
+    New names derived by provenance.reason within the framework are allowed;
+    unsupported authority or regulation is unsupported_institution. Explain
+    the missing derivation; do not use a list of real institutions or assume
+    a particular era. Do not penalize a supported institution for its name.
     Review proposed_premise_extension, premise_usage and provenance.reason.
     New units and capabilities may be derived from existing technology;
     require a reason explaining the measurement means or method, and reject
@@ -67,6 +84,9 @@ criteria:
     approve_premise_extension: true only when ALL proposed additions have a
     supported derivation and respect those limits. Otherwise return false.
     Do not approve an extension merely because it is declared or familiar.
+    Unit declarations recovered from prose are proposals too; require their
+    derivation reason and measurement means before approving. A harmless new
+    notation with a supported method should receive explicit approval.
     Check each quantity's order of magnitude for the measured subject's type,
     purpose and dimensions within this world. Flag extreme or contradictory
     values as implausible_value. Do not apply universal numeric bounds or

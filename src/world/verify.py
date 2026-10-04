@@ -32,9 +32,10 @@ from .textsim import (
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
 from .premises import proposed_extension, world_premises
+from .quantities import observed_units, temporal_conflicts, units_in_text
+from .language import load_language_rules, rules_for
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
-DEFAULT_RULES_PATH = CONFIG_DIR / "world" / "language_rules.yaml"
 DEFAULT_VERIFIER_PROMPTS = CONFIG_DIR / "prompts" / "world" / "verifiers.yaml"
 
 Similarity = Callable[[str, str], float]
@@ -90,18 +91,6 @@ def entity_text(entity: Mapping[str, Any]) -> str:
 def language_of(graph: Mapping[str, Any]) -> str:
     lang = (graph.get("meta") or {}).get("language") or ""
     return str(lang).split("-")[0].split("_")[0].lower()
-
-
-def load_language_rules(path: Any = None) -> Dict[str, Any]:
-    return yaml.safe_load(
-        Path(path or DEFAULT_RULES_PATH).read_text(encoding="utf-8")) or {}
-
-
-def rules_for(rules: Mapping[str, Any], language: str) -> Dict[str, Any]:
-    """Merge the ``default`` rules with those of ``language`` (if any)."""
-    merged = dict(rules.get("default") or {})
-    merged.update(rules.get(language) or {})
-    return merged
 
 
 def _pattern_hits(text: str, patterns: Iterable[str]) -> List[Tuple[str, int]]:
@@ -549,6 +538,11 @@ def _fact_hollowness(
 ) -> Optional[Tuple[str, str]]:
     """Return ``(code, message)`` when a fact only fills in its kind label."""
     kind, text = fact.get("kind"), str(fact.get("text") or "").strip()
+    if _pattern_hits(unicodedata.normalize("NFKC", text),
+                     rl.get("thin_fact_patterns") or []):
+        code = "bare_count" if kind == "number" and not _is_measure(text, rl) else "thin_fact"
+        return (code, "an identifier or count alone adds no mechanism, "
+                "condition or consequence about this entity")
     if kind == "object" and _pattern_hits(text, rl.get("non_object_patterns") or []):
         return ("non_object_fact", "an object fact must describe a physical tool, "
                 "facility or item; this describes a person's attribute, relation or role")
@@ -795,11 +789,19 @@ def verify_consistency(
         source = get_entity(graph, contract["source_entity"])
         if proposed != source["world_premises"]:
             add("world_premises", "premise_conflict",
-                "the candidate changes the established calendar or technology contract")
+                "the candidate changes the established calendar, technology or society contract")
     if not contract and candidate.get("operator") == "premise" and proposed:
         contract = proposed
     if contract:
         _verify_premise_usage(entity, contract, language_of(graph), add)
+    rules = rules_for(load_language_rules(), language_of(graph))
+    for field_name, text in [("name", entity.get("name", "")),
+                             ("summary", entity.get("summary", ""))] + [
+            (f"facts[{i}]", f.get("text", "")) for i, f in enumerate(entity.get("facts", []))]:
+        for detail in temporal_conflicts(text, rules):
+            add(field_name, "dimension_conflict",
+                "quantity basis conflicts with its rate denominator; distinguish a total from a rate",
+                **detail)
 
     rels = [r for r in entity.get("relations") or [] if isinstance(r, Mapping)]
     by_target: Dict[str, set] = {}
@@ -921,17 +923,7 @@ def _verify_premise_usage(entity, contract, language, add):
                         date=match.group(0))
         # Unknown symbolic units can be detected without enumerating devices
         # or technical units. Natural-language units use language syntax data.
-        units = set(re.findall(
-            r"(?<![A-Za-z\d])[-+]?\d[\d,]*(?:\.\d+)?(?:[eE][-+]?\d+)?\s*"
-            r"([A-Za-zµΩ]+(?:\^?[-+]?\d+)?"
-            r"(?:/[A-Za-zµΩ]+(?:\^?[-+]?\d+)?)*|[%‰°])(?![A-Za-z])",
-            text))
-        natural_units = sorted({u for u in (rules.get("measure_units", [])
-                                + technology["units"]) if not u.isascii()},
-                               key=len, reverse=True)
-        if natural_units:
-            units.update(re.findall(r"\d\s*(" + "|".join(
-                re.escape(u) for u in natural_units) + ")", text))
+        units = units_in_text(text, contract, rules, usage.get("units", []))
         # Counter nouns are quantity syntax, not technical measurement units.
         counters = {normalize_item(v) for v in rules.get("count_units", [])}
         unknown = sorted(u for u in units if unit_key(u) not in allowed_units
@@ -1080,6 +1072,7 @@ class LLMJudge:
 
     def judge_many(self, criteria: Sequence[str], candidate: Mapping[str, Any],
                    graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
+                   axes: Optional[Sequence[Mapping[str, Any]]] = None,
                    ) -> Dict[str, "JudgeAssessment"]:
         """Evaluate all requested criteria in one backend call, without retries."""
         criteria = list(dict.fromkeys(c for c in criteria if c in self.prompts["criteria"]))
@@ -1092,6 +1085,11 @@ class LLMJudge:
         contract = world_premises(graph)
         context = {**context, "world_premises": contract,
                    "proposed_premise_extension": proposed_extension(entity, contract),
+                   "observed_units": observed_units(entity, contract,
+                       rules_for(load_language_rules(), language_of(graph))),
+                   "world_axes": [{k: a.get(k) for k in
+                       ("id", "domain", "name", "meaning", "statement_ids", "reason")}
+                       for a in axes or []][:24],
                    "input_statements": [str(s.get("text") or "")[:200]
                        for s in (brief or {}).get("statements", []) or []
                        if isinstance(s, Mapping)][:12],
@@ -1113,7 +1111,7 @@ class LLMJudge:
             {"field": "<field>", "why": "<short reason>", "code": "<reason code>"}]}
                  for c in criteria}
         if "consistency" in shape:
-            shape["consistency"]["approve_premise_extension"] = False
+            shape["consistency"]["approve_premise_extension"] = "<boolean: true if every proposed addition has a supported derivation; false otherwise>"
         prompt += "\nReturn one result per requested criterion; use [] for no issues. JSON shape: " + json.dumps(shape)
         resp = self.backend.generate_json(prompt, system_prompt=self.prompts["common"]["system"])
         if not isinstance(resp, Mapping):
@@ -1139,8 +1137,8 @@ class LLMJudge:
             return None
         issues = [i for i in as_list(resp.get("issues")) if isinstance(i, Mapping)]
         reason_codes = {
-            "specificity": {"unrelated_fact", "purpose_without_mechanism", "non_object_fact"},
-            "consistency": {"undefined_calendar", "undefined_technology", "undefined_unit", "implausible_value"},
+            "specificity": {"unrelated_fact", "purpose_without_mechanism", "non_object_fact", "thin_fact"},
+            "consistency": {"undefined_calendar", "undefined_technology", "undefined_unit", "implausible_value", "unsupported_institution", "dimension_conflict"},
         }.get(criterion, set())
         share = (1.0 - score) / max(1, len(issues))
         deductions = [Deduction(criterion, text_of(i.get("field")) or "entity",
@@ -1152,13 +1150,18 @@ class LLMJudge:
             deductions = [Deduction(criterion, "entity", "llm_judge", "judged below standard", 1.0 - score)]
         approved = (criterion == "consistency" and value == 1 and not issues
                     and resp.get("issues") == [] and resp.get("approve_premise_extension") is True)
-        return JudgeAssessment(deductions, approved)
+        usable = (0 <= value <= 1 and isinstance(resp.get("issues"), list)
+                  and all(isinstance(i, Mapping) and text_of(i.get("field"))
+                          and text_of(i.get("why")) for i in resp["issues"])
+                  and not (value == 1 and resp["issues"]))
+        return JudgeAssessment(deductions, approved, usable)
 
 
 @dataclass
 class JudgeAssessment:
     deductions: List[Deduction]
     extension_approved: bool = False
+    review_usable: bool = True
 
 
 __all__ = [

@@ -214,10 +214,15 @@ def test_every_operator_and_revision_receives_authoritative_premises(operator):
 
 def judging_backend(bad_text, code):
     def respond(prompt):
+        # Quantity candidates now require consistency in the same batch,
+        # including when the caller only requested optional specificity.
+        criterion = "specificity" if code == "unrelated_fact" else "consistency"
         if bad_text in prompt:
-            return {"score": 0.4, "issues": [{"field": "facts[1]", "code": code,
-                                               "why": "measured subject or stated link is incompatible"}]}
-        return {"score": 1, "issues": []}
+            result = {"score": 0.4, "issues": [{"field": "facts[1]", "code": code,
+                                              "why": "measured subject or stated link is incompatible"}]}
+        else:
+            result = {"score": 1, "issues": []}
+        return {"consistency": {"score": 1, "issues": []}, criterion: result}
     return FakeLLMBackend(respond)
 
 

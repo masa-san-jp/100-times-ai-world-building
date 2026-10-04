@@ -21,6 +21,12 @@ default:
   proper_noun_min_chars: 3
 
 ja:
+  # Grammar only: identifier/count fragments, and time-basis words.
+  thin_fact_patterns:
+    - '^[^。;；\n]*?(?:番号|識別子|メンバー数|構成員数|会員数|人数|個数|件数)\s*(?:は|が)?\s*[:：]?\s*[A-Za-z]*\d+(?:\s*[-/]\s*\d+)*(?:\s*(?:人|個|件|名))?[。.]?\s*$'
+  time_basis_aliases: {年間: year, 年量: year, 年: year, 月間: month, 月量: month, 月: month, 日量: day, 日: day, 時間: hour, 時: hour}
+  quantity_basis_patterns:
+    - '(?P<period>年間|年量|月間|月量|日量)\s*[:：はが]?\s*[-+]?\d[\d,.]*\s*[^\s。;；\n/]+\s*/\s*(?P<denominator>年|月|日|時間|時)(?![\u3400-\u9fff])'
   # Predicate syntax describing people/roles, not a setting or device list.
   non_object_patterns:
     - '(?:は|が)[^。;；\n]*(?:代表|担当者|責任者|構成員|委員|出身|家系|血縁|親族|所属)(?:である|だ|です|となる|からなる|に属する)[。.!！]?\s*$'
@@ -149,6 +155,12 @@ ja:
   flourish: [壮大な, 圧倒的, まさに, 驚くべき, 息をのむ, 決して忘れ, 運命の, 圧巻]
 
 en:
+  thin_fact_patterns:
+    - '^[^.!;\n]*\b(?:number|identifier|id|member count|count of members|members|parts|items)\s*[:#]?\s*\d+(?:\s*[-/]\s*\d+)*(?:\s+(?:members|parts|items))?[.]?\s*$'
+    - '^\s*\d+\s+(?:members|parts|items)[.]?\s*$'
+  time_basis_aliases: {annual: year, annually: year, yearly: year, year: year, years: year, monthly: month, month: month, months: month, daily: day, day: day, days: day, hourly: hour, hour: hour, hours: hour}
+  quantity_basis_patterns:
+    - '\b(?P<period>annual|annually|yearly|monthly|daily|hourly)\s+(?:(?:total|output|volume|rate)\s*[:=]?\s*)?[-+]?\d[\d,.]*\s*[^\s.;\n/]+\s*(?:/\s*|\s+per\s+)(?P<denominator>years?|months?|days?|hours?)\b'
   non_object_patterns:
     - '\b(?:is|are|was|were)\s+(?:an?\s+|the\s+)?(?:representatives?|members?|delegates?|descendants?|relatives?)\b'
     - '\b(?:clerks?|delegates?|members?|people|persons?)\b[^.!\n]{0,40}\b(?:belongs? to|serves? as|descends? from|responsible|in charge)\b'

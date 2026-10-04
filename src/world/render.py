@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import yaml
+from .premises import premise_extensions
 
 from .graph import (
     SCALES, SCALE_RANK, canonical, validate_graph,
@@ -192,6 +193,10 @@ def _entity_page(ctx: _Ctx, e: Mapping[str, Any]) -> str:
                 f"- {L('technology')}: {_one_line(technology['description'])}",
                 f"- {L('capabilities')}: " + ", ".join(technology['capabilities']),
                 f"- {L('units')}: " + ", ".join(technology['units']), ""]
+        if contract.get("society"):
+            society = contract["society"]
+            out += [f"- {L('society')}: {_one_line(society['description'])}",
+                    f"- {L('institutions')}: " + ", ".join(society['institutions']), ""]
 
     out += [f"## {L('relations')}", ""]
     rels = [f"- {ctx.sub('relation_types', r['type'])}: {ctx.link(r['target'])}"
@@ -622,6 +627,7 @@ def render_world_package(
     model = canonical(graph)
     model["axes"] = axes
     model["run"] = {**run, "coverage": coverage}
+    model["premise_extensions"] = premise_extensions(graph)
     _write(final / "world.json", json.dumps(
         model, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     _write(bible / "README.md", _readme(ctx))
