@@ -67,6 +67,10 @@ en:
   document_target: Concerns
   document_facts: Details
   report_title: Exploration Report
+  contract_stage: World contract generation
+  contract_status: Status
+  contract_attempts: Attempts
+  contract_disabled: Calendar, technology, unit and institution contract checks were disabled because contract generation failed. Exploration continued using the input, axes and existing facts.
   run_summary: Run summary
   stop_reason: Stop reason
   iterations: Iterations
@@ -199,6 +203,10 @@ ja:
   document_target: 対象
   document_facts: 詳細
   report_title: 探索レポート
+  contract_stage: 世界の契約生成
+  contract_status: 結果
+  contract_attempts: 試行回数
+  contract_disabled: 契約の生成に失敗したため、暦・技術・単位・制度の契約に依存する検証を無効にして、入力・軸・既存事実に基づく探索を続行しました。
   run_summary: 実行の概要
   stop_reason: 停止理由
   iterations: 反復回数

@@ -805,6 +805,7 @@ class ExplorationLoop:
             return max(rows, key=lambda r: (r["res"].passed, r["res"].reward))
 
         accepted = None
+        self.iteration_discard_reasons = {}
         error: Optional[Dict[str, str]] = None
         try:
             accepted = self._attempt(
@@ -855,7 +856,10 @@ class ExplorationLoop:
                         "accepted" if accepted else "discarded"),
             "accepted_id": accepted["id"] if accepted else None,
             "arm_reward": round(arm_reward, 4),
+            "discard_reasons": dict(self.iteration_discard_reasons),
             **({"error": error} if error else {})})
+        logger.info("iteration {} ({}) candidate discard reasons: {}", it, operator,
+                    self.iteration_discard_reasons)
         self.bandit.update(arm, arm_reward)
         self._append_log(records)
         self.state["max_entity_n"] = _max_entity_n(graph)
@@ -870,6 +874,8 @@ class ExplorationLoop:
                 brief=self.brief, axes=gen_axes)
         except OperatorError:
             cands = []
+        finally:
+            self._collect_discard_reasons()
         if not cands:
             return NO_CANDIDATES
         rows = score(cands, 0)
@@ -880,9 +886,12 @@ class ExplorationLoop:
             return base
         for rnd in range(1, int(gen["max_rewrites"]) + 1):
             findings = self._findings(base["res"], int(gen["max_findings"]))
-            revised = self.runner.revise(
-                base["cand"], findings, graph,
-                brief=self.brief, axes=gen_axes)
+            try:
+                revised = self.runner.revise(
+                    base["cand"], findings, graph,
+                    brief=self.brief, axes=gen_axes)
+            finally:
+                self._collect_discard_reasons()
             self.state["counters"]["rewrites"] += 1
             if revised is None:
                 break
@@ -897,6 +906,10 @@ class ExplorationLoop:
             if row["res"].reward > base["res"].reward:
                 base = row
         return None
+
+    def _collect_discard_reasons(self):
+        for reason, count in self.runner.last_discard_reasons.items():
+            self.iteration_discard_reasons[reason] = self.iteration_discard_reasons.get(reason, 0) + count
 
     @staticmethod
     def _findings(result, limit: int) -> List[Dict[str, Any]]:
@@ -1066,6 +1079,13 @@ def run_world_engine(
             backend, root, brief, axes, seed=seed, language=lang,
             config=config, operator_config=operator_config,
             verifier=verifier, checkpoints=checkpoints, manifest=manifest)
+        from .contract import establish_contract
+        graph = loop.store.load_or_create(lang)
+        stage = establish_contract(
+            backend, graph, brief, axes,
+            max_attempts=loop.cfg.get("contract", {}).get("max_attempts", 3))
+        loop.store.save(graph)
+        manifest.update(world_contract=copy.deepcopy(stage))
         result = loop.run(
             max_iterations=(budget or {}).get("max_iterations"),
             max_wall_seconds=(budget or {}).get("max_wall_seconds"),

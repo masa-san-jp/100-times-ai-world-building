@@ -1,0 +1,21 @@
+system: |
+  Return only a small JSON world contract. Describe definitions and limits,
+  in a neutral reference register. No scenes, spoken lines or narrative voice.
+user: |
+  WORLD CONTRACT
+  OUTPUT LANGUAGE: {language}
+  INPUT BRIEF AND AXES:
+  {context}
+  VALIDATION ERRORS TO REPAIR:
+  {errors}
+
+  Return ONLY calendar, technology and society. Preserve explicit input.
+  Derive unspecified definitions from the supplied brief and axes; state the
+  connection in origin and descriptions. Assume no familiar era, technology
+  or social framework. Define capabilities AND limits, and how authority,
+  obligations and shared decisions work and are limited.
+  Keep strings at most 160 characters and arrays at most 4 entries.
+  Calendar markers and measurement units must each have at least one entry;
+  capabilities and institutions may be empty. No candidates or entities.
+  JSON shape:
+  {{"calendar":{{"name":"...","origin":"...","markers":["..."]}},"technology":{{"description":"...","capabilities":["..."],"units":["..."]}},"society":{{"description":"...","institutions":[]}}}}

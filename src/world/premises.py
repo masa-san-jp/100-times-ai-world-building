@@ -1,4 +1,4 @@
-"""Small, explicit world contracts, stored on their originating premise.
+"""Small, explicit world contracts and traceable extensions.
 
 No real calendar, device or unit is privileged. The first accepted contract
 is authoritative; reviewed additions are recorded on accepted entities.
@@ -14,6 +14,18 @@ from .quantities import registered_unit
 
 MAX_ITEMS = 16
 MAX_TEXT = 160
+CONTRACT_ID = "world_contract"
+
+
+def contract_checks_enabled(graph: Mapping[str, Any]) -> bool:
+    return (graph.get("contract_stage") or {}).get("status") != "failed"
+
+
+def premise_source(graph: Mapping[str, Any], source_id: str) -> Optional[Mapping[str, Any]]:
+    record = graph.get("world_contract")
+    if isinstance(record, Mapping) and record.get("id") == source_id:
+        return record
+    return next((e for e in graph.get("entities", []) if e.get("id") == source_id), None)
 
 
 def _text(value: Any) -> bool:
@@ -62,12 +74,17 @@ def normalize_premises(value: Any) -> Optional[Dict[str, Any]]:
 def world_premises(graph: Mapping[str, Any]) -> Dict[str, Any]:
     """Return the original contract plus accepted, traceable additions.
 
-    Records live on the contributing entities so transaction rollback and
-    checkpoint recovery remove their extensions along with those entities.
+    New base contracts live in world_contract; legacy premise entities remain
+    readable. Extensions live on contributing entities so transaction rollback
+    and checkpoint recovery remove their extensions along with those entities.
     The original calendar and technology limits are never overwritten.
     """
+    if not contract_checks_enabled(graph):
+        return {}
     entities = graph.get("entities", [])
-    for entity in entities:
+    record = graph.get("world_contract")
+    sources = ([record] if isinstance(record, Mapping) else []) + list(entities)
+    for entity in sources:
         value = entity.get("world_premises")
         if entity.get("scale") == "world" and not premise_errors(value):
             contract = {"source_entity": entity["id"], **normalize_premises(value)}
@@ -105,7 +122,7 @@ def proposed_extension(entity: Mapping[str, Any], contract: Mapping[str, Any],
 def premise_extensions(graph: Mapping[str, Any]) -> list:
     """Derived export index; entities remain the transactional source of truth."""
     source_id = world_premises(graph).get("source_entity")
-    source = next((e for e in graph.get("entities", []) if e.get("id") == source_id), None)
+    source = premise_source(graph, source_id)
     if source is None:
         return []
     return [{"entity": e["id"], **copy.deepcopy(e["premise_extension"])}

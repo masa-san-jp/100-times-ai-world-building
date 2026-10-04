@@ -7,7 +7,7 @@ import pytest
 
 from src.llm.fake import FakeLLMBackend
 from src.world.graph import GraphStore, local_context, make_entity, new_graph, validate_graph
-from src.world.operators import OPERATORS, OperatorRunner
+from src.world.operators import OPERATORS, OperatorRunner, validate_candidate
 from src.world.premises import world_premises
 from src.world.render import render_world_package
 from src.world.reward import RewardVerifier, load_reward_config
@@ -166,7 +166,14 @@ def test_initial_premise_records_world_specific_decisions_without_changing_input
     assert "巡輪紀" in page and "技術の能力と限界" in page
 
 
-@pytest.mark.parametrize("value", [None, {}, {"calendar": "bad"},
+def test_initial_premise_without_contract_is_an_ordinary_entity():
+    runner = OperatorRunner(FakeLLMBackend({"candidates": [raw()]}))
+    candidate = runner.run("premise", new_graph("ja"), n=1, brief=BRIEF)[0]
+    assert "world_premises" not in candidate["entity"]
+    assert not validate_candidate(new_graph("ja"), candidate, brief=BRIEF)
+
+
+@pytest.mark.parametrize("value", [{}, {"calendar": "bad"},
                                   {**CONTRACT, "technology": {"units": []}}])
 def test_missing_or_malformed_bootstrap_contract_is_not_accepted(value):
     item = raw()

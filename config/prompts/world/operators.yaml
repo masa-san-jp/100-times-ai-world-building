@@ -37,8 +37,8 @@ common:
       another appropriate kind for people's attributes, relations or roles.
     - statement_ids: ids from BRIEF STATEMENTS that support the candidate
     - derived_from: ids of existing entities in CONTEXT it follows from
-    - reason: why it follows from them (required for derived_from and
-      whenever world_premises is supplied; give a nonempty derivation)
+    - reason: why it follows from them (required for derived_from;
+      give a nonempty derivation)
     - premise_usage: declared references used anywhere in the name, summary or
       facts: calendars (calendar markers), technologies (capability names),
       units (measurement notations), institutions (social rules or bodies).
@@ -52,9 +52,11 @@ common:
       Do not stay with abstract words such as "various", "important",
       "complex" or "rich".
     - Stay consistent with every existing fact and world_premises in CONTEXT.
-      Absolute dates must have a defined calendar marker immediately before
+      When a contract exists, absolute dates must have a defined calendar marker immediately before
       the number. Durations must be clearly labelled as durations. Only use
-      calendar markers from world_premises. New units or capabilities may be
+      calendar markers from world_premises. If no contract exists, derive
+      facts from the supplied input and axes; do not generate a contract.
+      New units or capabilities may be
       proposed in premise_usage with a reason explaining how existing
       capabilities permit the measurement or method. Stay within the limits
       of technology.description; additions require consistency review.
@@ -85,28 +87,9 @@ operators:
     resource, a geographic fact, or a turning point. Derive them from the
     brief statements and the axes. Each premise is a standalone world-scale
     fact that other material can later depend on.
-    If CONTEXT has no world_premises, EACH candidate must include a complete
-    world_premises object. Preserve calendars and technology explicitly given
-    in the brief. For anything unspecified, make a world-specific decision
-    derived from the brief, record its reasoning in reason, and describe it
-    in the facts. Never assume a real-world chronology or technical level.
-    world_premises has:
-    - calendar: name, origin (what starts its count), markers (nonempty array
-      of exact names used before absolute date numbers)
-    - technology: description (capabilities AND limits), capabilities (array
-      of exact apparatus or method names), units (nonempty array of permitted
-      measurement notations, including time units needed for dates/durations)
-    - society: description (how authority, obligations and shared decisions
-      work, including limits), institutions (array of defined rules or bodies;
-      may be empty). Derive this framework from the input and axes, preserving
-      explicit input; do not assume familiar administration or regulation.
-    Keep each string at most 160 characters and each array at most 16 entries.
-    If a contract already exists, keep it; ordinary premises may omit the
-    world_premises field. A candidate cannot authorize its own new technology.
-    JSON extension: "world_premises": {"calendar": {"name": "...",
-    "origin": "...", "markers": ["..."]}, "technology": {"description":
-    "...", "capabilities": ["..."], "units": ["..."]},
-    "society": {"description": "...", "institutions": ["..."]}}.
+    Return ordinary entities only. The contract is generated separately;
+    do not include world_premises. Follow the contract in CONTEXT when present.
+    A candidate cannot authorize its own new technology.
   expand: |
     Add sibling entities that stand beside the TARGET entity: same scale,
     same parent, on the same or a neighbouring axis. Include peripheral,

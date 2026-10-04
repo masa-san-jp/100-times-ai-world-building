@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import yaml
-from .premises import premise_extensions
+from .premises import premise_extensions, world_premises
 
 from .graph import (
     SCALES, SCALE_RANK, canonical, validate_graph,
@@ -472,6 +472,31 @@ def _report(ctx: _Ctx, limit: int) -> str:
     out.append(f"- {L('accepted')}: {counters.get('accepted', 0)}")
     out.append(f"- {L('rejected')}: {counters.get('rejected', 0)}")
     out.append("")
+
+    stage = ctx.graph.get("contract_stage")
+    if stage:
+        out += [f"## {L('contract_stage')}", "",
+                f"- {L('contract_status')}: {stage['status']}",
+                f"- {L('contract_attempts')}: {stage['attempts']}"]
+        if not stage.get("checks_enabled", True):
+            out.append(L("contract_disabled"))
+        for attempt in stage.get("errors", []):
+            if attempt.get("errors"):
+                out.append(f"- {attempt['attempt']}: " + " / ".join(_one_line(e) for e in attempt["errors"]))
+        out.append("")
+        contract = world_premises(ctx.graph)
+        if contract:
+            calendar, technology = contract["calendar"], contract["technology"]
+            out += [f"- {L('calendar')}: {_one_line(calendar['name'])}",
+                    f"- {L('calendar_origin')}: {_one_line(calendar['origin'])}",
+                    f"- {L('calendar_markers')}: " + ", ".join(calendar['markers']),
+                    f"- {L('technology')}: {_one_line(technology['description'])}",
+                    f"- {L('capabilities')}: " + ", ".join(technology['capabilities']),
+                    f"- {L('units')}: " + ", ".join(technology['units'])]
+            if contract.get("society"):
+                out += [f"- {L('society')}: {_one_line(contract['society']['description'])}",
+                        f"- {L('institutions')}: " + ", ".join(contract['society']['institutions'])]
+            out.append("")
 
     cov = ctx.coverage
     out += [f"## {L('coverage')}", "",

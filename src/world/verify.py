@@ -33,7 +33,7 @@ from .textsim import (
 )
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
-from .premises import proposed_extension, world_premises
+from .premises import contract_checks_enabled, premise_source, proposed_extension, world_premises
 from .quantities import count_only, observed_units, registered_unit, unit_notation, temporal_conflicts, units_in_text
 from .language import load_language_rules, rules_for
 
@@ -795,9 +795,9 @@ def verify_consistency(
         add("entity", "graph_invalid", err)
 
     contract = world_premises(graph)
-    proposed = entity.get("world_premises")
+    proposed = entity.get("world_premises") if contract_checks_enabled(graph) else None
     if contract and proposed is not None:
-        source = get_entity(graph, contract["source_entity"])
+        source = premise_source(graph, contract["source_entity"])
         if proposed != source["world_premises"]:
             add("world_premises", "premise_conflict",
                 "the candidate changes the established calendar, technology or society contract")
@@ -1239,7 +1239,12 @@ class LLMJudge:
                 view[key] = entity[key]
         prompt = self.prompts["common"]["user"].format(
             language=language_of(graph),
-            criterion="\n\n".join(c + ":\n" + self.prompts["criteria"][c].strip() for c in criteria),
+            criterion="\n\n".join(c + ":\n" + (
+                "Check contradictions with existing facts and explicit input (numbers, periods, locations, membership, cause and effect). "
+                "The contract stage failed. Calendar, technology, unit and institution contract checks are disabled; "
+                "do not infer a missing framework or penalize unsupported contract references."
+                if c == "consistency" and not contract_checks_enabled(graph)
+                else self.prompts["criteria"][c].strip()) for c in criteria),
             candidate=json.dumps(view, ensure_ascii=False),
             context=json.dumps(context, ensure_ascii=False, separators=(",", ":")))
         proposal = context["proposed_premise_extension"]

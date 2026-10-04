@@ -40,7 +40,9 @@ SYNTHETIC_PREMISES = {
     "calendar": {"name": "Vela Count", "origin": "first quota agreement",
                  "markers": ["Vela Count"]},
     "technology": {"description": "Seals and hand-written ledgers; no automated records",
-                   "capabilities": ["seal", "ledger"], "units": ["term", "quota"]}}
+                   "capabilities": ["seal", "ledger"], "units": ["term", "quota"]},
+    "society": {"description": "Quota agreements define shared record procedures",
+                "institutions": []}}
 
 OPS = {"Propose": "premise", "Add sibling": "expand", "Add child": "zoom",
        "Explain why": "cause", "Describe how": "perspective",
@@ -92,6 +94,8 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
         if "DOMAIN CATALOG" in prompt:
             return {"axes": [{"domain": "resources_economy", "meaning": "m",
                               "weight": 0.9, "statement_ids": ["s1"]}]}
+        if prompt.startswith("WORLD CONTRACT"):
+            return SYNTHETIC_PREMISES
         m = re.search(r"that you may tag:\n(.*?)\n\n", prompt, re.S)
         axis_ids = [l.split(":")[0] for l in m.group(1).splitlines()
                     if ":" in l] if m else []

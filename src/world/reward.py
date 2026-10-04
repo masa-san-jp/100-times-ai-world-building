@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import yaml
 
-from .premises import proposed_extension, world_premises
+from .premises import contract_checks_enabled, proposed_extension, world_premises
 from .quantities import is_counter, observed_units
 
 from .verify import (
@@ -149,7 +149,7 @@ class RewardVerifier:
             return reward, failed, not failed and reward >= float(thresholds.get("total", 0.0))
 
         entity = candidate["entity"]
-        contract = world_premises(graph) or entity.get("world_premises", {})
+        contract = (world_premises(graph) or entity.get("world_premises", {})) if contract_checks_enabled(graph) else {}
         units = observed_units(entity, contract, rules_for(self.rules, lang))
         extension = proposed_extension(entity, world_premises(graph), rules_for(self.rules, lang))
         approved = False
