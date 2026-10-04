@@ -41,7 +41,8 @@ common:
       whenever world_premises is supplied; give a nonempty derivation)
     - premise_usage: declared references used anywhere in the name, summary or
       facts: calendars (calendar markers), technologies (capability names),
-      units (measurement notations). Use arrays of strings; do not omit an
+      units (measurement notations), institutions (social rules or bodies).
+      Use arrays of strings; do not omit an
       apparatus, method or unit to evade the contract.
     - relations: optional links to entities in CONTEXT, each with a type
       ({relation_types}) and a target id
@@ -58,9 +59,16 @@ common:
       capabilities permit the measurement or method. Stay within the limits
       of technology.description; additions require consistency review.
       Do not import a calendar, era, apparatus or capability from familiarity.
+      Derive institutions, authority, obligations and regulatory concepts from
+      society.description, its institutions, the explicit input and world axes.
+      A new name is allowed when reason explains its powers and procedures
+      within that framework. Familiarity alone does not establish authority.
     - Each fact must describe this entity: link objects to its ownership,
       use, location or procedure explicitly. Choose plausible quantities for
       the kind and function of the measured subject.
+      An identifier or headcount alone is hollow: state what it controls,
+      changes or requires. Distinguish an aggregate total from a rate and
+      keep the stated time basis consistent with the rate denominator.
     - Replace claims of aims, promotion or value with observable procedures,
       responsible actors, conditions and results.
     - Cite at least one statement id or one derived_from id. Candidates with
@@ -69,7 +77,7 @@ common:
       experienced by someone.
 
     JSON shape:
-    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"...","premise_usage":{{"calendars":[],"technologies":[],"units":[]}},"relations":[{{"type":"related_to","target":"e1"}}]}}]}}
+    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"...","premise_usage":{{"calendars":[],"technologies":[],"units":[],"institutions":[]}},"relations":[{{"type":"related_to","target":"e1"}}]}}]}}
 
 operators:
   premise: |
@@ -88,12 +96,17 @@ operators:
     - technology: description (capabilities AND limits), capabilities (array
       of exact apparatus or method names), units (nonempty array of permitted
       measurement notations, including time units needed for dates/durations)
+    - society: description (how authority, obligations and shared decisions
+      work, including limits), institutions (array of defined rules or bodies;
+      may be empty). Derive this framework from the input and axes, preserving
+      explicit input; do not assume familiar administration or regulation.
     Keep each string at most 160 characters and each array at most 16 entries.
     If a contract already exists, keep it; ordinary premises may omit the
     world_premises field. A candidate cannot authorize its own new technology.
     JSON extension: "world_premises": {"calendar": {"name": "...",
     "origin": "...", "markers": ["..."]}, "technology": {"description":
-    "...", "capabilities": ["..."], "units": ["..."]}}.
+    "...", "capabilities": ["..."], "units": ["..."]},
+    "society": {"description": "...", "institutions": ["..."]}}.
   expand: |
     Add sibling entities that stand beside the TARGET entity: same scale,
     same parent, on the same or a neighbouring axis. Include peripheral,

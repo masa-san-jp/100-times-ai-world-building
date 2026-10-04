@@ -10,6 +10,8 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Mapping, Optional
 
+from .quantities import registered_unit
+
 MAX_ITEMS = 16
 MAX_TEXT = 160
 
@@ -37,16 +39,24 @@ def premise_errors(value: Any) -> list:
             and _terms(technology.get("capabilities"))
             and _terms(technology.get("units"), required=True)):
         errors.append("technology needs description, capabilities and nonempty units")
+    if "society" in value:
+        society = value["society"]
+        if not isinstance(society, Mapping) or not (
+                _text(society.get("description"))
+                and _terms(society.get("institutions"))):
+            errors.append("society needs description and institutions")
     return errors
 
 
 def normalize_premises(value: Any) -> Optional[Dict[str, Any]]:
     if premise_errors(value):
         return None
+    sections = [("calendar", ("name", "origin", "markers")),
+                ("technology", ("description", "capabilities", "units"))]
+    if "society" in value:
+        sections.append(("society", ("description", "institutions")))
     return {section: {key: copy.deepcopy(value[section][key]) for key in keys}
-            for section, keys in (
-                ("calendar", ("name", "origin", "markers")),
-                ("technology", ("description", "capabilities", "units")))}
+            for section, keys in sections}
 
 
 def world_premises(graph: Mapping[str, Any]) -> Dict[str, Any]:
@@ -73,7 +83,8 @@ def world_premises(graph: Mapping[str, Any]) -> Dict[str, Any]:
     return {}
 
 
-def proposed_extension(entity: Mapping[str, Any], contract: Mapping[str, Any]) -> Dict[str, Any]:
+def proposed_extension(entity: Mapping[str, Any], contract: Mapping[str, Any],
+                       rules: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
     """Declared additions need a derivation; units alone remain usable."""
     reason = (entity.get("provenance") or {}).get("reason")
     usage = entity.get("premise_usage")
@@ -83,11 +94,23 @@ def proposed_extension(entity: Mapping[str, Any], contract: Mapping[str, Any]) -
         return {}
     additions = {key: list(dict.fromkeys(
         term for term in usage.get(usage_key, [])
-        if term not in contract["technology"][key]))
+        if (not registered_unit(term, contract, rules or {}) if key == "units"
+            else term not in contract["technology"][key])))
         for key, usage_key in (("units", "units"), ("capabilities", "technologies"))}
     if not any(additions.values()):
         return {}
     return {"source_entity": contract["source_entity"], **additions, "reason": reason}
+
+
+def premise_extensions(graph: Mapping[str, Any]) -> list:
+    """Derived export index; entities remain the transactional source of truth."""
+    source_id = world_premises(graph).get("source_entity")
+    source = next((e for e in graph.get("entities", []) if e.get("id") == source_id), None)
+    if source is None:
+        return []
+    return [{"entity": e["id"], **copy.deepcopy(e["premise_extension"])}
+            for e in graph.get("entities", [])
+            if "premise_extension" in e and not extension_errors(e["premise_extension"], e, source)]
 
 
 def extension_errors(value: Any, entity: Mapping[str, Any], source: Mapping[str, Any]) -> list:
@@ -120,5 +143,5 @@ def usage_errors(value: Any) -> list:
     if not isinstance(value, Mapping):
         return ["premise_usage must be an object"]
     return [f"premise_usage.{key} must be a bounded list of terms"
-            for key in ("calendars", "technologies", "units")
+            for key in ("calendars", "technologies", "units", "institutions")
             if not _terms(value.get(key, []))]

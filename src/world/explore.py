@@ -839,6 +839,13 @@ class ExplorationLoop:
         for r in records:
             if "id" in r:
                 r["decision"] = decisions[r["id"]]
+                review = r["result"].get("premise_review", {})
+                review["recorded"] = (r["decision"] == "accepted"
+                                      and bool(r["result"].get("premise_extension")))
+                if review["recorded"]:
+                    review["extension_status"] = "recorded"
+                elif review.get("extension_status") == "eligible":
+                    review["extension_status"] = "not_selected"
         records.append({
             "type": "iteration", "iteration": it, "arm": arm,
             "operator": operator, "target": target,

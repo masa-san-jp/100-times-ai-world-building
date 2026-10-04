@@ -92,6 +92,8 @@ consistency:
     undefined_technology: 0.4
     # Unregistered units are warnings; the LLM checks measurability.
     undefined_unit: 0.0
+    dimension_conflict: 0.5
+    review_missing: 0.4
 
 objectivity:
   penalties:

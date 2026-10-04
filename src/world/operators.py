@@ -29,6 +29,8 @@ import yaml
 from ..llm import LLMBackend
 from .coerce import fact_items, id_list, relation_items, text_of
 from .premises import normalize_premises, usage_errors, world_premises
+from .quantities import is_counter, observed_units
+from .language import load_language_rules, rules_for
 from .graph import (
     ENTITY_TYPES, FACT_KINDS, RELATION_TYPES, SCALES, SCALE_RANK,
     get_entity, local_context, make_entity, validate_graph,
@@ -427,7 +429,25 @@ class OperatorRunner:
                 return None
             entity["premise_usage"] = {
                 key: list(item["premise_usage"].get(key, []))
-                for key in ("calendars", "technologies", "units")}
+                for key in ("calendars", "technologies", "units", "institutions")}
+        language_rules = rules_for(load_language_rules(), (graph.get("meta") or {}).get("language", ""))
+        if "premise_usage" in entity:
+            entity["premise_usage"]["units"] = [u for u in entity["premise_usage"]["units"]
+                                                 if not is_counter(u, language_rules)]
+        # Recover omitted unit declarations from quantity syntax. This does
+        # not authorize them: the judge still reviews method and derivation.
+        inferred = observed_units(entity, world_premises(graph) or
+                                  entity.get("world_premises", {}),
+                                  language_rules)
+        if inferred:
+            usage = entity.setdefault("premise_usage", {})
+            recovered = [u for u in inferred if u not in usage.get("units", [])]
+            if recovered:
+                entity["premise_usage_inferred"] = {"units": recovered}
+            units = list(dict.fromkeys([*usage.get("units", []), *inferred]))
+            usage["units"] = units
+            if usage_errors(usage):
+                return None
         return entity
 
 

@@ -4,6 +4,8 @@
 # carry no genre, era, setting or narrative vocabulary.
 
 en:
+  society: Social framework and limits
+  institutions: Defined rules and bodies
   world_premises: World premises
   calendar: Calendar
   calendar_origin: Counting origin
@@ -134,6 +136,8 @@ en:
     too_many_failures: stopped after too many consecutive failed iterations
 
 ja:
+  society: 制度・社会の枠組みと限界
+  institutions: 定義された規則・組織
   world_premises: 世界の前提
   calendar: 暦・紀年
   calendar_origin: 紀年の起点
