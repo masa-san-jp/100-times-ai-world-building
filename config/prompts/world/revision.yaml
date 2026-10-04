@@ -36,6 +36,22 @@ common:
     - Where a finding says the wording is close to what a model writes for
       any world, replace it with proper nouns, numbers, named mechanisms
       and objects that belong to this world and follow from CONTEXT.
+    - Preserve the established world_premises in CONTEXT. If this is the
+      initial premise and CONTEXT has no contract, include the complete
+      world_premises from the draft (calendar: name, origin, markers;
+      technology: description, capabilities, units). If it is missing, decide
+      it from the brief, preserve explicit input and record the derivation.
+      Each string is at most 160 characters; arrays at most 16 entries.
+      Absolute dates require a defined marker directly before their number.
+      New units or capabilities need premise_usage and a reason deriving
+      their measurement or method from existing technology, within the limits
+      of technology.description; they require consistency review. Return premise_usage with
+      calendars, technologies and units arrays covering all such references.
+    - The object fact kind describes physical tools, facilities or items,
+      not people's attributes, relations or roles.
+    - Tie each fact to this entity's use, ownership, location or procedure.
+      Check quantities against the subject's kind, function and world limits.
+      Replace aims and promotion with actions, conditions and results.
     - Keep at least {min_facts} facts. {concrete_rule}
     - Cite at least one statement id or one derived_from id. Do not invent
       ids. A derived_from link needs a reason.
@@ -43,4 +59,4 @@ common:
       quoted speech, no exclamations, no rhetorical questions.
 
     Produce exactly one candidate in this JSON shape:
-    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"","relations":[{{"type":"related_to","target":"e1"}}]}}]}}
+    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"...","premise_usage":{{"calendars":[],"technologies":[],"units":[]}},"relations":[{{"type":"related_to","target":"e1"}}]}}]}}

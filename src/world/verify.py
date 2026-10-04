@@ -13,6 +13,7 @@ from ``config/world/language_rules.yaml`` keyed by language code.
 from __future__ import annotations
 
 import json
+import math
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -30,6 +31,7 @@ from .textsim import (
 )
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
+from .premises import proposed_extension, world_premises
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 DEFAULT_RULES_PATH = CONFIG_DIR / "world" / "language_rules.yaml"
@@ -547,6 +549,9 @@ def _fact_hollowness(
 ) -> Optional[Tuple[str, str]]:
     """Return ``(code, message)`` when a fact only fills in its kind label."""
     kind, text = fact.get("kind"), str(fact.get("text") or "").strip()
+    if kind == "object" and _pattern_hits(text, rl.get("non_object_patterns") or []):
+        return ("non_object_fact", "an object fact must describe a physical tool, "
+                "facility or item; this describes a person's attribute, relation or role")
     if kind in ("proper_noun", "object") and reference.strip():
         cov = echo_coverage(text, reference, int(p.get("echo_min_chars", 2)))
         if cov >= float(p.get("fact_echo_threshold", 0.6)):
@@ -657,6 +662,17 @@ def verify_specificity(
             min(float(pen.get("unsupported_evaluation_cap", amount)), amount
                 * len(eval_hits)),
             {"words": [w for w, _ in eval_hits]}))
+    for field_name, text in [("summary", entity.get("summary", ""))] + [
+            (f"facts[{i}]", f.get("text", "")) for i, f in enumerate(facts)]:
+        hits = _word_hits(str(text), rl.get("purpose_words") or [])
+        if hits:
+            d.append(Deduction(
+                "specificity", field_name, "purpose_without_mechanism",
+                "a stated aim or promotion does not describe observable action; "
+                "give the actor, procedure and measurable result: "
+                + ", ".join(w for w, _ in hits),
+                float(pen.get("purpose_without_mechanism", 0.25)),
+                {"words": [w for w, _ in hits]}))
     return VerifierResult("specificity", _score(d), d)
 
 
@@ -743,8 +759,10 @@ def verify_consistency(
     d: List[Deduction] = []
 
     def add(fld, code, msg, **detail):
-        d.append(Deduction("consistency", fld, code, msg,
-                           float(pen.get(code, 0.4)), detail))
+        # Unknown units and derived capability proposals are observations,
+        # not evidence that the world lacks the means to measure/use them.
+        penalty = 0.0 if code in {"undefined_unit", "technology_extension"} else float(pen.get(code, 0.4))
+        d.append(Deduction("consistency", fld, code, msg, penalty, detail))
 
     # A hierarchy edge is not only a scale edge. A place nested under an
     # institution at a broad scale usually means that an organization was
@@ -770,6 +788,18 @@ def verify_consistency(
 
     for err in validate_candidate(graph, candidate, axes, brief):
         add("entity", "graph_invalid", err)
+
+    contract = world_premises(graph)
+    proposed = entity.get("world_premises")
+    if contract and proposed is not None:
+        source = get_entity(graph, contract["source_entity"])
+        if proposed != source["world_premises"]:
+            add("world_premises", "premise_conflict",
+                "the candidate changes the established calendar or technology contract")
+    if not contract and candidate.get("operator") == "premise" and proposed:
+        contract = proposed
+    if contract:
+        _verify_premise_usage(entity, contract, language_of(graph), add)
 
     rels = [r for r in entity.get("relations") or [] if isinstance(r, Mapping)]
     by_target: Dict[str, set] = {}
@@ -824,6 +854,92 @@ def verify_consistency(
                         f"{label!r} differs from existing {other['id']}",
                         entity=other["id"])
     return VerifierResult("consistency", _score(d), d)
+
+
+def _verify_premise_usage(entity, contract, language, add):
+    """Lexical checks against the contract, plus declared semantic references.
+
+    Prose alone cannot reliably identify all apparatus or implied capabilities;
+    the optional consistency judge checks those and missing declarations.
+    """
+    calendar, technology = contract["calendar"], contract["technology"]
+    markers = [unicodedata.normalize("NFKC", value).strip()
+               for value in [calendar["name"], *calendar["markers"]]]
+    usage = entity.get("premise_usage") or {}
+    extension = proposed_extension(entity, contract)
+    def unit_key(value):
+        return unicodedata.normalize("NFKC", value).strip()
+    for key, allowed, code in (
+            ("calendars", markers, "undefined_calendar"),
+            ("technologies", technology["capabilities"], "undefined_technology"),
+            ("units", technology["units"], "undefined_unit")):
+        for term in usage.get(key, []):
+            norm = unit_key if key == "units" else normalize_item
+            if norm(term) not in {norm(v) for v in allowed}:
+                actual_code = "technology_extension" if key == "technologies" and extension else code
+                add(f"premise_usage.{key}", actual_code,
+                    f"{term!r} is not defined; review measurability and capability limits", term=term)
+
+    rules = rules_for(load_language_rules(), language)
+    fields = [("name", entity.get("name", "")),
+              ("summary", entity.get("summary", ""))]
+    fields += [(f"facts[{i}]", f.get("text", ""))
+               for i, f in enumerate(entity.get("facts", []))]
+    allowed_units = {unit_key(v) for v in technology["units"]}
+    for field_name, text in fields:
+        text = unicodedata.normalize("NFKC", str(text))
+        date_text = text
+        for pattern in rules.get("duration_patterns", []):
+            date_text = re.sub(pattern, lambda m: " " * len(m.group(0)),
+                               date_text, flags=re.IGNORECASE)
+        # The syntax recognizes dates, not any particular calendar. Require
+        # a declared marker next to each absolute date; ranges share a marker.
+        patterns = list(rules.get("absolute_date_patterns", []))
+        period_pattern = r"(?<![\d.])\d{3,}(?:\s*[-–~〜]\s*\d+)?(?![\d.A-Za-z])"
+        if field_name.startswith("facts["):
+            index = int(field_name[6:-1])
+            if entity["facts"][index].get("kind") == "period":
+                patterns.append(period_pattern)
+        seen_dates = set()
+        for pattern in patterns:
+            for match in re.finditer(pattern, date_text, re.IGNORECASE):
+                if any(a <= match.start() < b for a, b in seen_dates):
+                    continue
+                if pattern == period_pattern:
+                    suffix = date_text[match.end():].lstrip()
+                    if any(suffix.startswith(u) and (
+                            not u.isascii() or len(suffix) == len(u)
+                            or not suffix[len(u)].isalpha())
+                           for u in technology["units"]):
+                        continue  # a duration/measurement, not a bare year
+                seen_dates.add(match.span())
+                prefix = date_text[max(0, match.start() - 48):match.start()]
+                if not any(re.search(re.escape(marker) + r"\s*$", prefix,
+                                     re.IGNORECASE) for marker in markers):
+                    add(field_name, "undefined_calendar",
+                        "absolute date lacks a calendar marker defined in the premises",
+                        date=match.group(0))
+        # Unknown symbolic units can be detected without enumerating devices
+        # or technical units. Natural-language units use language syntax data.
+        units = set(re.findall(
+            r"(?<![A-Za-z\d])[-+]?\d[\d,]*(?:\.\d+)?(?:[eE][-+]?\d+)?\s*"
+            r"([A-Za-zµΩ]+(?:\^?[-+]?\d+)?"
+            r"(?:/[A-Za-zµΩ]+(?:\^?[-+]?\d+)?)*|[%‰°])(?![A-Za-z])",
+            text))
+        natural_units = sorted({u for u in (rules.get("measure_units", [])
+                                + technology["units"]) if not u.isascii()},
+                               key=len, reverse=True)
+        if natural_units:
+            units.update(re.findall(r"\d\s*(" + "|".join(
+                re.escape(u) for u in natural_units) + ")", text))
+        # Counter nouns are quantity syntax, not technical measurement units.
+        counters = {normalize_item(v) for v in rules.get("count_units", [])}
+        unknown = sorted(u for u in units if unit_key(u) not in allowed_units
+                         and normalize_item(u) not in counters)
+        if unknown:
+            add(field_name, "undefined_unit",
+                "unregistered units; consistency judge must review measurability: "
+                + ", ".join(unknown), units=unknown)
 
 
 def verify_objectivity(
@@ -956,47 +1072,93 @@ class LLMJudge:
         self.context_limits = context_limits
 
     def judge(self, criterion: str, candidate: Mapping[str, Any],
-              graph: Mapping[str, Any],
-              brief: Optional[Mapping[str, Any]] = None,
+              graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
               ) -> Optional[List[Deduction]]:
+        """Compatibility entry point for a single criterion."""
+        result = self.judge_many([criterion], candidate, graph, brief).get(criterion)
+        return result.deductions if result else None
+
+    def judge_many(self, criteria: Sequence[str], candidate: Mapping[str, Any],
+                   graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
+                   ) -> Dict[str, "JudgeAssessment"]:
+        """Evaluate all requested criteria in one backend call, without retries."""
+        criteria = list(dict.fromkeys(c for c in criteria if c in self.prompts["criteria"]))
+        if not criteria:
+            return {}
         entity = candidate["entity"]
-        context: Any = "(none)"
-        if criterion == "consistency" and candidate.get("target") \
-                and get_entity(graph, candidate["target"]):
+        context: Any = {}
+        if "consistency" in criteria and candidate.get("target") and get_entity(graph, candidate["target"]):
             context = local_context(graph, candidate["target"], self.context_limits)
-        elif criterion == "specificity":
-            # The judge needs the input wording to spot facts that only
-            # repeat it.
-            context = {"input_statements": [
-                str(s.get("text") or "")[:200]
-                for s in (brief or {}).get("statements", []) or []
-                if isinstance(s, Mapping)][:12]}
-        view = {"name": entity.get("name"), "summary": entity.get("summary"),
-                "facts": [{"kind": f.get("kind"), "text": f.get("text")}
-                          for f in entity.get("facts") or []]}
+        contract = world_premises(graph)
+        context = {**context, "world_premises": contract,
+                   "proposed_premise_extension": proposed_extension(entity, contract),
+                   "input_statements": [str(s.get("text") or "")[:200]
+                       for s in (brief or {}).get("statements", []) or []
+                       if isinstance(s, Mapping)][:12],
+                   "input_constraints": [text_of(s)[:200] for s in
+                       (brief or {}).get("constraints", []) or []][:12]}
+        view = {key: entity.get(key) for key in
+                ("type", "scale", "parent", "relations", "name", "summary", "provenance")}
+        view["facts"] = [{"kind": f.get("kind"), "text": f.get("text")}
+                         for f in entity.get("facts") or []]
+        for key in ("world_premises", "premise_usage"):
+            if key in entity:
+                view[key] = entity[key]
         prompt = self.prompts["common"]["user"].format(
-            language=language_of(graph), criterion=self.prompts["criteria"][criterion].strip(),
+            language=language_of(graph),
+            criterion="\n\n".join(c + ":\n" + self.prompts["criteria"][c].strip() for c in criteria),
             candidate=json.dumps(view, ensure_ascii=False),
             context=json.dumps(context, ensure_ascii=False, separators=(",", ":")))
-        resp = self.backend.generate_json(
-            prompt, system_prompt=self.prompts["common"]["system"])
+        shape = {c: {"score": "<number from 0 to 1>", "issues": [
+            {"field": "<field>", "why": "<short reason>", "code": "<reason code>"}]}
+                 for c in criteria}
+        if "consistency" in shape:
+            shape["consistency"]["approve_premise_extension"] = False
+        prompt += "\nReturn one result per requested criterion; use [] for no issues. JSON shape: " + json.dumps(shape)
+        resp = self.backend.generate_json(prompt, system_prompt=self.prompts["common"]["system"])
+        if not isinstance(resp, Mapping):
+            return {}
+        # Older single-criterion integrations may return a bare assessment.
+        if len(criteria) == 1 and "score" in resp:
+            resp = {criteria[0]: resp}
+        return {c: assessment for c in criteria
+                if (assessment := self._assessment(c, resp.get(c))) is not None}
+
+    @staticmethod
+    def _assessment(criterion: str, resp: Any) -> Optional["JudgeAssessment"]:
         if not isinstance(resp, Mapping):
             return None
         try:
-            score = _clamp(float(resp["score"]))
+            if isinstance(resp["score"], bool):
+                return None
+            value = float(resp["score"])
+            if not math.isfinite(value):
+                return None
+            score = _clamp(value)
         except (KeyError, TypeError, ValueError):
             return None
-        issues = [i for i in as_list(resp.get("issues"))
-                  if isinstance(i, Mapping)]
-        if score >= 1.0:
-            return []
+        issues = [i for i in as_list(resp.get("issues")) if isinstance(i, Mapping)]
+        reason_codes = {
+            "specificity": {"unrelated_fact", "purpose_without_mechanism", "non_object_fact"},
+            "consistency": {"undefined_calendar", "undefined_technology", "undefined_unit", "implausible_value"},
+        }.get(criterion, set())
         share = (1.0 - score) / max(1, len(issues))
-        out = [Deduction(criterion, text_of(i.get("field")) or "entity",
-                         "llm_judge",
-                         text_of(i.get("why")) or "judged below standard", share)
-               for i in issues]
-        return out or [Deduction(criterion, "entity", "llm_judge",
-                                 "judged below standard", 1.0 - score)]
+        deductions = [Deduction(criterion, text_of(i.get("field")) or "entity",
+                       i.get("code") if isinstance(i.get("code"), str)
+                       and i["code"] in reason_codes else "llm_judge",
+                       text_of(i.get("why")) or "judged below standard", share)
+                      for i in issues] if score < 1 else []
+        if score < 1 and not deductions:
+            deductions = [Deduction(criterion, "entity", "llm_judge", "judged below standard", 1.0 - score)]
+        approved = (criterion == "consistency" and value == 1 and not issues
+                    and resp.get("issues") == [] and resp.get("approve_premise_extension") is True)
+        return JudgeAssessment(deductions, approved)
+
+
+@dataclass
+class JudgeAssessment:
+    deductions: List[Deduction]
+    extension_approved: bool = False
 
 
 __all__ = [

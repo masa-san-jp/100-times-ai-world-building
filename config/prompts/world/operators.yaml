@@ -33,9 +33,16 @@ common:
       cause and effect, stated neutrally
     - facts: at least {min_facts} concrete facts, each with a kind
       ({kinds}) and a text. {concrete_rule}
+      The object kind describes physical tools, facilities or items; use
+      another appropriate kind for people's attributes, relations or roles.
     - statement_ids: ids from BRIEF STATEMENTS that support the candidate
     - derived_from: ids of existing entities in CONTEXT it follows from
-    - reason: why it follows from them (required when derived_from is used)
+    - reason: why it follows from them (required for derived_from and
+      whenever world_premises is supplied; give a nonempty derivation)
+    - premise_usage: declared references used anywhere in the name, summary or
+      facts: calendars (calendar markers), technologies (capability names),
+      units (measurement notations). Use arrays of strings; do not omit an
+      apparatus, method or unit to evade the contract.
     - relations: optional links to entities in CONTEXT, each with a type
       ({relation_types}) and a target id
 
@@ -43,14 +50,26 @@ common:
     - Use proper nouns, numbers, named mechanisms, quantities and objects.
       Do not stay with abstract words such as "various", "important",
       "complex" or "rich".
-    - Stay consistent with every existing fact in CONTEXT.
+    - Stay consistent with every existing fact and world_premises in CONTEXT.
+      Absolute dates must have a defined calendar marker immediately before
+      the number. Durations must be clearly labelled as durations. Only use
+      calendar markers from world_premises. New units or capabilities may be
+      proposed in premise_usage with a reason explaining how existing
+      capabilities permit the measurement or method. Stay within the limits
+      of technology.description; additions require consistency review.
+      Do not import a calendar, era, apparatus or capability from familiarity.
+    - Each fact must describe this entity: link objects to its ownership,
+      use, location or procedure explicitly. Choose plausible quantities for
+      the kind and function of the measured subject.
+    - Replace claims of aims, promotion or value with observable procedures,
+      responsible actors, conditions and results.
     - Cite at least one statement id or one derived_from id. Candidates with
       neither are discarded. Do not invent ids.
     - Do not write narrative prose. Write the world, not an account of events
       experienced by someone.
 
     JSON shape:
-    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"","relations":[{{"type":"related_to","target":"e1"}}]}}]}}
+    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"...","premise_usage":{{"calendars":[],"technologies":[],"units":[]}},"relations":[{{"type":"related_to","target":"e1"}}]}}]}}
 
 operators:
   premise: |
@@ -58,6 +77,23 @@ operators:
     resource, a geographic fact, or a turning point. Derive them from the
     brief statements and the axes. Each premise is a standalone world-scale
     fact that other material can later depend on.
+    If CONTEXT has no world_premises, EACH candidate must include a complete
+    world_premises object. Preserve calendars and technology explicitly given
+    in the brief. For anything unspecified, make a world-specific decision
+    derived from the brief, record its reasoning in reason, and describe it
+    in the facts. Never assume a real-world chronology or technical level.
+    world_premises has:
+    - calendar: name, origin (what starts its count), markers (nonempty array
+      of exact names used before absolute date numbers)
+    - technology: description (capabilities AND limits), capabilities (array
+      of exact apparatus or method names), units (nonempty array of permitted
+      measurement notations, including time units needed for dates/durations)
+    Keep each string at most 160 characters and each array at most 16 entries.
+    If a contract already exists, keep it; ordinary premises may omit the
+    world_premises field. A candidate cannot authorize its own new technology.
+    JSON extension: "world_premises": {"calendar": {"name": "...",
+    "origin": "...", "markers": ["..."]}, "technology": {"description":
+    "...", "capabilities": ["..."], "units": ["..."]}}.
   expand: |
     Add sibling entities that stand beside the TARGET entity: same scale,
     same parent, on the same or a neighbouring axis. Include peripheral,

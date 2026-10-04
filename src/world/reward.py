@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import yaml
 
+from .premises import proposed_extension, world_premises
+
 from .verify import (
     ContrastProvider, Deduction, LLMJudge, Similarity, VerifierResult,
     language_of, load_language_rules, reference_text, verify_consistency, verify_genericity,
@@ -64,6 +66,7 @@ class VerificationResult:
     failed: List[str]                  # verifiers below their threshold
     deductions: List[Deduction] = field(default_factory=list)
     skipped: List[str] = field(default_factory=list)
+    premise_extension: Dict[str, Any] = field(default_factory=dict)
 
     def deductions_for(self, verifier: str) -> List[Deduction]:
         return [d for d in self.deductions if d.verifier == verifier]
@@ -73,6 +76,7 @@ class VerificationResult:
             "scores": {k: round(v, 4) for k, v in self.scores.items()},
             "reward": round(self.reward, 4), "passed": self.passed,
             "failed": list(self.failed), "skipped": list(self.skipped),
+            "premise_extension": copy.deepcopy(self.premise_extension),
             "deductions": [d.to_dict() for d in self.deductions],
         }
 
@@ -130,29 +134,45 @@ class RewardVerifier:
         results["novelty"] = verify_novelty(
             candidate, graph, self.similarity, cfg.get("novelty"))
 
-        if self.judge is not None:
-            for name in cfg.get("llm_judges") or []:
-                extra = self.judge.judge(name, candidate, graph, brief) \
-                    if name in results else None
-                if extra:
-                    r = results[name]
-                    r.deductions += extra
-                    r.score = max(0.0, r.score - sum(d.penalty for d in extra))
-
         weights = cfg.get("weights", {})
         thresholds = cfg.get("thresholds", {})
         ran = [n for n in VERIFIERS if not results[n].skipped]
         total_w = sum(float(weights.get(n, 0)) for n in ran)
-        reward = (sum(float(weights.get(n, 0)) * results[n].score for n in ran)
-                  / total_w) if total_w > 0 else 0.0
-        failed = [n for n in ran
-                  if results[n].score < float(thresholds.get(n, 0.0))]
-        passed = not failed and reward >= float(thresholds.get("total", 0.0))
+
+        def verdict():
+            reward = (sum(float(weights.get(n, 0)) * results[n].score for n in ran)
+                      / total_w) if total_w > 0 else 0.0
+            failed = [n for n in ran if results[n].score < float(thresholds.get(n, 0.0))]
+            return reward, failed, not failed and reward >= float(thresholds.get("total", 0.0))
+
+        extension = proposed_extension(candidate["entity"], world_premises(graph))
+        approved = False
+        # Judges only deduct, so a deterministic rejection cannot be rescued.
+        # Pending capability proposals are resolved after this check.
+        if self.judge is not None and verdict()[2]:
+            criteria = [n for n in cfg.get("llm_judges") or [] if n in results]
+            assessments = self.judge.judge_many(criteria, candidate, graph, brief)
+            for name, assessment in assessments.items():
+                r = results[name]
+                r.deductions += assessment.deductions
+                r.score = max(0.0, r.score - sum(d.penalty for d in assessment.deductions))
+                if name == "consistency":
+                    approved = assessment.extension_approved
+        if extension.get("capabilities") and not approved:
+            r = results["consistency"]
+            amount = float(cfg.get("consistency", {}).get("penalties", {}).get("undefined_technology", 0.4))
+            r.deductions.append(Deduction(
+                "consistency", "premise_usage.technologies", "undefined_technology",
+                "new capabilities need explicit consistency approval of their derivation within technology.description limits",
+                amount, {"capabilities": extension["capabilities"]}))
+            r.score = max(0.0, r.score - amount)
+        reward, failed, passed = verdict()
         scores = {n: results[n].score for n in ran}
         result = VerificationResult(
             scores=scores, reward=reward, passed=passed, failed=failed,
             deductions=[d for n in VERIFIERS for d in results[n].deductions],
-            skipped=[n for n in VERIFIERS if results[n].skipped])
+            skipped=[n for n in VERIFIERS if results[n].skipped],
+            premise_extension=extension if approved and passed else {})
         if store:
             candidate["entity"]["scores"] = {
                 **candidate["entity"].get("scores", {}),

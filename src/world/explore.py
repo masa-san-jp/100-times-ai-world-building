@@ -810,7 +810,7 @@ class ExplorationLoop:
             accepted = self._attempt(
                 graph, operator, target, gen, gen_axes, score, best_of)
             if accepted is not None and accepted is not NO_CANDIDATES:
-                graph = self._commit(graph, accepted["cand"]["entity"])
+                graph = self._commit(graph, accepted["cand"]["entity"], accepted["res"])
         except BudgetExhausted:
             raise
         except Exception as exc:  # bad model data or a backend failure
@@ -902,9 +902,14 @@ class ExplorationLoop:
                                "it more specific and better grounded"}]
         return out
 
-    def _commit(self, graph: Dict[str, Any], entity: Mapping[str, Any]):
+    def _commit(self, graph: Dict[str, Any], entity: Mapping[str, Any], result=None):
+        accepted = copy.deepcopy(dict(entity))
+        # History is created only by the verifier, never by generated content.
+        accepted.pop("premise_extension", None)
+        if result is not None and result.passed and result.premise_extension:
+            accepted["premise_extension"] = copy.deepcopy(result.premise_extension)
         with self.store.transaction(graph["meta"]["language"]) as working:
-            working["entities"].append(copy.deepcopy(dict(entity)))
+            working["entities"].append(accepted)
         return working
 
 

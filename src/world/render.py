@@ -182,6 +182,17 @@ def _entity_page(ctx: _Ctx, e: Mapping[str, Any]) -> str:
         out.append(L("no_facts"))
     out.append("")
 
+    contract = e.get("world_premises")
+    if contract:
+        calendar, technology = contract["calendar"], contract["technology"]
+        out += [f"## {L('world_premises')}", "",
+                f"- {L('calendar')}: {_one_line(calendar['name'])}",
+                f"- {L('calendar_origin')}: {_one_line(calendar['origin'])}",
+                f"- {L('calendar_markers')}: " + ", ".join(calendar['markers']),
+                f"- {L('technology')}: {_one_line(technology['description'])}",
+                f"- {L('capabilities')}: " + ", ".join(technology['capabilities']),
+                f"- {L('units')}: " + ", ".join(technology['units']), ""]
+
     out += [f"## {L('relations')}", ""]
     rels = [f"- {ctx.sub('relation_types', r['type'])}: {ctx.link(r['target'])}"
             for r in e.get("relations", [])]
