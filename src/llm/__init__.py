@@ -27,17 +27,13 @@ class LLMBackend(Protocol):
     ) -> Optional[str]:
         """Generate free-form text."""
 
-    def generate_json(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = 4096,
+    def generate_schema(
+        self, prompt: str, schema: Dict[str, Any], *,
         system_prompt: Optional[str] = None,
-        validate: bool = True,
         images: Optional[List[Union[str, Path, bytes]]] = None,
-        **kwargs: Any,
-    ) -> Optional[Dict[str, Any]]:
-        """Generate and parse a JSON response."""
+        constrained: bool,
+    ) -> Optional[str]:
+        """Generate one raw structured response; validation belongs to the harness."""
 
     def generate_long_text(
         self,

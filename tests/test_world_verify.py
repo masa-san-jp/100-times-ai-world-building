@@ -100,7 +100,8 @@ def contrast_runner(counter):
             "facts": [{"kind": "proper_noun", "text": "Guild Hall"},
                       {"kind": "number", "text": "50 members"},
                       {"kind": "object", "text": "oak table"}],
-            "statement_ids": ["x"], "derived_from": [], "reason": ""}]}
+            "statement_ids": ["x"], "derived_from": [], "reason": "", "relations": [],
+            "premise_usage": {k: [] for k in ("calendars", "technologies", "units", "institutions")}}]}
     return OperatorRunner(FakeLLMBackend(respond))
 
 
@@ -388,8 +389,8 @@ def test_reward_weights_are_configurable():
 
 def test_llm_judges_off_by_default_and_pluggable():
     g = graph()
-    backend = FakeLLMBackend({"score": 0.2, "issues": [
-        {"field": "summary", "why": "contradicts e2"}]})
+    backend = FakeLLMBackend({"consistency": {"score": 0.2, "issues": [
+        {"field": "summary", "why": "contradicts e2", "code": "llm_judge"}]}})
     rv = RewardVerifier(judge=LLMJudge(backend))
     rv.verify(g, cand(), brief=BRIEF)
     assert backend.json_prompts == []  # not enabled by config

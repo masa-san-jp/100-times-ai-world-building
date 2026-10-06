@@ -57,6 +57,3 @@ common:
       ids. A derived_from link needs a reason.
     - Stay neutral and objective: no first person, no second person, no
       quoted speech, no exclamations, no rhetorical questions.
-
-    Produce exactly one candidate in this JSON shape:
-    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"...","premise_usage":{{"calendars":[],"technologies":[],"units":[],"institutions":[]}},"relations":[{{"type":"related_to","target":"e1"}}]}}]}}

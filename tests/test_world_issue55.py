@@ -31,7 +31,7 @@ def backend_without_candidate_contracts(contract_responses):
             if isinstance(response, Exception):
                 raise response
             return response
-        response = inner.generate_json(prompt)
+        response = json.loads(inner.generate_schema(prompt, {}, constrained=True))
         for item in response.get("candidates", []):
             item.pop("world_premises", None)
         return response
@@ -75,50 +75,36 @@ def test_contract_repairs_missing_sections_before_exploring_and_persists(tmp_pat
     assert again.graph["contract_stage"] == stage
 
 
-@pytest.mark.parametrize("failure", [{}, RuntimeError("synthetic backend failure")])
-def test_k_failed_contract_attempts_still_adopt_entities_and_report(tmp_path, failure):
+@pytest.mark.parametrize("failure", [{}, {"calendar": {}}])
+def test_k_failed_contract_attempts_stop_execution_and_remain_failed_on_resume(tmp_path, failure):
+    from src.world.structured import StructuredFailure
     backend = backend_without_candidate_contracts([failure] * 2)
-    config = cfg(contract={"max_attempts": 2})
-    result = run_world_engine(RAW, package_dir=tmp_path, backend=backend,
-                              budget={"max_iterations": 3}, config=config)
-    assert result.iterations == 3 and result.counters["accepted"] >= 1
-    assert result.graph["entities"] and not world_premises(result.graph)
-    stage = result.graph["contract_stage"]
-    assert stage["status"] == "failed" and stage["attempts"] == 2
-    assert stage["checks_enabled"] is False
-    assert len([p for p in backend.json_prompts if p.startswith("WORLD CONTRACT")]) == 2
-    assert json.loads((tmp_path / "run_manifest.json").read_text())["world_contract"] == stage
-    report = (tmp_path / "final/world_report.md").read_text()
-    assert "Calendar, technology, unit and institution contract checks were disabled" in report
-    assert "Exploration continued" in report and "Attempts: 2" in report
+    with pytest.raises(StructuredFailure, match="world_contract"):
+        run_world_engine(RAW, package_dir=tmp_path, backend=backend,
+                         budget={"max_iterations": 3}, config=cfg(), structured_max_attempts=2)
     loaded = GraphStore(tmp_path).load()
-    assert loaded["contract_stage"] == stage
+    stage = loaded["contract_stage"]
+    assert stage["status"] == "failed" and stage["attempts"] == 2
+    assert not loaded["entities"] and not world_premises(loaded)
+    assert len([p for p in backend.json_prompts if p.startswith("WORLD CONTRACT")]) == 2
+    manifest = json.loads((tmp_path / "run_manifest.json").read_text())
+    assert manifest["status"] == "failed" and manifest["world_contract"] == stage
+    assert "world_contract" in (tmp_path / "final/world_report.md").read_text()
     resumed = backend_without_candidate_contracts([])
-    again = run_world_engine(RAW, package_dir=tmp_path, backend=resumed,
-                             budget={"max_iterations": 4}, config=config)
-    assert again.iterations == 4 and again.graph["contract_stage"] == stage
-    assert not any(p.startswith("WORLD CONTRACT") for p in resumed.json_prompts)
+    with pytest.raises(StructuredFailure, match="world_contract"):
+        run_world_engine(RAW, package_dir=tmp_path, backend=resumed,
+                         budget={"max_iterations": 4}, config=cfg())
+    assert not resumed.json_prompts
 
 
-def test_failed_contract_disables_its_deterministic_and_semantic_checks(tmp_path):
+def test_failed_contract_never_enables_exploration_fallback():
+    from src.world.structured import StructuredFailure
     graph = new_graph("en")
-    establish_contract(FakeLLMBackend({}), graph, BRIEF, AXES, max_attempts=1)
-    item = _specific(random.Random(8), ["s1"], ["a1"])
-    item["premise_usage"] = {"calendars": ["Undeclared Count"],
-        "technologies": ["Undeclared Method"], "units": ["u"], "institutions": ["Undeclared Rule"]}
-    candidate = OperatorRunner(FakeLLMBackend({"candidates": [item]})).run(
-        "premise", graph, n=1, brief=BRIEF, axes=AXES)[0]
-    assert verify_consistency(candidate, graph).score == 1
-    judge_backend = FakeLLMBackend({"consistency": {"score": 1, "issues": []}})
-    judge = LLMJudge(judge_backend)
-    judge.judge_many(["consistency"], candidate, graph, BRIEF, axes=AXES)
-    prompt = judge_backend.json_prompts[0]
-    assert "contract checks are disabled" in prompt
-    assert "unsupported authority or regulation" not in prompt
-    assert not world_premises(graph)
-    # Ordinary structural validation remains active in the fallback.
-    candidate["entity"]["parent"] = "missing-parent"
-    assert any(d.code == "graph_invalid" for d in verify_consistency(candidate, graph).deductions)
+    with pytest.raises(StructuredFailure):
+        establish_contract(FakeLLMBackend({}), graph, BRIEF, AXES, max_attempts=1)
+    assert graph["contract_stage"]["status"] == "failed"
+    assert graph["contract_stage"]["structured_failure"]["attempts"] == 1
+    assert not graph["entities"]
 
 
 def test_discard_reasons_aggregate_to_info_and_iteration_log(tmp_path):
@@ -126,8 +112,8 @@ def test_discard_reasons_aggregate_to_info_and_iteration_log(tmp_path):
     no_provenance = {**good, "statement_ids": [], "derived_from": []}
     thin = {**good, "facts": []}
     invalid_contract = {**good, "world_premises": {}}
-    rows = [None, {}, no_provenance, thin, invalid_contract, good, good]
-    config = cfg(generation={"candidates": 8, "max_rewrites": 0})
+    rows = [no_provenance, thin, good, good]
+    config = cfg(generation={"candidates": 4, "max_rewrites": 0})
     backend = FakeLLMBackend({"candidates": rows})
     messages = []
     sink = logger.add(lambda message: messages.append(str(message)), level="INFO")
@@ -138,9 +124,7 @@ def test_discard_reasons_aggregate_to_info_and_iteration_log(tmp_path):
         logger.remove(sink)
     iteration = next(r for r in read_preference_log(result.preferences_path)
                      if r["type"] == "iteration")
-    assert iteration["discard_reasons"] == {"schema_missing": 2,
-        "no_provenance": 1, "insufficient_facts": 1, "contract_invalid": 1,
-        "duplicate_name": 1}
+    assert iteration["discard_reasons"] == {"no_provenance": 1, "insufficient_facts": 1, "duplicate_name": 1}
     assert all(reason in "\n".join(messages) for reason in iteration["discard_reasons"])
     assert any("iteration 1" in m and "discard reasons" in m for m in messages)
 
@@ -220,7 +204,7 @@ def test_graph_inconsistency_and_contract_conflicts_have_distinct_reasons():
     conflict["calendar"]["origin"] = "another origin"
     runner = OperatorRunner(FakeLLMBackend({"candidates": [raw(world_premises=conflict)]}))
     assert not runner.run("premise", g, n=1)
-    assert runner.last_discard_reasons == {"contract_conflict": 1}
+    assert runner.last_discard_reasons == {"structured_failure": 1}
     # Pre-existing errors are ignored; an inherited invalid parent is a new error.
     g["entities"][1]["parent"] = "missing-parent"
     runner = OperatorRunner(FakeLLMBackend({"candidates": [raw()]}))
@@ -235,7 +219,7 @@ def test_rewrite_discard_reasons_are_in_the_same_iteration(tmp_path):
     ])
     verifier = RewardVerifier(contrasts=SimpleNamespace(get=lambda *args: []))
     result = ExplorationLoop(backend, tmp_path, BRIEF, AXES, verifier=verifier,
-                             config=cfg()).run(max_iterations=1)
+                             config=cfg(generation={"candidates": 1})).run(max_iterations=1)
     iteration = next(r for r in read_preference_log(result.preferences_path)
                      if r["type"] == "iteration")
     assert result.counters["rewrites"] == 1

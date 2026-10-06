@@ -78,8 +78,6 @@ common:
     - Do not write narrative prose. Write the world, not an account of events
       experienced by someone.
 
-    JSON shape:
-    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"...","premise_usage":{{"calendars":[],"technologies":[],"units":[],"institutions":[]}},"relations":[{{"type":"related_to","target":"e1"}}]}}]}}
 
 operators:
   premise: |

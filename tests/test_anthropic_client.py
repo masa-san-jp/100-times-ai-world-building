@@ -147,7 +147,7 @@ def test_stop_reason_max_tokens_is_recorded_as_truncation():
     )
     client = make_client(sdk_client)
 
-    assert client.generate_json("Return JSON") is None
+    assert client.generate_schema("Return JSON", {"type": "object"}, constrained=True) is None
     assert client.last_response_meta["stop_reason"] == "max_tokens"
     assert client.last_response_meta["truncated"] is True
 
@@ -189,3 +189,19 @@ def test_anthropic_is_optional_for_imports(monkeypatch):
     monkeypatch.setattr(builtins, "__import__", reject_anthropic)
     with pytest.raises(ImportError, match="optional 'anthropic'"):
         AnthropicClient(model="test-model", request_options={"max_tokens": 1})
+
+
+def test_generate_schema_forces_one_tool_and_returns_tool_input():
+    sdk_client = Mock()
+    message = SimpleNamespace(content=[SimpleNamespace(type="tool_use", name="structured_output", input={"key": "value"})], stop_reason="tool_use", stop_details=None)
+    sdk_client.messages.stream.return_value = FakeStream(message)
+    client = make_client(sdk_client)
+    schema = {"type": "object"}
+    assert client.generate_schema("Return", schema, constrained=False, system_prompt="System", images=[b"image"]) == '{"key": "value"}'
+    request = sdk_client.messages.stream.call_args.kwargs
+    assert request["tools"][0]["input_schema"] == schema
+    assert len(request["tools"]) == 1
+    assert request["tool_choice"] == {"type": "tool", "name": "structured_output"}
+    assert request["system"] == "System"
+    assert request["messages"][0]["content"][0]["type"] == "image"
+    assert sdk_client.messages.stream.call_count == 1

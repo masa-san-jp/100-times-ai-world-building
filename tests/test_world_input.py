@@ -98,26 +98,21 @@ def test_image_original_is_saved_and_vision_description_is_source_material(
     assert (tmp_path / "package" / "source_for_brief.txt").is_file()
 
 
-def test_ids_are_assigned_by_code_in_order_after_filtering(tmp_path):
+def test_ids_are_assigned_after_schema_repair_and_quote_filtering(tmp_path):
     raw = "甲は乙。丙は丁。戊は己。"
-    backend = FakeLLMBackend(
-        json_responses={
-            "statements": [
-                {"id": "x9", "text": "a", "quote": "甲は乙"},
-                {"text": "dropped", "quote": "存在しない"},
-                {"text": "b", "quote": "戊は己"},
-            ],
-            "open_questions": ["q one", {"id": "zz", "text": "q two"}, ""],
-            "constraints": ["c one"],
-        }
-    )
-
+    invalid = {"statements": [{"id": "x9", "text": "a", "quote": "甲は乙"}],
+               "open_questions": [{"id": "zz", "text": "q two"}], "constraints": []}
+    valid = {"statements": [{"text": "a", "quote": "甲は乙"},
+                            {"text": "dropped", "quote": "存在しない"},
+                            {"text": "b", "quote": "戊は己"}],
+             "open_questions": ["q one", "q two", ""], "constraints": ["c one"]}
+    backend = FakeLLMBackend([invalid, valid])
     brief = InputBriefBuilder(backend, tmp_path).build(raw).brief
-
     assert [s["id"] for s in brief["statements"]] == ["s1", "s2"]
     assert [q["id"] for q in brief["open_questions"]] == ["q1", "q2"]
     assert brief["open_questions"][1]["text"] == "q two"
     assert brief["constraints"] == [{"id": "c1", "text": "c one"}]
+    assert len(backend.json_prompts) == 2 and "Additional properties" in backend.json_prompts[1]
 
 
 def test_blank_or_whitespace_quotes_are_rejected(tmp_path):

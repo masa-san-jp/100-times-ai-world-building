@@ -16,9 +16,6 @@ selection:
   arm_by_axis: false        # also split arms by axis
   max_items_per_kind: 12    # frontier items kept per kind (most deficient first)
 
-contract:
-  max_attempts: 3            # total calls, including the first; failures do not stop exploration
-
 generation:
   candidates: 3             # candidates per operator call
   max_rewrites: 2           # critique-and-rewrite rounds per iteration

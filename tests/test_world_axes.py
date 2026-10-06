@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 import yaml
+import pytest
 
 from src.llm import FakeLLMBackend
 from src.world import WorldAxesBuilder, load_axes, load_catalog
@@ -25,6 +26,7 @@ def _brief(*texts):
 
 
 def _build(tmp_path, response, brief):
+    response = {"axes": [{"name": "", "reason": "", "statement_ids": [], **a} for a in response["axes"]]}
     return WorldAxesBuilder(
         FakeLLMBackend(json_responses=response), tmp_path
     ).build(brief)
@@ -70,37 +72,24 @@ def test_weights_follow_input_and_differ_between_inputs(tmp_path):
     assert a.to_dict() != b.to_dict()
 
 
-def test_invalid_output_is_clamped_dropped_and_filled(tmp_path):
-    brief = _brief("one")
-    result = _build(tmp_path, {"axes": [
-        {"domain": "history", "meaning": "m", "weight": 7,
-         "statement_ids": ["s1"]},
-        {"domain": "daily_life", "meaning": "m", "weight": -3,
-         "statement_ids": ["s1"]},
-        {"domain": "ecology", "meaning": "m", "weight": "high",
-         "statement_ids": ["nope"]},
-        {"domain": "arts_media", "meaning": "m", "weight": 1.0},
-        {"domain": "unknown", "name": "No ground", "meaning": "m",
-         "weight": 0.5},
-        "garbage",
-    ]}, brief)
-    axes = _by_id(result)
-    floor = load_catalog()["min_weight"]
-    cap = load_catalog()["ungrounded_max_weight"]
-    assert axes["history"]["weight"] == 1.0
-    assert axes["daily_life"]["weight"] == floor
-    assert axes["ecology"]["weight"] == floor
-    assert axes["ecology"]["grounds"]["statement_ids"] == []
-    assert axes["arts_media"]["weight"] == cap
-    assert axes["arts_media"]["grounds"]["reason"] == NO_INPUT_REASON
-    assert not any(a["origin"] == "added" for a in result.axes)
+def test_invalid_output_requires_repair_and_is_never_filled(tmp_path):
+    bad = {"axes": [{"domain": "unknown", "weight": "high", "statement_ids": "s1"}]}
+    good = {"axes": [{"domain": "history", "name": "", "meaning": "m", "weight": 0.7,
+                       "statement_ids": ["s1"], "reason": ""}]}
+    backend = FakeLLMBackend([bad, good])
+    result = WorldAxesBuilder(backend, tmp_path).build(_brief("one"))
+    assert _by_id(result)["history"]["weight"] == 0.7
+    assert len(backend.json_prompts) == 2
+    assert "REPAIR INSTRUCTIONS" in backend.json_prompts[1]
+    assert "enum" in backend.json_prompts[1] and "required" in backend.json_prompts[1]
 
 
-def test_garbage_response_still_yields_full_catalog(tmp_path):
-    for response in ({}, {"axes": "x"}, {"statements": []}):
-        result = _build(tmp_path, response, _brief("a"))
-        assert len(result.axes) == len(load_catalog()["domains"])
-        assert all(a["weight"] > 0 for a in result.axes)
+@pytest.mark.parametrize("response", [{}, {"axes": "x"}, {"statements": []}])
+def test_garbage_response_fails_instead_of_yielding_catalog(tmp_path, response):
+    from src.world.structured import StructuredFailure
+    with pytest.raises(StructuredFailure, match="world_axes"):
+        WorldAxesBuilder(FakeLLMBackend(response), tmp_path).build(_brief("a"))
+    assert not (tmp_path / "world_axes.json").exists()
 
 
 def test_input_can_add_domains_with_grounds(tmp_path):

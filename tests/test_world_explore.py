@@ -66,14 +66,16 @@ def _specific(rng, ids, axis_ids):
             {"kind": "object", "text": f"{w[17]} {w[18]} seal"},
             {"kind": "object", "text": f"{w[19]} {w[20]} ledger"},
             {"kind": "period", "text": f"{w[21]} term {rng.randint(2, 90)}"}],
-        "statement_ids": ids[:1], "derived_from": [], "reason": ""}
+        "statement_ids": ids[:1], "derived_from": [], "reason": "",
+        "relations": [], "premise_usage": {k: [] for k in ("calendars", "technologies", "units", "institutions")}}
 
 
 def _generic(i, ids):
     return {"type": "concept", "name": f"Central Guild {chr(65 + i)}",
             "axes": [], "summary": GENERIC_SUMMARY,
             "facts": GENERIC_FACTS, "statement_ids": ids[:1],
-            "derived_from": [], "reason": ""}
+            "derived_from": [], "reason": "", "relations": [],
+            "premise_usage": {k: [] for k in ("calendars", "technologies", "units", "institutions")}}
 
 
 def make_backend(generic_ops=(), always_generic=False, fail_after=None):
@@ -93,7 +95,7 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
                 "open_questions": [], "constraints": []}
         if "DOMAIN CATALOG" in prompt:
             return {"axes": [{"domain": "resources_economy", "meaning": "m",
-                              "weight": 0.9, "statement_ids": ["s1"]}]}
+                              "weight": 0.9, "statement_ids": ["s1"], "name": "", "reason": ""}]}
         if prompt.startswith("WORLD CONTRACT"):
             return SYNTHETIC_PREMISES
         m = re.search(r"that you may tag:\n(.*?)\n\n", prompt, re.S)
@@ -115,7 +117,7 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
                     for fact in row["facts"]:
                         if fact["kind"] == "period":
                             fact["text"] = re.sub(r"\d+", "1", fact["text"])
-                row["world_premises"] = SYNTHETIC_PREMISES
+
                 row["reason"] = "Quota agreements determine record cycles and recording methods"
             return {"candidates": rows}
 

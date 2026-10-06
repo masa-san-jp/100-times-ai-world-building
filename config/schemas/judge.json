@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "additionalProperties": false,
+  "$defs": {
+    "assessment": {
+      "type": "object",
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "why": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "field",
+              "why",
+              "code"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "score",
+        "issues"
+      ],
+      "additionalProperties": false
+    },
+    "unit_approval": {
+      "type": "object",
+      "properties": {
+        "unit": {
+          "type": "string"
+        },
+        "approved": {
+          "type": "string",
+          "enum": [
+            "yes",
+            "no"
+          ]
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "unit",
+        "approved",
+        "why"
+      ],
+      "additionalProperties": false
+    },
+    "capability_approval": {
+      "type": "object",
+      "properties": {
+        "capability": {
+          "type": "string"
+        },
+        "approved": {
+          "type": "string",
+          "enum": [
+            "yes",
+            "no"
+          ]
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "capability",
+        "approved",
+        "why"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

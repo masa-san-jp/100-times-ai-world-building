@@ -43,7 +43,8 @@ def _cand(name="N", **kw):
                   {"kind": "object", "text": "brass seal"},
                   {"kind": "object", "text": "tin cup"}],
         "statement_ids": ["s1"], "derived_from": [], "reason": "derived recording order",
-        "world_premises": SYNTHETIC_PREMISES,
+        "relations": [],
+        "premise_usage": {k: [] for k in ("calendars", "technologies", "units", "institutions")},
     }
     c.update(kw)
     return c
@@ -53,7 +54,8 @@ def _backend(*cands):
     return FakeLLMBackend(lambda prompt: {"candidates": list(cands)})
 
 
-def _run(op, cands, target="e3", n=3, graph=None, **kw):
+def _run(op, cands, target="e3", n=None, graph=None, **kw):
+    n = len(cands) if n is None else n
     g = graph or _graph()
     r = OperatorRunner(_backend(*cands), **kw)
     return g, r.run(op, g, None if op == "premise" else target, n,
@@ -97,10 +99,14 @@ def test_derived_from_with_reason_is_accepted():
     assert out[0]["entity"]["provenance"]["derived_from"] == ["e2"]
 
 
-def test_model_supplied_ids_scale_parent_are_ignored():
-    _, out = _run("zoom", [_cand("A", id="e1", scale="world", parent="e1")])
+def test_model_supplied_ids_scale_parent_require_repair_before_code_assigns_them():
+    invalid = _cand("A", id="e1", scale="world", parent="e1")
+    backend = FakeLLMBackend([{"candidates": [invalid]}, {"candidates": [_cand("A")]}])
+    out = OperatorRunner(backend).run("zoom", _graph(), "e3", 1, brief=BRIEF, axes=AXES)
     e = out[0]["entity"]
     assert e["id"] == "e5" and e["scale"] == "district" and e["parent"] == "e3"
+    assert len(backend.json_prompts) == 2
+    assert "Additional properties" in backend.json_prompts[1]
 
 
 def test_zoom_places_one_scale_below_target():
@@ -166,17 +172,22 @@ def test_facts_and_summary_are_required():
 
 def test_unknown_axes_and_relations_are_filtered():
     _, out = _run("expand", [_cand(axes=["zzz"], relations=[
-        {"type": "causes", "target": "e999"}, {"type": "bad", "target": "e1"},
+        {"type": "causes", "target": "e999"},
         {"type": "opposes", "target": "e1"}])])
     e = out[0]["entity"]
     assert e["axes"] == ["geo"]  # inherited from target
     assert e["relations"] == [{"type": "opposes", "target": "e1"}]
 
 
-def test_duplicate_names_are_dropped_and_n_is_capped():
-    _, out = _run("expand", [_cand("Namee1"), _cand("X"), _cand("x"),
-                             _cand("Y"), _cand("Z")], n=2)
+def test_duplicate_names_are_dropped_and_output_count_is_enforced():
+    _, out = _run("expand", [_cand("Namee1"), _cand("X"), _cand("x"), _cand("Y"), _cand("Z")], n=5)
+    assert [c["entity"]["name"] for c in out] == ["X", "Y", "Z"]
+    backend = FakeLLMBackend([{"candidates": [_cand("X")]}, {"candidates": [_cand("X"), _cand("Y")]}])
+    runner = OperatorRunner(backend, OperatorConfig(max_candidates=2))
+    out = runner.run("expand", _graph(), "e3", 9, brief=BRIEF, axes=AXES)
     assert [c["entity"]["name"] for c in out] == ["X", "Y"]
+    assert len(backend.json_prompts) == 2
+    assert "too short" in backend.json_prompts[1]
 
 
 def test_bad_responses_yield_no_candidates():
@@ -210,7 +221,8 @@ def test_prompt_uses_language_and_bounded_context():
     prompt = backend.json_prompts[0]
     assert 'with code "qq-LANG"' in prompt
     assert "Sib10" in prompt and "Sib59" not in prompt
-    assert len(prompt) < 8000
+    assert len(prompt.split("OUTPUT SCHEMA:")[0]) < 8000
+    assert "OUTPUT SCHEMA:" in prompt
 
 
 def test_wrappers_and_dispatch():

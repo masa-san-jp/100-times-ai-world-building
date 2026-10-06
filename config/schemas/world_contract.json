@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "calendar": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "origin": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "markers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "maxItems": 4,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "name",
+        "origin",
+        "markers"
+      ],
+      "additionalProperties": false
+    },
+    "technology": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "maxItems": 4
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "maxItems": 4,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "description",
+        "capabilities",
+        "units"
+      ],
+      "additionalProperties": false
+    },
+    "society": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "institutions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "description",
+        "institutions"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "calendar",
+    "technology",
+    "society"
+  ],
+  "additionalProperties": false
+}

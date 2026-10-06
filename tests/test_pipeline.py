@@ -90,24 +90,23 @@ def test_missing_model_is_an_error(tmp_path):
         Pipeline(config_path=cfg, output_dir=tmp_path, backend="anthropic")
 
 
-@pytest.mark.parametrize("mode", ["auto", "prompt", "format"])
-def test_ollama_json_mode_is_loaded_from_config(tmp_path, mode):
-    cfg = write_config(tmp_path, server={"json_mode": mode})
-    p = Pipeline(config_path=cfg, output_dir=tmp_path, backend="ollama")
-    assert p.client.json_mode == mode
-    assert p.vision_client.json_mode == mode
+@pytest.mark.parametrize("attempts", [1, 2, 5])
+def test_structured_attempts_loaded_from_config(tmp_path, attempts):
+    cfg = write_config(tmp_path, engine={"structured": {"max_attempts": attempts}})
+    p = make(tmp_path, config_path=cfg)
+    assert p.structured_config["max_attempts"] == attempts
 
 
-def test_ollama_json_mode_defaults_to_auto_for_older_configs(tmp_path):
-    cfg = write_config(tmp_path, server={})
-    p = Pipeline(config_path=cfg, output_dir=tmp_path, backend="ollama")
-    assert p.client.json_mode == p.vision_client.json_mode == "auto"
+def test_structured_attempts_default_for_older_configs(tmp_path):
+    cfg = write_config(tmp_path, engine={})
+    assert make(tmp_path, config_path=cfg).structured_config["max_attempts"] == 3
 
 
-def test_invalid_ollama_json_mode_in_config_is_rejected(tmp_path):
-    cfg = write_config(tmp_path, server={"json_mode": "invalid"})
-    with pytest.raises(ValueError, match="json_mode"):
-        Pipeline(config_path=cfg, output_dir=tmp_path, backend="ollama")
+@pytest.mark.parametrize("attempts", [0, -1, True, "3"])
+def test_invalid_structured_attempt_setting_is_rejected(tmp_path, attempts):
+    cfg = write_config(tmp_path, engine={"structured": {"max_attempts": attempts}})
+    with pytest.raises(ValueError, match="max_attempts"):
+        make(tmp_path, config_path=cfg).run(RAW)
 
 
 def test_unsupported_backend_is_rejected(tmp_path):
@@ -170,13 +169,13 @@ def test_configured_backend_applies_defaults_without_overriding_calls():
     class Inner:
         model = "m"
 
-        def generate_json(self, prompt, **kw):
+        def generate_schema(self, prompt, schema, **kw):
             seen.append(kw)
             return {}
 
     b = ConfiguredBackend(Inner(), {"max_tokens": 10, "think": None, "num_ctx": 5})
-    b.generate_json("p")
-    b.generate_json("p", max_tokens=99)
+    b.generate_schema("p", {})
+    b.generate_schema("p", {}, max_tokens=99)
     assert seen[0] == {"max_tokens": 10, "num_ctx": 5}
     assert seen[1] == {"max_tokens": 99, "num_ctx": 5}
     assert b.model == "m"

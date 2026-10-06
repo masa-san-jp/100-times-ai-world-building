@@ -27,7 +27,6 @@ class OllamaClient(LLMBackend):
         timeout: int = 300,
         max_retries: int = 3,
         retry_delay: int = 5,
-        json_mode: str = "auto",
     ):
         """
         Initialize Ollama client
@@ -39,19 +38,12 @@ class OllamaClient(LLMBackend):
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries on failure
             retry_delay: Delay between retries in seconds
-            json_mode: Structured output requests use "format", "prompt", or
-                "auto" (learn a compatible mode per model for this client).
         """
-        if json_mode not in ("format", "prompt", "auto"):
-            raise ValueError("json_mode must be 'format', 'prompt', or 'auto'")
         self.base_url = f"{host}:{port}"
         self.model = model
         self.timeout = timeout
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.json_mode = json_mode
-        self._json_modes: Dict[Optional[str], str] = {}
-        self._json_prompt_failures: Dict[Optional[str], int] = {}
         self.last_response_meta: Dict[str, Any] = {}
 
         logger.info(f"Initialized OllamaClient: {self.base_url}, model: {self.model}")
@@ -203,6 +195,7 @@ class OllamaClient(LLMBackend):
         Returns:
             Generated text, or None on failure
         """
+        single_attempt = kwargs.pop("_single_attempt", False)
         # Combine system prompt with user prompt if provided
         if system_prompt:
             full_prompt = f"{system_prompt}\n\n{prompt}"
@@ -233,7 +226,7 @@ class OllamaClient(LLMBackend):
             # ``think`` is an Ollama request field, not a sampling option.
             payload["think"] = think
 
-        for attempt in range(self.max_retries):
+        for attempt in range(1 if single_attempt else self.max_retries):
             try:
                 logger.debug(f"Generating (attempt {attempt + 1}/{self.max_retries})")
 
@@ -253,6 +246,8 @@ class OllamaClient(LLMBackend):
                     return generated_text
 
                 logger.warning("Empty response from Ollama")
+                if single_attempt:
+                    return generated_text
 
             except requests.exceptions.Timeout:
                 logger.warning(f"Request timeout (attempt {attempt + 1})")
@@ -264,7 +259,7 @@ class OllamaClient(LLMBackend):
                 logger.error(f"Unexpected error: {e}")
 
             # Wait before retry
-            if attempt < self.max_retries - 1:
+            if not single_attempt and attempt < self.max_retries - 1:
                 logger.info(f"Retrying in {self.retry_delay} seconds...")
                 time.sleep(self.retry_delay)
 
@@ -280,134 +275,13 @@ class OllamaClient(LLMBackend):
             raw = Path(image).read_bytes()
         return base64.b64encode(raw).decode("ascii")
 
-    def generate_json(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: int = 4096,
-        system_prompt: Optional[str] = None,
-        validate: bool = True,
-        images: Optional[List[Union[str, Path, bytes]]] = None,
-        num_ctx: Optional[int] = None,
-        **kwargs,
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Generate JSON output
-
-        In auto mode, a successful prompt-only fallback is remembered per
-        model. Two consecutive failed prompt-only calls (each exhausting the
-        normal request retries) switch back to format mode and probe it again.
-        Learned modes are local to this client and are not persisted.
-
-        Args:
-            prompt: Input prompt
-            temperature: Generation temperature
-            max_tokens: Maximum tokens to generate
-            system_prompt: Optional system prompt
-            validate: Whether to validate JSON output
-
-        Returns:
-            Parsed JSON dictionary, or None on failure
-        """
-        # Ensure prompt explicitly requests JSON
-        if "JSON" not in prompt and "json" not in prompt:
-            prompt = f"{prompt}\n\n重要: 必ず有効なJSON形式で出力してください。"
-
-        mode = self.json_mode
-        if mode == "auto":
-            mode = self._json_modes.get(self.model, "format")
-        request_kwargs = {
-            **kwargs,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "system_prompt": system_prompt,
-            "images": images,
-            "num_ctx": num_ctx,
-        }
-        parsed = self._generate_json_mode(prompt, mode, validate, **request_kwargs)
-        if parsed is not None:
-            self._json_prompt_failures.pop(self.model, None)
-            return parsed
-
-        # Fixed modes never try the other request mode. Keep validate=False's
-        # existing behavior of parsing once without a compatibility retry.
-        if self.json_mode == "auto" and validate:
-            if mode == "format":
-                logger.warning(
-                    "Structured JSON response failed; retrying with prompt-"
-                    "constrained JSON and thinking disabled"
-                )
-                parsed = self._generate_json_mode(
-                    prompt, "prompt", validate, **request_kwargs
-                )
-                if parsed is not None:
-                    self._set_json_mode("prompt")
-                    return parsed
-            else:
-                failures = self._json_prompt_failures.get(self.model, 0) + 1
-                self._json_prompt_failures[self.model] = failures
-                if failures >= 2:
-                    self._set_json_mode("format")
-                    parsed = self._generate_json_mode(
-                        prompt, "format", validate, **request_kwargs
-                    )
-                    if parsed is not None:
-                        return parsed
-
-        logger.error("Failed to parse JSON after all retries")
-        return None
-
-    def _generate_json_mode(
-        self, prompt: str, mode: str, validate: bool, **kwargs
-    ) -> Optional[Union[Dict[str, Any], List[Any]]]:
-        """Reuse generation options, including the seed, across mode probes."""
-        if mode == "prompt":
-            kwargs["think"] = False
-        response = self.generate(
-            prompt=prompt, format="json" if mode == "format" else "", **kwargs
-        )
-        if response is None:
-            return None
-        return self._parse_json(response, validate=validate)
-
-    def _set_json_mode(self, mode: str) -> None:
-        """Log each learned mode transition once, rather than every success."""
-        previous = self._json_modes.get(self.model, "format")
-        self._json_modes[self.model] = mode
-        self._json_prompt_failures.pop(self.model, None)
-        if previous != mode:
-            logger.info(
-                f"JSON request mode switched from {previous} to {mode} "
-                f"for model: {self.model}"
-            )
-
-    @staticmethod
-    def _parse_json(
-        response: str,
-        validate: bool = True,
-    ) -> Optional[Union[Dict[str, Any], List[Any]]]:
-        """Parse JSON, including common fenced-output wrappers."""
-        candidate = response
-        for attempt in range(3 if validate else 1):
-            try:
-                data = json.loads(candidate)
-                logger.debug("Successfully parsed JSON")
-                return data
-            except json.JSONDecodeError as exc:
-                logger.warning(f"JSON parse error (attempt {attempt + 1}): {exc}")
-
-                if validate and attempt < 2:
-                    candidate = candidate.strip()
-                    if not candidate.startswith("{") and not candidate.startswith("["):
-                        if "```json" in candidate:
-                            candidate = candidate.split("```json", 1)[1].split("```", 1)[0]
-                        elif "```" in candidate:
-                            candidate = candidate.split("```", 1)[1].split("```", 1)[0]
-                    else:
-                        break
-                else:
-                    break
-        return None
+    def generate_schema(self, prompt, schema, *, system_prompt=None, images=None,
+                        constrained=True, **kwargs):
+        kwargs.pop("think", None)
+        kwargs.pop("format", None)
+        return self.generate(prompt, format=schema if constrained else None,
+                             system_prompt=system_prompt, images=images,
+                             think=False, _single_attempt=True, **kwargs)
 
     def generate_text(
         self,

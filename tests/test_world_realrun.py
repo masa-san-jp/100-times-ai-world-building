@@ -254,8 +254,8 @@ def test_hollow_facts_do_not_count_toward_kind_coverage():
 
 
 def test_llm_judge_sees_input_statements_and_is_pluggable():
-    backend = FakeLLMBackend({"score": 0.3, "issues": [
-        {"field": "facts[0]", "why": "hollow proper noun"}]})
+    backend = FakeLLMBackend({"specificity": {"score": 0.3, "issues": [
+        {"field": "facts[0]", "why": "hollow proper noun", "code": "llm_judge"}]}})
     rv = verifier(llm_judges=["specificity"])
     rv.judge = LLMJudge(backend)
     res = rv.verify(new_graph("ja"), SPECIFIC[0], brief=BRIEF_JA, store=False)
@@ -367,7 +367,10 @@ def ja_backend():
                 {"text": "塩鉱業で暮らしが成り立っている",
                  "quote": "塩鉱業で暮らしが成り立っている"}],
                 "open_questions": ["管理権の帰属は未定"], "constraints": []}
-        return {"axes": [{"domain": "resources_economy",
+        if prompt.startswith("WORLD CONTRACT"):
+            from tests.test_world_explore import SYNTHETIC_PREMISES
+            return SYNTHETIC_PREMISES
+        return {"axes": [{"name": "", "reason": "", "domain": "resources_economy",
                           "meaning": "塩と水の配分", "weight": 0.9,
                           "statement_ids": ["s1"]}]}
     return FakeLLMBackend(respond)
@@ -448,98 +451,31 @@ def test_english_input_keeps_english_catalog_names(tmp_path):
 
 # ------------------------------------------- malformed model output (#43 fix)
 
-from src.world.coerce import fact_items, id_list, relation_items, text_of  # noqa: E402
-from src.world.explore import STOP_REASONS, read_preference_log  # noqa: E402
-from src.world.graph import FACT_KINDS, RELATION_TYPES  # noqa: E402
-from src.world.operators import OperatorRunner  # noqa: E402
+from src.world.explore import STOP_REASONS, read_preference_log
+from src.world.operators import OperatorRunner
+from src.world.schemas import candidates_schema
+from src.world.structured import generate_structured
+from tests.test_world_operators import _cand
 
 
-def test_id_lists_are_coerced_from_every_shape():
-    assert id_list(["e1", "e2"]) == ["e1", "e2"]
-    assert id_list([{"id": "e1"}, {"target": "e2"}, {"entity_id": "e3"}]) \
-        == ["e1", "e2", "e3"]
-    assert id_list("s1, s2;s3") == ["s1", "s2", "s3"]
-    assert id_list([["s1", ["s2"]], 3, None, True, {"x": 1}]) == ["s1", "s2", "3"]
-    assert id_list("s1") == ["s1"] and id_list(None) == [] and id_list({}) == []
-    assert id_list("[s1, s1]") == ["s1"]
-
-
-def test_facts_and_relations_are_coerced_or_dropped():
-    facts = fact_items(["plain text", {"kind": "Proper Noun", "value": "Name"},
-                        {"type": "weird", "description": "d"}, {"kind": "number"},
-                        7, None, [1]], FACT_KINDS)
-    assert facts == [{"kind": "other", "text": "plain text"},
-                     {"kind": "proper_noun", "text": "Name"},
-                     {"kind": "other", "text": "d"},
-                     {"kind": "other", "text": "7"}]
-    rels = relation_items([{"type": "causes", "entity_id": "e1"},
-                           {"relation": "related-to", "target": {"id": "e2"}},
-                           {"type": "causes"}, "bad", {"type": "nope", "target": "e1"}],
-                          RELATION_TYPES)
-    assert rels == [{"type": "causes", "target": "e1"},
-                    {"type": "related_to", "target": "e2"}]
-    assert text_of({"text": {"value": "deep"}}) == "deep"
-
-
-def _runner_result(item, **kw):
-    g = world_only_graph()
-    brief = {"statements": [{"id": "s1", "text": "a"}, {"id": "s2", "text": "b"}]}
-    base = {"type": "concept", "name": "N", "summary": "S",
-            "facts": [{"kind": "proper_noun", "text": "Nn"}],
-            "statement_ids": ["s1"]}
-    base.update(item)
-    backend = FakeLLMBackend({"candidates": base if kw.get("single") else [base]})
-    return OperatorRunner(backend).run(
-        "expand", g, "e1", 1, brief=brief, axes=AXES)
-
-
-@pytest.mark.parametrize("derived", [
-    [{"id": "e1"}], [{"target": "e1"}], [{"entity_id": "e1"}], "e1", ["e1"],
-    [["e1"]], [None, 5, {"x": 1}, "e1"]])
-def test_derived_from_shapes_do_not_crash(derived):
-    out = _runner_result({"derived_from": derived, "reason": "because"})
-    assert len(out) == 1
-    assert out[0]["entity"]["provenance"]["derived_from"] == ["e1"]
-
-
-def test_other_malformed_fields_never_raise():
-    out = _runner_result({"statement_ids": "s1, s2", "axes": [{"id": "a1"}, 4],
-                          "relations": [{"type": "causes", "target": {"id": "e1"}},
-                                        {"type": "causes"}, "x"],
-                          "facts": ["bare string", {"kind": "number", "value": 3},
-                                    {"kind": ["x"], "text": ["y"]}, None],
-                          "reason": {"text": "why"}})
-    e = out[0]["entity"]
-    assert e["provenance"]["statement_ids"] == ["s1", "s2"]
-    assert e["axes"] == ["a1"]
-    assert [f["text"] for f in e["facts"]] == ["bare string", "3"]
-    assert {"type": "causes", "target": "e1"} in e["relations"]
-    for junk in ({"name": {"x": 1}}, {"summary": None}, {"type": ["concept"]},
-                 {"statement_ids": {"a": 1}}, {"facts": "one string"},
-                 {"derived_from": 5, "statement_ids": None}):
-        _runner_result(junk)  # dropped or coerced, never an exception
-    assert len(_runner_result({}, single=True)) == 1  # one object, not a list
-
-
-def test_axes_input_and_judge_parsing_survive_bad_shapes(tmp_path):
-    brief = {"statements": [{"id": "s1", "text": "t"}], "open_questions": [],
-             "constraints": []}
-    bad = {"axes": [{"domain": "history", "weight": 0.5, "meaning": ["x"],
-                     "statement_ids": [{"id": "s1"}, [["s9"]], None]},
-                    {"domain": {"a": 1}, "name": 3}, "junk"]}
-    res = WorldAxesBuilder(FakeLLMBackend(bad), tmp_path).build(brief)
-    hist = [a for a in res.axes if a["id"] == "history"][0]
-    assert hist["grounds"]["statement_ids"] == ["s1"]
-    built = InputBriefBuilder(FakeLLMBackend({
-        "statements": ["塩鉱業", {"text": 5, "quote": ["x"]}, None],
-        "open_questions": [None, {"text": "q"}, 3], "constraints": "c"}),
-        tmp_path / "i").build("塩鉱業で暮らす")
-    assert [s["text"] for s in built.brief["statements"]] == ["塩鉱業"]
-    judge = LLMJudge(FakeLLMBackend({"score": 0.5, "issues": 3}))
-    out = judge.judge("specificity", SPECIFIC[0], new_graph("ja"))
-    assert out and out[0].code == "llm_judge"
-    judge = LLMJudge(FakeLLMBackend({"score": [1], "issues": {"a": 1}}))
-    assert judge.judge("specificity", SPECIFIC[0], new_graph("ja")) is None
+@pytest.mark.parametrize("field,value", [
+    ("derived_from", [{"id": "e1"}]), ("derived_from", "e1"),
+    ("derived_from", [["e1"]]), ("statement_ids", "s1, s2"),
+    ("axes", [{"id": "a1"}, 4]), ("facts", ["bare string"]),
+    ("reason", {"text": "why"}), ("relations", [{"type": "causes", "target": {"id": "e1"}}]),
+    ("name", {"x": 1}), ("summary", None), ("type", ["concept"]),
+    ("facts", [{"kind": "number", "value": 3}]),
+])
+def test_malformed_fields_require_schema_repair(field, value):
+    good = {"candidates": [_cand()]}
+    bad = {"candidates": [{**good["candidates"][0], field: value}]}
+    backend = FakeLLMBackend([bad, good])
+    result = generate_structured(backend, "generate", candidates_schema(1),
+                                 task="candidates", max_attempts=3)
+    assert result.data == good and result.attempts == 2
+    assert result.violations[0]
+    assert field in backend.json_prompts[1]
+    assert "PREVIOUS OUTPUT" in backend.json_prompts[1]
 
 
 # ----------------------------------------------- resilient loop (#43 fix)
@@ -553,7 +489,7 @@ def flaky_backend(bad_calls, exc=lambda: TimeoutError("backend timed out")):
         if calls["n"] in bad_calls:
             raise exc()
         return inner.json_source(prompt) if hasattr(inner, "json_source") \
-            else inner.generate_json(prompt)
+            else json.loads(inner.generate_schema(prompt, {}, constrained=True))
     return FakeLLMBackend(respond)
 
 
@@ -581,7 +517,7 @@ def test_malformed_model_output_in_the_loop_is_not_fatal(tmp_path):
     inner = make_backend()
 
     def respond(prompt):
-        out = inner.generate_json(prompt)
+        out = json.loads(inner.generate_schema(prompt, {}, constrained=True))
         for c in (out or {}).get("candidates", []):
             c["derived_from"] = [{"id": "e1"}, {"target": "e2"}]
             c["facts"] = [f["text"] for f in c["facts"]]

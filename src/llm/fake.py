@@ -8,6 +8,7 @@ real model and makes repeated runs reproducible.
 from __future__ import annotations
 
 import copy
+import json
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -25,8 +26,7 @@ class FakeLLMBackend:
 
     ``json_responses`` may be a mapping, a finite iterable, or a callable.
     Iterable responses are consumed in order.  A missing response produces an
-    empty input-brief-shaped object, which is useful for tests that only need
-    to exercise persistence.
+    empty response so tests exercise the same repair and failure paths.
     """
 
     model = "fake"
@@ -46,6 +46,7 @@ class FakeLLMBackend:
             else None
         )
         self._text_iterator = iter(text_responses or ())
+        self.schema_calls = []
         self.json_prompts: List[str] = []
         self.text_prompts: List[str] = []
         self.last_response_meta: Dict[str, Any] = {}
@@ -53,17 +54,11 @@ class FakeLLMBackend:
     def check_ready(self) -> bool:
         return True
 
-    def generate_json(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = 4096,
-        system_prompt: Optional[str] = None,
-        validate: bool = True,
-        images: Optional[List[Union[str, Path, bytes]]] = None,
-        **kwargs: Any,
-    ) -> Optional[Dict[str, Any]]:
-        del temperature, max_tokens, system_prompt, validate, images, kwargs
+    def generate_schema(self, prompt, schema, *, system_prompt=None, images=None,
+                        constrained=True, **kwargs):
+        self.schema_calls.append({"prompt": prompt, "schema": copy.deepcopy(schema),
+                                  "system_prompt": system_prompt, "images": images,
+                                  "constrained": constrained, **kwargs})
         self.json_prompts.append(prompt)
         source = self._json_source
         if callable(source):
@@ -78,8 +73,11 @@ class FakeLLMBackend:
         else:
             response = None
         if response is None:
-            return {"statements": [], "open_questions": [], "constraints": []}
-        return copy.deepcopy(dict(response))
+            return None
+        raw = response if isinstance(response, str) else json.dumps(response, ensure_ascii=False)
+        if type(self) is FakeLLMBackend:
+            self.last_response_meta = {"response": raw}
+        return raw
 
     def generate_text(
         self,

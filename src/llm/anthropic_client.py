@@ -22,6 +22,7 @@ class AnthropicClient:
     """Generate text through the official Anthropic Python SDK."""
 
     backend_name = "anthropic"
+    schema_always_constrained = True
 
     def __init__(
         self,
@@ -129,61 +130,28 @@ class AnthropicClient:
             self._record_exception(exc, "unexpected_error")
             return None
 
-    def generate_json(
-        self,
-        prompt: str,
-        temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        system_prompt: Optional[str] = None,
-        validate: bool = True,
-        images: Optional[List[ImageInput]] = None,
-        **kwargs: Any,
-    ) -> Optional[Dict[str, Any]]:
-        """Generate JSON using prompt instructions and local parsing/validation."""
-        if "JSON" not in prompt and "json" not in prompt:
-            prompt = f"{prompt}\n\n重要: 必ず有効なJSON形式で出力してください。"
-
-        response = self.generate_text(
-            prompt=prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            system_prompt=system_prompt,
-            images=images,
-            **kwargs,
-        )
-        if response is None:
+    def generate_schema(self, prompt, schema, *, system_prompt=None, images=None,
+                        constrained=True, **kwargs):
+        """Force a single tool call and return its input as raw JSON."""
+        request = dict(self.request_options)
+        request.update(model=self.model,
+                       messages=[{"role": "user", "content": self._message_content(prompt, images)}],
+                       tools=[{"name": "structured_output", "description": "Return the requested structured output",
+                               "input_schema": schema}],
+                       tool_choice={"type": "tool", "name": "structured_output"})
+        if system_prompt:
+            request["system"] = system_prompt
+        try:
+            message = self._stream_message(request)
+            if self.last_response_meta.get("stop_reason") in {"max_tokens", "refusal"}:
+                return None
+            for block in self._value(message, "content", []) or []:
+                if self._value(block, "type") == "tool_use" and self._value(block, "name") == "structured_output":
+                    return json.dumps(self._value(block, "input"), ensure_ascii=False)
             return None
-
-        parsed = (
-            None
-            if self.last_response_meta.get("stop_reason") == "max_tokens"
-            else self._parse_json(response, validate=validate)
-        )
-        if parsed is not None:
-            return parsed
-
-        # Retry through another user request only. Anthropic assistant prefill
-        # is intentionally not used because current models reject it.
-        if validate:
-            logger.warning(
-                "Structured Anthropic response was invalid; retrying with "
-                "prompt-constrained JSON"
-            )
-            retry = self.generate_text(
-                prompt=prompt,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                system_prompt=system_prompt,
-                images=images,
-                **kwargs,
-            )
-            if retry and self.last_response_meta.get("stop_reason") != "max_tokens":
-                parsed = self._parse_json(retry, validate=True)
-                if parsed is not None:
-                    return parsed
-
-        logger.error("Failed to parse Anthropic JSON response")
-        return None
+        except Exception as exc:
+            self._record_exception(exc, "structured_error")
+            return None
 
     def generate_long_text(
         self,
@@ -301,25 +269,6 @@ class AnthropicClient:
             )
         content.append({"type": "text", "text": prompt})
         return content
-
-    @staticmethod
-    def _parse_json(response: str, validate: bool = True) -> Optional[Dict[str, Any]]:
-        candidate = response
-        for attempt in range(3 if validate else 1):
-            try:
-                data = json.loads(candidate)
-                return data
-            except json.JSONDecodeError:
-                if not validate or attempt >= 2:
-                    break
-                candidate = candidate.strip()
-                if "```json" in candidate:
-                    candidate = candidate.split("```json", 1)[1].split("```", 1)[0]
-                elif "```" in candidate:
-                    candidate = candidate.split("```", 1)[1].split("```", 1)[0]
-                else:
-                    break
-        return None
 
     @staticmethod
     def _log_ignored_options(options: Dict[str, Any]) -> None:

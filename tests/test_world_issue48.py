@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from tests.helpers_world import candidate_output, review_output
 from src.llm.fake import FakeLLMBackend
 from src.world.graph import GraphStore, local_context, make_entity, new_graph, validate_graph
 from src.world.operators import OPERATORS, OperatorRunner, validate_candidate
@@ -37,13 +38,13 @@ def graph():
 
 
 def raw(text="設立は巡輪紀18年。", kind="period", **extra):
-    return {"type": "institution", "name": "ミオル照合所",
+    return candidate_output({"type": "institution", "name": "ミオル照合所",
             "summary": "順番札の刻みを照合して架台の使用順を記録する。",
             "facts": [{"kind": "proper_noun", "text": "札の照合台はミオル架台と呼ばれる。"},
                       {"kind": kind, "text": text},
                       {"kind": "object", "text": "照合所は刻み棒を測定に使う。"}],
             "statement_ids": ["s1"], "reason": "共有の使用順を記録するための取り決め。",
-            **extra}
+            **extra})
 
 
 def generated(text="設立は巡輪紀18年。", kind="period", **extra):
@@ -142,18 +143,15 @@ def test_candidate_cannot_authorize_its_own_technology_by_redefining_contract():
     assert world_premises(g)["technology"]["units"] == CONTRACT["technology"]["units"]
 
 
-def test_initial_premise_records_world_specific_decisions_without_changing_input(tmp_path):
+def test_contract_stage_records_world_specific_decisions_without_changing_input(tmp_path):
+    from src.world.contract import establish_contract
+    from src.world.premises import CONTRACT_ID
     g = new_graph("ja")
     brief_before = copy.deepcopy(BRIEF)
-    item = raw(world_premises=CONTRACT)
-    backend = FakeLLMBackend({"candidates": [item]})
-    candidate = OperatorRunner(backend).run("premise", g, n=1, brief=BRIEF)[0]
-    assert BRIEF == brief_before
-    assert not g["entities"]  # only an accepted candidate becomes authoritative
-    assert candidate["entity"]["world_premises"] == CONTRACT
-    assert candidate["entity"]["provenance"]["reason"]
-    assert score(g, candidate).scores["consistency"] == 1
-    g["entities"].append(candidate["entity"])
+    contract = {**CONTRACT, "technology": {**CONTRACT["technology"], "units": CONTRACT["technology"]["units"][:4]}, "society": {"description": "札で共有の使用順を決める。", "institutions": []}}
+    stage = establish_contract(FakeLLMBackend(contract), g, BRIEF, [])
+    assert BRIEF == brief_before and not g["entities"]
+    assert stage["status"] == "success" and world_premises(g)["source_entity"] == CONTRACT_ID
     store = GraphStore(tmp_path, brief=BRIEF)
     store.save(g)
     assert world_premises(store.load())["calendar"] == CONTRACT["calendar"]
@@ -161,9 +159,8 @@ def test_initial_premise_records_world_specific_decisions_without_changing_input
     (tmp_path / "input/input_brief.json").write_text(json.dumps(BRIEF))
     paths = render_world_package(tmp_path)
     final = json.loads(paths["world_json"].read_text())
-    assert final["entities"][0]["world_premises"] == CONTRACT
-    page = (tmp_path / "final/world_bible/entities/e1.md").read_text()
-    assert "巡輪紀" in page and "技術の能力と限界" in page
+    assert final["world_contract"]["world_premises"] == contract
+    assert "巡輪紀" in paths["report"].read_text()
 
 
 def test_initial_premise_without_contract_is_an_ordinary_entity():
@@ -266,7 +263,7 @@ def test_optional_judge_detects_unrelated_objects_and_accepts_explicit_use():
 def test_optional_judge_catches_undeclared_capabilities_in_plain_prose():
     backend = judging_backend("リアルタイムで自動測定", "undefined_technology")
     g, candidate, _ = generated("水位をリアルタイムで自動測定する。", "procedure")
-    assert "premise_usage" not in candidate["entity"]
+    assert candidate["entity"]["premise_usage"]["technologies"] == []
     result = score(g, candidate, LLMJudge(backend), ["consistency"])
     assert result.scores["consistency"] < 0.7
     assert any(d.code == "undefined_technology" for d in result.deductions)
@@ -300,11 +297,11 @@ def test_optional_judge_is_not_called_when_disabled_or_returns_no_usable_score()
 
 # Review regressions: measurability, reviewed growth, kind semantics and cost.
 def batch_judge(**assessments):
-    return FakeLLMBackend(assessments)
+    return FakeLLMBackend(lambda prompt: review_output(prompt, assessments))
 
 
 def assessment(score=1, issues=None, approve=False):
-    return {"score": score, "issues": issues or [], "approve_premise_extension": approve}
+    return {"score": score, "issues": issues or [], "_approve": approve}
 
 
 def test_new_weight_unit_is_measurable_and_needs_no_large_deduction():
@@ -394,7 +391,7 @@ def test_extension_requires_explicit_usable_consistency_approval(response):
         premise_usage={"units": ["kg"], "technologies": ["荷重比較装置"]})
     backend = FakeLLMBackend(response)
     result = score(g, candidate, LLMJudge(backend), ["specificity", "consistency"])
-    assert len(backend.json_prompts) == 1
+    assert len(backend.json_prompts) == 3
     assert not result.passed and "consistency" in result.failed
     assert not result.premise_extension
     assert "kg" not in world_premises(g)["technology"]["units"]
@@ -483,10 +480,12 @@ def test_deterministic_rejection_skips_all_judging(failure):
     assert backend.json_prompts == []
 
 
-def test_batch_response_routes_scores_and_missing_criterion_does_not_retry():
+def test_batch_response_routes_scores_and_repairs_missing_criterion():
     g, candidate, _ = generated()
-    backend = FakeLLMBackend([{ "specificity": assessment(0.8), "consistency": assessment(0.4, [{"field": "facts[1]", "code": "implausible_value", "why": "measurement incompatible"}])},
-                              {"specificity": assessment(0.9)}])
+    complete = {"specificity": {"score": 0.8, "issues": []}, "consistency": {"score": 0.4, "issues": [
+        {"field": "facts[1]", "code": "implausible_value", "why": "measurement incompatible"}]}}
+    repaired = {"specificity": {"score": 0.9, "issues": []}, "consistency": {"score": 1, "issues": []}}
+    backend = FakeLLMBackend([complete, {"specificity": {"score": 0.9, "issues": []}}, repaired])
     judge = LLMJudge(backend)
     baseline = score(g, candidate)
     first = score(g, candidate, judge, ["specificity", "consistency", "specificity"])
@@ -494,7 +493,8 @@ def test_batch_response_routes_scores_and_missing_criterion_does_not_retry():
     assert first.scores["consistency"] == pytest.approx(0.4)
     second = score(g, candidate, judge, ["specificity", "consistency"])
     assert second.scores["consistency"] == baseline.scores["consistency"]
-    assert len(backend.json_prompts) == 2
+    assert len(backend.json_prompts) == 3
+    assert "consistency" in backend.json_prompts[2] and "required" in backend.json_prompts[2]
 
 
 @pytest.mark.parametrize("bad_extension", [
@@ -539,7 +539,7 @@ def test_exploration_uses_one_counted_judge_call_and_commits_history(tmp_path):
     from src.world.explore import ExplorationLoop, load_explore_config, read_preference_log
     def respond(prompt):
         if "CRITERION:" in prompt:
-            return {"specificity": assessment(), "consistency": assessment(approve=True)}
+            return review_output(prompt, {"specificity": assessment(), "consistency": assessment(approve=True)})
         return {"candidates": [raw("照合所の札束の重さは2kg。", "number", premise_usage={"units": ["kg"]})]}
     backend = FakeLLMBackend(respond)
     verifier = RewardVerifier(load_reward_config(overrides={"llm_judges": ["specificity", "consistency"]}),

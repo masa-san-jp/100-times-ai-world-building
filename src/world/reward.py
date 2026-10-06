@@ -153,6 +153,7 @@ class RewardVerifier:
         units = observed_units(entity, contract, rules_for(self.rules, lang))
         extension = proposed_extension(entity, world_premises(graph), rules_for(self.rules, lang))
         approved = False
+        structured_failure = None
         raw_response = None
         raw_response_text = None
         # Review every surviving quantity and social claim, even if the
@@ -171,6 +172,7 @@ class RewardVerifier:
             assessments = self.judge.judge_many(criteria, candidate, graph, brief, axes=axes)
             raw_response = copy.deepcopy(self.judge.last_response)
             raw_response_text = self.judge.last_response_text
+            structured_failure = self.judge.last_structured_failure
             consistency = assessments.get("consistency")
             review_state = ("reviewed" if consistency and consistency.review_usable
                             else "missing_or_invalid" if "consistency" in criteria else "not_requested")
@@ -195,6 +197,12 @@ class RewardVerifier:
                 amount, {"proposal": extension}))
             r.score = max(0.0, r.score - amount)
         reward, failed, passed = verdict()
+        if structured_failure is not None:
+            passed = False
+            failed = list(dict.fromkeys([*failed, *criteria]))
+            for name in criteria:
+                results[name].deductions.append(Deduction(name, "entity", "structured_failure",
+                    "judge did not produce a schema-compliant assessment", 0.0, structured_failure))
         scores = {n: results[n].score for n in ran}
         result = VerificationResult(
             scores=scores, reward=reward, passed=passed, failed=failed,
@@ -209,6 +217,7 @@ class RewardVerifier:
                     "reason_missing" if not (entity.get("provenance") or {}).get("reason") else
                     "proposed" if extension else "no_new_terms"),
                 "criteria": list(dict.fromkeys(criteria)), "state": review_state,
+                "structured_failure": structured_failure,
                 "raw_response": raw_response, "raw_response_text": raw_response_text,
                 "extension_status": ("eligible" if approved and passed and extension else
                     "candidate_rejected" if approved and extension else
