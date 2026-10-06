@@ -60,3 +60,30 @@ def write_package(root, entities, axes=AXES, manifest=None, prefs=None,
         (root / "world" / "preferences.jsonl").write_text(
             "".join(json.dumps(p) + "\n" for p in prefs), encoding="utf-8")
     return root
+
+
+def candidate_output(item):
+    """Complete synthetic candidate fixtures using the declared output fields."""
+    return {"axes": [], "derived_from": [], "relations": [], **item,
+            "premise_usage": {"calendars": [], "technologies": [], "units": [],
+                              "institutions": [], **item.get("premise_usage", {})}}
+
+
+def review_output(prompt, assessments):
+    """Emit the per-term approval fields requested by this synthetic prompt."""
+    import copy
+    result = copy.deepcopy(assessments)
+    context = json.JSONDecoder().raw_decode(prompt.split(
+        "CONTEXT (world premises, local entities and explicit input; may be empty):\n", 1)[1].lstrip())[0]
+    proposal = context["proposed_premise_extension"]
+    for criterion, item in result.items():
+        if "_approve" not in item:
+            continue
+        approve = item.pop("_approve")
+        if criterion == "consistency" and proposal:
+            item["premise_extension_approvals"] = {
+                group: [{"unit" if group == "units" else "capability": term,
+                         "approved": "yes" if approve else "no", "why": "synthetic review"}
+                        for term in proposal.get(group, [])]
+                for group in ("units", "capabilities")}
+    return result

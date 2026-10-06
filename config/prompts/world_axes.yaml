@@ -35,6 +35,3 @@ world_axes:
 
     Add a new domain only when the brief clearly needs one the catalog lacks.
     Do not write narrative prose or describe the world's content.
-
-    JSON shape:
-    {{"axes":[{{"domain":"...","name":"...","meaning":"...","weight":0.5,"statement_ids":["s1"],"reason":""}}]}}

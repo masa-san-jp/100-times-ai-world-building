@@ -25,10 +25,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import yaml
+from loguru import logger
 
 from ..llm import LLMBackend
-from .coerce import fact_items, id_list, relation_items, text_of
-from .premises import normalize_premises, usage_errors, world_premises
+from .schemas import candidates_schema
+from .structured import generate_structured
+from .premises import usage_errors, world_premises
 from .quantities import is_counter, observed_units
 from .language import load_language_rules, rules_for
 from .graph import (
@@ -165,8 +167,12 @@ class OperatorRunner:
         config: Optional[OperatorConfig] = None,
         prompts: Optional[Mapping[str, Any]] = None,
         revision_prompts: Optional[Mapping[str, Any]] = None,
+        max_attempts: int = 3,
     ) -> None:
         self.backend = backend
+        self.max_attempts = max_attempts
+        self.last_structured_failure = None
+        self.last_discard_reasons: Dict[str, int] = {}
         self.config = config or OperatorConfig()
         self.prompts = dict(prompts) if prompts else load_prompts()
         self._revision_prompts = (
@@ -178,6 +184,8 @@ class OperatorRunner:
         brief: Optional[Mapping[str, Any]] = None,
         axes: Optional[Sequence[Mapping[str, Any]]] = None,
     ) -> List[Dict[str, Any]]:
+        self.last_discard_reasons = {}
+        self.last_structured_failure = None
         if operator not in OPERATORS:
             raise OperatorError(f"unknown operator: {operator}")
         if not isinstance(n, int) or isinstance(n, bool) or n < 1:
@@ -193,10 +201,14 @@ class OperatorRunner:
         place = placement(operator, graph, target_entity)
 
         prompt = self._render(operator, graph, target_entity, place, n, brief, axes)
-        kwargs: Dict[str, Any] = {"system_prompt": self.prompts["common"]["system"]}
-        if self.config.temperature is not None:
-            kwargs["temperature"] = self.config.temperature
-        response = self.backend.generate_json(prompt, **kwargs)
+        result = generate_structured(self.backend, prompt, candidates_schema(n),
+            task="candidates", max_attempts=self.max_attempts,
+            system_prompt=self.prompts["common"]["system"])
+        if result.data is None:
+            self.last_structured_failure = result.failure("candidates")
+            self._discard("structured_failure")
+            return []
+        response = result.data
         return self._build(
             operator, graph, target_entity, place, n, response, brief, axes)
 
@@ -213,6 +225,8 @@ class OperatorRunner:
         when the model returns nothing usable.  Placement, ids and
         structural relations are assigned by code exactly as in ``run``.
         """
+        self.last_discard_reasons = {}
+        self.last_structured_failure = None
         if self._revision_prompts is None:
             self._revision_prompts = load_revision_prompts()
         cfg = self.config
@@ -268,10 +282,13 @@ class OperatorRunner:
             axes=_lines(axis_lines),
             context=json.dumps(ctx, ensure_ascii=False, separators=(",", ":")),
             min_facts=cfg.min_facts, concrete_rule=concrete_rule)
-        kwargs: Dict[str, Any] = {"system_prompt": common["system"]}
-        if cfg.temperature is not None:
-            kwargs["temperature"] = cfg.temperature
-        response = self.backend.generate_json(prompt, **kwargs)
+        result = generate_structured(self.backend, prompt, candidates_schema(1),
+            task="revision", max_attempts=self.max_attempts, system_prompt=common["system"])
+        if result.data is None:
+            self.last_structured_failure = result.failure("revision")
+            self._discard("structured_failure")
+            return None
+        response = result.data
         out = self._build(
             operator, graph, target, place, 1, response, brief, axes)
         return out[0] if out else None
@@ -315,10 +332,13 @@ class OperatorRunner:
 
     # -- candidates
     def _build(self, operator, graph, target, place, n, response, brief, axes):
+        self.last_discard_reasons = {}
         raw = response.get("candidates") if isinstance(response, Mapping) else None
-        if isinstance(raw, Mapping):
-            raw = [raw]
         if not isinstance(raw, list):
+            self._discard("schema_missing")
+            return []
+        if not raw:
+            self._discard("no_candidates_returned")
             return []
         entities = graph.get("entities", [])
         existing_ids = {e["id"] for e in entities}
@@ -335,6 +355,7 @@ class OperatorRunner:
             if len(out) >= n:
                 break
             if not isinstance(item, Mapping):
+                self._discard("schema_missing")
                 continue
             entity = self._entity(
                 operator, graph, target, place, item, f"e{next_n}",
@@ -343,64 +364,74 @@ class OperatorRunner:
                 continue
             name = entity["name"].strip().lower()
             if name in existing_names:
+                self._discard("duplicate_name")
                 continue
             candidate = {
                 "operator": operator,
                 "target": target["id"] if target else None,
                 "entity": entity,
             }
-            if validate_candidate(graph, candidate, axes, brief):
+            errors = validate_candidate(graph, candidate, axes, brief)
+            if errors:
+                self._discard("contract_conflict" if any("world_premises" in e for e in errors)
+                              else "graph_inconsistent")
                 continue
             existing_names.add(name)
             next_n += 1
             out.append(candidate)
         return out
 
+    def _discard(self, reason):
+        self.last_discard_reasons[reason] = self.last_discard_reasons.get(reason, 0) + 1
+        logger.info("Operator candidate discarded: {} (count {})", reason,
+                    self.last_discard_reasons[reason])
+        return None
+
     def _entity(
         self, operator, graph, target, place, item, new_id,
         existing_ids, statement_ids, axis_ids,
     ) -> Optional[Dict[str, Any]]:
         cfg = self.config
-        etype = text_of(item.get("type")).lower().replace(" ", "_")
+        etype = item["type"]
         if operator == "document":
             etype = "document"
         if etype not in ENTITY_TYPES:
-            return None
-        name = text_of(item.get("name"))
-        summary = text_of(item.get("summary"))
+            return self._discard("schema_missing")
+        name = item["name"].strip()
+        summary = item["summary"].strip()
         if not name or not summary:
-            return None
+            return self._discard("schema_missing")
 
-        sids = [s for s in id_list(item.get("statement_ids"))
+        sids = [s for s in item["statement_ids"]
                 if statement_ids is None or s in statement_ids]
-        srcs = [s for s in id_list(item.get("derived_from"))
+        srcs = [s for s in item["derived_from"]
                 if s in existing_ids]
-        reason = text_of(item.get("reason"))
+        reason = item["reason"].strip()
         if not sids and not srcs:
-            return None  # no provenance: discard
+            return self._discard("no_provenance")
         if srcs and not reason:
             if not sids:
-                return None
+                return self._discard("no_provenance")
             srcs = []  # statements still ground it; drop the unexplained link
         provenance = {"statement_ids": sids, "derived_from": srcs,
                       "reason": reason}
 
         facts = [{"kind": f["kind"], "text": f["text"],
                   "provenance": copy.deepcopy(provenance)}
-                 for f in fact_items(item.get("facts"), FACT_KINDS)]
+                 for f in item["facts"]]
         scale = place["scale"]
         concrete = sum(1 for f in facts if f["kind"] in CONCRETE_KINDS)
         if len(facts) < cfg.min_facts or concrete < _min_concrete(scale, cfg):
-            return None
+            return self._discard("insufficient_facts")
 
-        axes_ = [a for a in id_list(item.get("axes"))
+        axes_ = [a for a in item["axes"]
                  if axis_ids is None or a in axis_ids]
         if not axes_ and target is not None:
             axes_ = [a for a in target.get("axes", [])
                      if axis_ids is None or a in axis_ids]
 
         relations: List[Dict[str, str]] = []
-        for rel in relation_items(item.get("relations"), RELATION_TYPES):
+        for rel in item["relations"]:
             if rel["target"] in existing_ids and rel not in relations:
                 relations.append(rel)
         if target is not None and operator in _TARGET_RELATION:
@@ -416,17 +447,9 @@ class OperatorRunner:
         # exploration policy. It is outside the canonical entity schema so
         # older graphs without it remain readable.
         entity["origin_operator"] = operator
-        if operator == "premise":
-            if "world_premises" in item:
-                contract = normalize_premises(item["world_premises"])
-                if contract is None or not reason:
-                    return None
-                entity["world_premises"] = contract
-            elif not world_premises(graph):
-                return None  # never bootstrap a new world with implicit defaults
         if "premise_usage" in item:
             if usage_errors(item["premise_usage"]):
-                return None
+                return self._discard("schema_missing")
             entity["premise_usage"] = {
                 key: list(item["premise_usage"].get(key, []))
                 for key in ("calendars", "technologies", "units", "institutions")}
@@ -447,7 +470,7 @@ class OperatorRunner:
             units = list(dict.fromkeys([*usage.get("units", []), *inferred]))
             usage["units"] = units
             if usage_errors(usage):
-                return None
+                return self._discard("schema_missing")
         return entity
 
 

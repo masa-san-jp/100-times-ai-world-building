@@ -26,8 +26,6 @@ input_brief:
     exception is quote: it must stay exactly as written in SOURCE MATERIAL,
     never translated.
 
-    JSON shape:
-    {{"statements":[{{"text":"...","quote":"..."}}],"open_questions":[],"constraints":[]}}
 
 image_description:
   system: |
@@ -35,4 +33,4 @@ image_description:
     Return JSON only and do not infer context or intent.
 
   user: |
-    Return {"description":"a concise description of directly observable information"}.
+    Describe directly observable information concisely.

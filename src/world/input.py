@@ -24,6 +24,8 @@ from typing import (
 )
 
 from ..llm import LLMBackend
+from .schemas import load_schema
+from .structured import generate_structured, StructuredFailure
 from .graph import guess_language
 from .language import language_name
 
@@ -77,18 +79,13 @@ ids; ids are assigned by the caller.
 OUTPUT LANGUAGE: write the text of every statement, open question and
 constraint in {language_name} (language code "{language}"). The one exception
 is quote: it must stay exactly as written in SOURCE MATERIAL, never translated.
-
-JSON shape:
-{{"statements":[{{"text":"...","quote":"..."}}],"open_questions":[],"constraints":[]}}"""
+"""
     DEFAULT_VISION_SYSTEM_PROMPT = (
         "Describe only directly observable information from the supplied "
         "image. "
         "Return JSON only and do not infer context or intent."
     )
-    DEFAULT_VISION_USER_PROMPT = (
-        "Return {\"description\":"
-        "\"a concise description of directly observable information\"}."
-    )
+    DEFAULT_VISION_USER_PROMPT = "Describe directly observable information concisely."
 
     def __init__(
         self,
@@ -98,7 +95,9 @@ JSON shape:
         prompt: Optional[Mapping[str, str]] = None,
         vision_prompt: Optional[Mapping[str, str]] = None,
         language: Optional[str] = None,
+        max_attempts: int = 3,
     ) -> None:
+        self.max_attempts = max_attempts
         self.language = language
         self.backend = backend
         self.vision_backend = vision_backend or backend
@@ -135,13 +134,16 @@ JSON shape:
         prompt = prompt_template.format(
             source_text=source_for_brief, language=lang,
             language_name=language_name(lang))
-        response = self.backend.generate_json(
-            prompt,
+        result = generate_structured(
+            self.backend, prompt, load_schema("input_brief"),
+            task="input_brief", max_attempts=self.max_attempts,
             system_prompt=self.prompt.get(
                 "system", self.DEFAULT_SYSTEM_PROMPT
             ),
         )
-        brief = self._normalize_brief(response, source_for_brief)
+        if result.data is None:
+            raise StructuredFailure("input_brief", result)
+        brief = self._normalize_brief(result.data, source_for_brief)
         brief_path = self.input_dir / "input_brief.json"
         brief_path.write_text(
             json.dumps(brief, ensure_ascii=False, indent=2) + "\n",
@@ -223,19 +225,16 @@ JSON shape:
         return paths
 
     def _describe_images(self, image_paths: Sequence[Path]) -> str:
-        response = self.vision_backend.generate_json(
+        result = generate_structured(
+            self.vision_backend,
             self.vision_prompt.get("user", self.DEFAULT_VISION_USER_PROMPT),
-            system_prompt=self.vision_prompt.get(
-                "system", self.DEFAULT_VISION_SYSTEM_PROMPT
-            ),
-            images=list(image_paths),
-        )
-        if isinstance(response, Mapping):
-            for key in ("description", "image_description", "text"):
-                value = response.get(key)
-                if isinstance(value, str) and value.strip():
-                    return value.strip()
-        return ""
+            load_schema("image_description"), task="image_description",
+            max_attempts=self.max_attempts,
+            system_prompt=self.vision_prompt.get("system", self.DEFAULT_VISION_SYSTEM_PROMPT),
+            images=list(image_paths))
+        if result.data is None:
+            raise StructuredFailure("image_description", result)
+        return result.data["description"].strip()
 
     @staticmethod
     def _append_image_description(raw_text: str, description: str) -> str:
@@ -247,24 +246,11 @@ JSON shape:
     def _normalize_brief(
         response: Optional[Mapping[str, Any]], source_text: str
     ) -> Dict[str, Any]:
-        if not isinstance(response, Mapping):
-            response = {}
-        nested = response.get("input_brief")
-        if isinstance(nested, Mapping):
-            response = nested
-
         statements: List[Dict[str, str]] = []
         raw_statements = response.get("statements", [])
         if isinstance(raw_statements, list):
             for item in raw_statements:
-                if isinstance(item, str) and item.strip() \
-                        and item in source_text:
-                    item = {"text": item.strip(), "quote": item}
-                if not isinstance(item, Mapping):
-                    continue
-                text = InputBriefBuilder._first_text(
-                    item, "text", "statement", "content"
-                )
+                text = item["text"].strip()
                 quote = item.get("quote")
                 if not text or not isinstance(quote, str):
                     continue
@@ -289,32 +275,9 @@ JSON shape:
         }
 
     @staticmethod
-    def _first_text(item: Mapping[str, Any], *keys: str) -> str:
-        for key in keys:
-            value = item.get(key)
-            if isinstance(value, str) and value.strip():
-                return value.strip()
-        return ""
-
-    @staticmethod
     def _identified_list(value: Any, prefix: str) -> List[Dict[str, str]]:
-        """Return ``{id, text}`` items; ids are assigned here, never by the
-        model.  Items may be plain strings or objects with a text field."""
-        if not isinstance(value, list):
-            return []
-        result: List[Dict[str, str]] = []
-        for item in value:
-            if isinstance(item, Mapping):
-                text = InputBriefBuilder._first_text(
-                    item, "text", "content", "question", "constraint"
-                )
-            elif isinstance(item, str):
-                text = item.strip()
-            else:
-                text = ""
-            if text:
-                result.append({"id": f"{prefix}{len(result) + 1}", "text": text})
-        return result
+        return [{"id": f"{prefix}{index}", "text": text.strip()}
+                for index, text in enumerate((t for t in value if t.strip()), 1)]
 
 
 __all__ = ["InputBriefBuilder", "InputBriefResult", "InputSourceError"]

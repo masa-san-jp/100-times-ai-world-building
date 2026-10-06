@@ -36,14 +36,9 @@ common:
     - Where a finding says the wording is close to what a model writes for
       any world, replace it with proper nouns, numbers, named mechanisms
       and objects that belong to this world and follow from CONTEXT.
-    - Preserve the established world_premises in CONTEXT. If this is the
-      initial premise and CONTEXT has no contract, include the complete
-      world_premises from the draft (calendar: name, origin, markers;
-      technology: description, capabilities, units; society: description,
-      institutions). If it is missing, decide
-      it from the brief, preserve explicit input and record the derivation.
-      Each string is at most 160 characters; arrays at most 16 entries.
-      Absolute dates require a defined marker directly before their number.
+    - Follow the established world_premises in CONTEXT when present.
+      Contracts are generated separately; do not create world_premises.
+      When a contract exists, absolute dates require a defined marker directly before their number.
       New units or capabilities need premise_usage and a reason deriving
       their measurement or method from existing technology, within the limits
       of technology.description; they require consistency review. Return premise_usage with
@@ -62,6 +57,3 @@ common:
       ids. A derived_from link needs a reason.
     - Stay neutral and objective: no first person, no second person, no
       quoted speech, no exclamations, no rhetorical questions.
-
-    Produce exactly one candidate in this JSON shape:
-    {{"candidates":[{{"type":"...","name":"...","axes":["..."],"summary":"...","facts":[{{"kind":"proper_noun","text":"..."}}],"statement_ids":["s1"],"derived_from":[],"reason":"...","premise_usage":{{"calendars":[],"technologies":[],"units":[],"institutions":[]}},"relations":[{{"type":"related_to","target":"e1"}}]}}]}}

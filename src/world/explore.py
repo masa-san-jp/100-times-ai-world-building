@@ -35,6 +35,7 @@ from loguru import logger
 from .graph import (
     SCALE_RANK, SCALES, GraphStore, guess_language, local_context,
 )
+from .structured import StructuredFailure, client_instance, metrics_markdown
 from .operators import OperatorConfig, OperatorError, OperatorRunner
 from .reward import RewardVerifier
 from .verify import ContrastProvider, entity_text
@@ -517,9 +518,9 @@ class _CountingBackend:
             raise BudgetExhausted("generation-call budget exhausted")
         self._counters["generation_calls"] += 1
 
-    def generate_json(self, *args: Any, **kwargs: Any) -> Any:
+    def generate_schema(self, *args: Any, **kwargs: Any) -> Any:
         self._tick()
-        return self._inner.generate_json(*args, **kwargs)
+        return self._inner.generate_schema(*args, **kwargs)
 
     def generate_text(self, *args: Any, **kwargs: Any) -> Any:
         self._tick()
@@ -573,6 +574,7 @@ class ExplorationLoop:
         checkpoints: Any = None,
         manifest: Any = None,
         clock: Callable[[], float] = time.monotonic,
+        structured_max_attempts: int = 3,
     ) -> None:
         self.package_dir = Path(package_dir)
         self.brief = brief
@@ -589,7 +591,7 @@ class ExplorationLoop:
         self.clock = clock
         self.state = _fresh_state(seed)
         self.backend = _CountingBackend(backend, self.state["counters"])
-        self.runner = OperatorRunner(self.backend, operator_config)
+        self.runner = OperatorRunner(self.backend, operator_config, max_attempts=structured_max_attempts)
         self.provider = ContrastProvider(
             self.runner, self.package_dir,
             int(self.cfg["generation"].get("contrast_count", 3)))
@@ -805,6 +807,8 @@ class ExplorationLoop:
             return max(rows, key=lambda r: (r["res"].passed, r["res"].reward))
 
         accepted = None
+        self.iteration_discard_reasons = {}
+        self.iteration_structured_failures = []
         error: Optional[Dict[str, str]] = None
         try:
             accepted = self._attempt(
@@ -855,7 +859,12 @@ class ExplorationLoop:
                         "accepted" if accepted else "discarded"),
             "accepted_id": accepted["id"] if accepted else None,
             "arm_reward": round(arm_reward, 4),
-            **({"error": error} if error else {})})
+            "discard_reasons": dict(self.iteration_discard_reasons),
+            **({"error": error} if error else {}),
+            **({"structured_failure": self.iteration_structured_failures}
+               if self.iteration_structured_failures else {})})
+        logger.info("iteration {} ({}) candidate discard reasons: {}", it, operator,
+                    self.iteration_discard_reasons)
         self.bandit.update(arm, arm_reward)
         self._append_log(records)
         self.state["max_entity_n"] = _max_entity_n(graph)
@@ -870,6 +879,8 @@ class ExplorationLoop:
                 brief=self.brief, axes=gen_axes)
         except OperatorError:
             cands = []
+        finally:
+            self._collect_discard_reasons()
         if not cands:
             return NO_CANDIDATES
         rows = score(cands, 0)
@@ -880,9 +891,12 @@ class ExplorationLoop:
             return base
         for rnd in range(1, int(gen["max_rewrites"]) + 1):
             findings = self._findings(base["res"], int(gen["max_findings"]))
-            revised = self.runner.revise(
-                base["cand"], findings, graph,
-                brief=self.brief, axes=gen_axes)
+            try:
+                revised = self.runner.revise(
+                    base["cand"], findings, graph,
+                    brief=self.brief, axes=gen_axes)
+            finally:
+                self._collect_discard_reasons()
             self.state["counters"]["rewrites"] += 1
             if revised is None:
                 break
@@ -897,6 +911,12 @@ class ExplorationLoop:
             if row["res"].reward > base["res"].reward:
                 base = row
         return None
+
+    def _collect_discard_reasons(self):
+        if self.runner.last_structured_failure is not None:
+            self.iteration_structured_failures.append(copy.deepcopy(self.runner.last_structured_failure))
+        for reason, count in self.runner.last_discard_reasons.items():
+            self.iteration_discard_reasons[reason] = self.iteration_discard_reasons.get(reason, 0) + count
 
     @staticmethod
     def _findings(result, limit: int) -> List[Dict[str, Any]]:
@@ -1008,6 +1028,7 @@ def run_world_engine(
     verifier: Optional[RewardVerifier] = None,
     vision_backend: Any = None, source_name: Optional[str] = None,
     resume: bool = True, render: bool = True,
+    structured_max_attempts: int = 3,
 ) -> ExplorationResult:
     """Input brief -> axes -> graph -> exploration loop, with no human input.
 
@@ -1037,6 +1058,12 @@ def run_world_engine(
         "backend": getattr(backend, "backend_name", None)})
     if existed:
         manifest.reconcile_interrupted()
+    if isinstance(structured_max_attempts, bool) or not isinstance(structured_max_attempts, int) or structured_max_attempts < 1:
+        raise ValueError("structured.max_attempts must be a positive integer")
+    metrics = copy.deepcopy(manifest.data.get("structured", {}))
+    for client in (backend, vision_backend):
+        if client is not None:
+            client_instance(client)._structured_metrics = metrics
     manifest.set_status("running")
     try:
         brief_path = root / "input" / "input_brief.json"
@@ -1049,7 +1076,7 @@ def run_world_engine(
         else:
             built = InputBriefBuilder(
                 backend, root / "input", vision_backend=vision_backend,
-                language=language,
+                language=language, max_attempts=structured_max_attempts,
             ).build(raw_input, images, source_name)
             brief, raw_text = built.brief, built.raw_source
         # One output language for the brief, axes and every later prompt:
@@ -1060,25 +1087,44 @@ def run_world_engine(
             axes = load_axes(axes_path)
         else:
             axes = WorldAxesBuilder(
-                backend, root / "world", language=lang).build(brief).axes
+                backend, root / "world", language=lang, max_attempts=structured_max_attempts).build(brief).axes
         checkpoints = CheckpointManager(str(root / "checkpoints"))
         loop = ExplorationLoop(
             backend, root, brief, axes, seed=seed, language=lang,
             config=config, operator_config=operator_config,
-            verifier=verifier, checkpoints=checkpoints, manifest=manifest)
+            verifier=verifier, checkpoints=checkpoints, manifest=manifest,
+            structured_max_attempts=structured_max_attempts)
+        from .contract import establish_contract
+        graph = loop.store.load_or_create(lang)
+        try:
+            stage = establish_contract(backend, graph, brief, axes,
+                                       max_attempts=structured_max_attempts)
+        finally:
+            loop.store.save(graph)
+            if "contract_stage" in graph:
+                manifest.update(world_contract=copy.deepcopy(graph["contract_stage"]))
         result = loop.run(
             max_iterations=(budget or {}).get("max_iterations"),
             max_wall_seconds=(budget or {}).get("max_wall_seconds"),
             max_generation_calls=(budget or {}).get("max_generation_calls"),
             resume=resume)
+        manifest.update(structured=metrics)
         if render:
             from .render import render_world_package
             render_world_package(root, run_summary={
                 "stop_reason": result.stop_reason,
                 "iterations": result.iterations,
                 "counters": result.counters,
+                "structured": metrics,
             }, explore_config=loop.cfg)
     except BaseException as exc:
+        manifest.update(structured=metrics)
+        if isinstance(exc, StructuredFailure):
+            manifest.update(structured_failure=exc.result.failure(exc.task))
+            if render:
+                report = root / "final" / "world_report.md"
+                report.parent.mkdir(parents=True, exist_ok=True)
+                report.write_text(f"# World report\n\nRun failed: {exc}\n\n" + metrics_markdown(metrics), encoding="utf-8")
         manifest.set_status(
             "cancelled" if isinstance(exc, KeyboardInterrupt) else "failed",
             error=None if isinstance(exc, KeyboardInterrupt) else str(exc))

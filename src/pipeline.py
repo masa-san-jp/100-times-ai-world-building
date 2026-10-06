@@ -52,8 +52,8 @@ class ConfiguredBackend:
         merged.update(kwargs)
         return merged
 
-    def generate_json(self, *args: Any, **kwargs: Any) -> Any:
-        return self._inner.generate_json(*args, **self._merged(kwargs))
+    def generate_schema(self, *args: Any, **kwargs: Any) -> Any:
+        return self._inner.generate_schema(*args, **self._merged(kwargs))
 
     def generate_text(self, *args: Any, **kwargs: Any) -> Any:
         return self._inner.generate_text(*args, **self._merged(kwargs))
@@ -112,6 +112,7 @@ class Pipeline:
         self.config_path = config_path
         self.config = load_config(config_path)
         engine_cfg = self.config.get("engine") or {}
+        self.structured_config = {"max_attempts": 3, **(engine_cfg.get("structured") or {})}
         self.explore_config = load_explore_config(
             overrides=engine_cfg.get("explore") or {})
         self.operator_config = _operator_config(engine_cfg.get("operator") or {})
@@ -225,7 +226,7 @@ class Pipeline:
         criteria = list(self.judge_config.get("criteria") or ["specificity"])
         return RewardVerifier(
             load_reward_config(overrides={"llm_judges": criteria}),
-            judge=LLMJudge(self.client))
+            judge=LLMJudge(self.client, max_attempts=self.structured_config["max_attempts"]))
 
     def _resolve_models(
         self, backend_name: str, model: Optional[str],
@@ -263,7 +264,7 @@ class Pipeline:
         config_file = Path(self.config_path)
         config_dir = Path("config")
         sources = [p for pattern in ("prompts/*.yaml", "prompts/world/*.yaml",
-                                     "world/*.yaml")
+                                     "world/*.yaml", "schemas/*.json")
                    for p in config_dir.glob(pattern)]
         return {
             "schema_version": 2,
@@ -284,6 +285,7 @@ class Pipeline:
                 "operator": (dataclasses.asdict(self.operator_config)
                              if self.operator_config else {}),
                 "generation": self.generation_defaults,
+                "structured": self.structured_config,
                 "judge": {"enabled": self.judge_enabled(),
                           "criteria": list(
                               self.judge_config.get("criteria")
@@ -365,7 +367,8 @@ class Pipeline:
                 operator_config=self.operator_config,
                 verifier=self._build_verifier(),
                 vision_backend=self.vision_client,
-                source_name=raw_name, resume=True, render=True)
+                source_name=raw_name, resume=True, render=True,
+                structured_max_attempts=self.structured_config["max_attempts"])
         finally:
             # The engine updates the manifest file through its own handle.
             self.manifest = RunManifest(self.manifest.path, {})

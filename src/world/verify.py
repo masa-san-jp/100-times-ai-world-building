@@ -26,14 +26,15 @@ from typing import (
 
 import yaml
 
-from .coerce import as_list, text_of
+from .schemas import judge_schema
+from .structured import generate_structured
 from .textsim import (
     character_ngrams, echo_coverage, is_cjk_text, jaccard, ngrams_of,
     normalize_item,
 )
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
-from .premises import proposed_extension, world_premises
+from .premises import contract_checks_enabled, premise_source, proposed_extension, world_premises
 from .quantities import count_only, observed_units, registered_unit, unit_notation, temporal_conflicts, units_in_text
 from .language import load_language_rules, rules_for
 
@@ -795,9 +796,9 @@ def verify_consistency(
         add("entity", "graph_invalid", err)
 
     contract = world_premises(graph)
-    proposed = entity.get("world_premises")
+    proposed = entity.get("world_premises") if contract_checks_enabled(graph) else None
     if contract and proposed is not None:
-        source = get_entity(graph, contract["source_entity"])
+        source = premise_source(graph, contract["source_entity"])
         if proposed != source["world_premises"]:
             add("world_premises", "premise_conflict",
                 "the candidate changes the established calendar, technology or society contract")
@@ -1060,126 +1061,12 @@ def verify_novelty(
 
 # --------------------------------------------------------------- LLM judge
 
-def _yes_no(value):
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        value = value.strip().casefold()
-        if value in {"yes", "true", "approved"}:
-            return True
-        if value in {"no", "false", "rejected", "unapproved"}:
-            return False
-    return None
-
-
-def _approval_key(key):
-    key = re.sub(r"([a-z])([A-Z])", r"\1_\2", str(key))
-    return re.sub(r"[\s-]+", "_", key.casefold())
-
-
-def _extension_approval(response, proposal, envelope=None):
-    """Tolerate explicit approval shapes, never infer approval from a score.
-
-    Per-item answers must cover every proposed term. An explicit no anywhere
-    in the approval fields overrides a yes, including a legacy blanket yes.
-    Unknown/missing/malformed answers cannot register new technology.
-    """
-    approval_keys = {"approve_premise_extension", "premise_extension_approved",
-                     "approve_extension", "extension_approved", "approval", "approved",
-                     "approvals", "premise_extension_approvals", "extension_approvals",
-                     "premise_extension_approval", "extension_approval", "approved_premise_extension"}
-    containers = [value for source in (response, envelope or {}) for key, value in source.items()
-                  if _approval_key(key) in approval_keys]
-    if not containers:
-        return False
-    blanket = []
-    answers = {"units": {}, "capabilities": {}}
-    invalid = False
-    has_items = False
-
-    def decision(value):
-        if isinstance(value, Mapping):
-            values = [_yes_no(value[k]) for k in ("approved", "approve", "approval", "yes", "decision", "status", "allowed") if k in value]
-            return False if False in values else True if True in values else None
-        return _yes_no(value)
-
-    def items(group, value):
-        nonlocal invalid, has_items
-        has_items = True
-        expected = proposal.get(group, [])
-        key_of = unit_notation if group == "units" else lambda v: str(v).strip()
-        if isinstance(value, Mapping):
-            records = list(value.items())
-        elif isinstance(value, list):
-            records = []
-            for index, item in enumerate(value):
-                if isinstance(item, Mapping):
-                    name = next((item[k] for k in ("unit", "capability", "term", "name") if k in item), None)
-                    if name is None and len(item) == 1:
-                        records.extend(item.items())
-                    else:
-                        records.append((name, item))
-                else:
-                    records.append((expected[index] if index < len(expected) else None, item))
-        else:
-            invalid = True
-            return
-        for term, value in records:
-            verdict = decision(value)
-            if not isinstance(term, str) or verdict is None:
-                invalid = True
-                continue
-            key = key_of(term)
-            # Conflicting duplicated decisions fail closed.
-            answers[group][key] = verdict and answers[group].get(key, True)
-
-    def visit(value):
-        nonlocal invalid
-        verdict = _yes_no(value)
-        if verdict is not None:
-            blanket.append(verdict)
-        elif isinstance(value, Mapping):
-            for key, item in value.items():
-                key = _approval_key(key)
-                if key in {"units", "unit_approvals"}:
-                    items("units", item)
-                elif key in {"capabilities", "technologies", "capability_approvals"}:
-                    items("capabilities", item)
-                elif key in {"unit", "capability", "term", "name"}:
-                    group = "capabilities" if "capability" in value else "units"
-                    items(group, [value])
-                    break
-                elif key in approval_keys or key in {"approve", "decision", "status", "allowed"}:
-                    visit(item)
-            # Also accept a flat term->yes/no mapping when terms are explicit.
-            for group in answers:
-                terms = {term: value[term] for term in proposal.get(group, []) if term in value}
-                if terms:
-                    items(group, terms)
-        elif isinstance(value, list):
-            if all(isinstance(item, Mapping) for item in value):
-                for item in value:
-                    visit(item)
-            elif len([t for group in answers for t in proposal.get(group, [])]) == len(value):
-                offset = 0
-                for group in answers:
-                    terms = proposal.get(group, [])
-                    if terms:
-                        items(group, value[offset:offset + len(terms)])
-                    offset += len(terms)
-            else:
-                invalid = True
-        else:
-            invalid = True
-
-    for container in containers:
-        visit(container)
-    if invalid or False in blanket or any(False in values.values() for values in answers.values()):
-        return False
-    if has_items:
-        return all(answers[group].get(unit_notation(term) if group == "units" else term.strip()) is True
-                   for group in answers for term in proposal.get(group, []))
-    return True in blanket
+def _extension_approval(response, proposal):
+    approvals = response.get("premise_extension_approvals", {})
+    return bool(proposal) and all(
+        {item["unit" if group == "units" else "capability"]: item["approved"]
+         for item in approvals.get(group, [])}.get(term) == "yes"
+        for group in ("units", "capabilities") for term in proposal.get(group, []))
 
 
 class LLMJudge:
@@ -1187,13 +1074,17 @@ class LLMJudge:
     its bounded local context.  Returns ``None`` when the model fails."""
 
     def __init__(self, backend: Any, prompts: Optional[Mapping[str, Any]] = None,
-                 context_limits: Optional[Mapping[str, int]] = None) -> None:
+                 context_limits: Optional[Mapping[str, int]] = None,
+                 max_attempts: int = 3) -> None:
         self.backend = backend
+        self.max_attempts = max_attempts
+        self.last_structured_failure = None
         self.prompts = dict(prompts) if prompts else yaml.safe_load(
             DEFAULT_VERIFIER_PROMPTS.read_text(encoding="utf-8"))
         self.context_limits = context_limits
         self.last_response = None
         self.last_response_text = None
+        self.last_structured_failure = None
 
     def judge(self, criterion: str, candidate: Mapping[str, Any],
               graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
@@ -1206,9 +1097,10 @@ class LLMJudge:
                    graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
                    axes: Optional[Sequence[Mapping[str, Any]]] = None,
                    ) -> Dict[str, "JudgeAssessment"]:
-        """Evaluate all requested criteria in one backend call, without retries."""
+        """Evaluate requested criteria through schema validation and repair."""
         self.last_response = None
         self.last_response_text = None
+        self.last_structured_failure = None
         criteria = list(dict.fromkeys(c for c in criteria if c in self.prompts["criteria"]))
         if not criteria:
             return {}
@@ -1228,7 +1120,7 @@ class LLMJudge:
                    "input_statements": [str(s.get("text") or "")[:200]
                        for s in (brief or {}).get("statements", []) or []
                        if isinstance(s, Mapping)][:12],
-                   "input_constraints": [text_of(s)[:200] for s in
+                   "input_constraints": [s["text"][:200] for s in
                        (brief or {}).get("constraints", []) or []][:12]}
         view = {key: entity.get(key) for key in
                 ("type", "scale", "parent", "relations", "name", "summary", "provenance")}
@@ -1239,37 +1131,40 @@ class LLMJudge:
                 view[key] = entity[key]
         prompt = self.prompts["common"]["user"].format(
             language=language_of(graph),
-            criterion="\n\n".join(c + ":\n" + self.prompts["criteria"][c].strip() for c in criteria),
+            criterion="\n\n".join(c + ":\n" + (
+                "Check contradictions with existing facts and explicit input (numbers, periods, locations, membership, cause and effect). "
+                "The contract stage failed. Calendar, technology, unit and institution contract checks are disabled; "
+                "do not infer a missing framework or penalize unsupported contract references."
+                if c == "consistency" and not contract_checks_enabled(graph)
+                else self.prompts["criteria"][c].strip()) for c in criteria),
             candidate=json.dumps(view, ensure_ascii=False),
             context=json.dumps(context, ensure_ascii=False, separators=(",", ":")))
         proposal = context["proposed_premise_extension"]
-        shape = {c: {"score": "<number from 0 to 1>", "issues": [
-            {"field": "<field>", "why": "<short reason>", "code": "<reason code>"}]}
-                 for c in criteria}
-        if "consistency" in shape:
-            shape["consistency"]["premise_extension_approvals"] = {
-                group: [{"unit" if group == "units" else "capability": term,
-                         "approved": "<yes or no>", "why": "<derivation or contradiction>"}
-                        for term in proposal.get(group, [])]
-                for group in ("units", "capabilities")}
+        if "consistency" in criteria and proposal:
             prompt += "\nFor EVERY proposed unit and capability return an explicit yes/no in premise_extension_approvals. " \
                       "A measurable change of notation or scale in an existing dimension should be yes when the stated method respects technology.description; " \
                       "do not reject it just because its name is unregistered. Empty proposals need no approval."
-        prompt += "\nReturn one result per requested criterion; use [] for no issues. JSON shape: " + json.dumps(shape, ensure_ascii=False)
+        prompt += "\nReturn one result per requested criterion; use [] for no issues."
         previous_meta = getattr(self.backend, "last_response_meta", None)
-        resp = self.backend.generate_json(prompt, system_prompt=self.prompts["common"]["system"])
+        result = generate_structured(self.backend, prompt, judge_schema(criteria, proposal),
+            task="judge", max_attempts=self.max_attempts, system_prompt=self.prompts["common"]["system"])
+        resp = result.data
+        if resp is None:
+            self.last_structured_failure = result.failure("judge")
         self.last_response = copy.deepcopy(resp)
         response_meta = getattr(self.backend, "last_response_meta", None)
         if isinstance(response_meta, Mapping) and response_meta is not previous_meta:
             raw_text = response_meta.get("response")
             if isinstance(raw_text, str):
                 self.last_response_text = raw_text
+        if resp is None and self.last_response_text:
+            try:
+                self.last_response = json.loads(self.last_response_text)
+            except ValueError:
+                pass
         logging.getLogger(__name__).debug("world judge response: %r; raw text: %r", resp, self.last_response_text)
         if not isinstance(resp, Mapping):
             return {}
-        # Older single-criterion integrations may return a bare assessment.
-        if len(criteria) == 1 and "score" in resp:
-            resp = {criteria[0]: resp}
         return {c: assessment for c in criteria
                 if (assessment := self._assessment(c, resp.get(c), proposal, resp)) is not None}
 
@@ -1286,25 +1181,25 @@ class LLMJudge:
             score = _clamp(value)
         except (KeyError, TypeError, ValueError):
             return None
-        issues = [i for i in as_list(resp.get("issues")) if isinstance(i, Mapping)]
+        issues = [i for i in resp["issues"] if isinstance(i, Mapping)]
         reason_codes = {
             "specificity": {"unrelated_fact", "purpose_without_mechanism", "non_object_fact", "thin_fact"},
             "consistency": {"undefined_calendar", "undefined_technology", "undefined_unit", "implausible_value", "unsupported_institution", "dimension_conflict"},
         }.get(criterion, set())
         share = (1.0 - score) / max(1, len(issues))
-        deductions = [Deduction(criterion, text_of(i.get("field")) or "entity",
+        deductions = [Deduction(criterion, i["field"].strip() or "entity",
                        i.get("code") if isinstance(i.get("code"), str)
                        and i["code"] in reason_codes else "llm_judge",
-                       text_of(i.get("why")) or "judged below standard", share)
+                       i["why"].strip() or "judged below standard", share)
                       for i in issues] if score < 1 else []
         if score < 1 and not deductions:
             deductions = [Deduction(criterion, "entity", "llm_judge", "judged below standard", 1.0 - score)]
         approved = (criterion == "consistency" and value == 1 and not issues
                     and resp.get("issues") == []
-                    and _extension_approval(resp, proposal or {}, envelope))
+                    and _extension_approval(resp, proposal or {}))
         usable = (0 <= value <= 1 and isinstance(resp.get("issues"), list)
-                  and all(isinstance(i, Mapping) and text_of(i.get("field"))
-                          and text_of(i.get("why")) for i in resp["issues"])
+                  and all(isinstance(i, Mapping) and i["field"].strip()
+                          and i["why"].strip() for i in resp["issues"])
                   and not (value == 1 and resp["issues"]))
         return JudgeAssessment(deductions, approved, usable)
 

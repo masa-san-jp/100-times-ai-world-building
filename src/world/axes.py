@@ -18,7 +18,8 @@ import yaml
 
 from ..llm import LLMBackend
 from .graph import guess_language
-from .coerce import id_list
+from .schemas import world_axes_schema
+from .structured import generate_structured, StructuredFailure
 from .language import language_name, localized
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
@@ -77,7 +78,9 @@ class WorldAxesBuilder:
         catalog: Optional[Mapping[str, Any]] = None,
         prompt: Optional[Mapping[str, str]] = None,
         language: Optional[str] = None,
+        max_attempts: int = 3,
     ) -> None:
+        self.max_attempts = max_attempts
         self.language = language
         self.backend = backend
         self.output_dir = Path(output_dir)
@@ -105,11 +108,14 @@ class WorldAxesBuilder:
     def build(self, brief: Mapping[str, Any],
               language: Optional[str] = None) -> WorldAxesResult:
         lang = self._language_of(brief, language)
-        response = self.backend.generate_json(
-            self._render_prompt(brief, lang),
+        result = generate_structured(
+            self.backend, self._render_prompt(brief, lang), world_axes_schema(self.catalog),
+            task="world_axes", max_attempts=self.max_attempts,
             system_prompt=self.prompt.get("system"),
         )
-        axes = self._validate(response, brief, lang)
+        if result.data is None:
+            raise StructuredFailure("world_axes", result)
+        axes = self._validate(result.data, brief, lang)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         path = self.output_dir / "world_axes.json"
         path.write_text(
@@ -154,6 +160,7 @@ class WorldAxesBuilder:
     def _validate(
         self, response: Any, brief: Mapping[str, Any],
         language: Optional[str] = None,
+        max_attempts: int = 3,
     ) -> List[Dict[str, Any]]:
         no_input = localized(
             self.catalog.get("no_input_reason"), language) or NO_INPUT_REASON
@@ -171,7 +178,7 @@ class WorldAxesBuilder:
         by_domain: Dict[str, Dict[str, Any]] = {}
         added: List[Dict[str, Any]] = []
         for p in proposals:
-            ids = [i for i in id_list(p.get("statement_ids"))
+            ids = [i for i in p["statement_ids"]
                    if i in valid_ids]
             reason = self._text(p.get("reason"))
             domain = p.get("domain")

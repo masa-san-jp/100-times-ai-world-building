@@ -15,7 +15,7 @@ from __future__ import annotations
 import copy
 import json
 import re
-from .premises import extension_errors, premise_errors, usage_errors, world_premises
+from .premises import CONTRACT_ID, extension_errors, premise_errors, premise_source, usage_errors, world_premises
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
@@ -236,6 +236,16 @@ def validate_graph(
              if isinstance(e, Mapping) and e.get("id") in id_set}
     contracts = [e["world_premises"] for e in entities
                  if isinstance(e, Mapping) and "world_premises" in e]
+    record = graph.get("world_contract")
+    if record is not None:
+        if not isinstance(record, Mapping):
+            errors.append("world_contract must be an object")
+        else:
+            if record.get("id") != CONTRACT_ID or record.get("scale") != "world" or CONTRACT_ID in id_set:
+                errors.append("world_contract needs a reserved id and world scale")
+            errors.extend(f"world_contract: {err}" for err in premise_errors(record.get("world_premises")))
+            errors.extend(_provenance_errors(record.get("provenance"), "world_contract", statement_ids, id_set, True))
+            contracts.insert(0, record.get("world_premises"))
     if contracts and any(c != contracts[0] for c in contracts[1:]):
         errors.append("world_premises: conflicting world contracts")
 
@@ -255,7 +265,7 @@ def validate_graph(
         if "premise_extension" in e:
             extension = e["premise_extension"]
             source_id = extension.get("source_entity") if isinstance(extension, Mapping) else None
-            source = by_id.get(source_id, {}) if isinstance(source_id, str) else {}
+            source = (premise_source(graph, source_id) or {}) if isinstance(source_id, str) else {}
             errors.extend(f"{w}: {err}" for err in extension_errors(extension, e, source))
         if "premise_usage" in e:
             errors.extend(f"{w}: {err}" for err in usage_errors(e["premise_usage"]))

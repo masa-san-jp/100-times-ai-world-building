@@ -40,7 +40,9 @@ SYNTHETIC_PREMISES = {
     "calendar": {"name": "Vela Count", "origin": "first quota agreement",
                  "markers": ["Vela Count"]},
     "technology": {"description": "Seals and hand-written ledgers; no automated records",
-                   "capabilities": ["seal", "ledger"], "units": ["term", "quota"]}}
+                   "capabilities": ["seal", "ledger"], "units": ["term", "quota"]},
+    "society": {"description": "Quota agreements define shared record procedures",
+                "institutions": []}}
 
 OPS = {"Propose": "premise", "Add sibling": "expand", "Add child": "zoom",
        "Explain why": "cause", "Describe how": "perspective",
@@ -64,14 +66,16 @@ def _specific(rng, ids, axis_ids):
             {"kind": "object", "text": f"{w[17]} {w[18]} seal"},
             {"kind": "object", "text": f"{w[19]} {w[20]} ledger"},
             {"kind": "period", "text": f"{w[21]} term {rng.randint(2, 90)}"}],
-        "statement_ids": ids[:1], "derived_from": [], "reason": ""}
+        "statement_ids": ids[:1], "derived_from": [], "reason": "",
+        "relations": [], "premise_usage": {k: [] for k in ("calendars", "technologies", "units", "institutions")}}
 
 
 def _generic(i, ids):
     return {"type": "concept", "name": f"Central Guild {chr(65 + i)}",
             "axes": [], "summary": GENERIC_SUMMARY,
             "facts": GENERIC_FACTS, "statement_ids": ids[:1],
-            "derived_from": [], "reason": ""}
+            "derived_from": [], "reason": "", "relations": [],
+            "premise_usage": {k: [] for k in ("calendars", "technologies", "units", "institutions")}}
 
 
 def make_backend(generic_ops=(), always_generic=False, fail_after=None):
@@ -91,7 +95,9 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
                 "open_questions": [], "constraints": []}
         if "DOMAIN CATALOG" in prompt:
             return {"axes": [{"domain": "resources_economy", "meaning": "m",
-                              "weight": 0.9, "statement_ids": ["s1"]}]}
+                              "weight": 0.9, "statement_ids": ["s1"], "name": "", "reason": ""}]}
+        if prompt.startswith("WORLD CONTRACT"):
+            return SYNTHETIC_PREMISES
         m = re.search(r"that you may tag:\n(.*?)\n\n", prompt, re.S)
         axis_ids = [l.split(":")[0] for l in m.group(1).splitlines()
                     if ":" in l] if m else []
@@ -111,7 +117,7 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
                     for fact in row["facts"]:
                         if fact["kind"] == "period":
                             fact["text"] = re.sub(r"\d+", "1", fact["text"])
-                row["world_premises"] = SYNTHETIC_PREMISES
+
                 row["reason"] = "Quota agreements determine record cycles and recording methods"
             return {"candidates": rows}
 
