@@ -14,7 +14,7 @@ from .premises import CONTRACT_ID, normalize_premises, world_premises
 PROMPT_PATH = Path(__file__).resolve().parents[2] / "config/prompts/world/contract.yaml"
 
 
-def establish_contract(backend, graph, brief, axes, *, max_attempts=3):
+def establish_contract(backend, graph, brief, axes, *, max_attempts=3, max_conversions=2):
     """Mutate only the contract records; never create exploration entities.
 
     k is the total number of attempts, including the initial call. Completed
@@ -50,7 +50,8 @@ def establish_contract(backend, graph, brief, axes, *, max_attempts=3):
         context=json.dumps(context, ensure_ascii=False, separators=(",", ":")),
         errors="(none)")
     result = generate_structured(backend, prompt, load_schema("world_contract"),
-        task="world_contract", max_attempts=max_attempts, system_prompt=prompts["system"])
+        task="world_contract", max_attempts=max_attempts, max_conversions=max_conversions,
+        system_prompt=prompts["system"])
     success = result.data is not None
     graph["contract_stage"] = {"status": "success" if success else "failed",
         "attempts": result.attempts, "checks_enabled": success, "disabled_checks": [],

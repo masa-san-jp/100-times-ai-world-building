@@ -421,7 +421,7 @@ BANNED_TERMS = [
 
 
 @pytest.mark.parametrize("rel", [
-    "prompts/world/steps.yaml", "world/explore.yaml"])
+    "prompts/world/steps.yaml", "prompts/structured/convert.yaml", "world/explore.yaml"])
 def test_revision_prompt_and_config_have_no_story_or_genre_terms(rel):
     raw = (CONFIG / rel).read_text("utf-8").lower()
     for t in BANNED_TERMS:

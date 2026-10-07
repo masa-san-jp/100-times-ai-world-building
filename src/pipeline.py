@@ -110,7 +110,8 @@ class Pipeline:
         self.config_path = config_path
         self.config = load_config(config_path)
         engine_cfg = self.config.get("engine") or {}
-        self.structured_config = {"max_attempts": 3, **(engine_cfg.get("structured") or {})}
+        self.structured_config = {"max_attempts": 3, "max_conversions": 2,
+                                  **(engine_cfg.get("structured") or {})}
         self.explore_config = load_explore_config(
             overrides=engine_cfg.get("explore") or {})
         self.operator_config = _operator_config(engine_cfg.get("operator") or {})
@@ -340,7 +341,8 @@ class Pipeline:
                 operator_config=self.operator_config,
                 vision_backend=self.vision_client,
                 source_name=raw_name, resume=True, render=True,
-                structured_max_attempts=self.structured_config["max_attempts"])
+                structured_max_attempts=self.structured_config["max_attempts"],
+                structured_max_conversions=self.structured_config["max_conversions"])
         finally:
             # The engine updates the manifest file through its own handle.
             self.manifest = RunManifest(self.manifest.path, {})

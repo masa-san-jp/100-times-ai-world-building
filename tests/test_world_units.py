@@ -53,14 +53,15 @@ def test_contract_accepts_bounded_arbitrary_symbols_and_descriptions(symbol, qua
 def test_description_used_as_symbol_enters_contract_schema_repair_loop(description):
     invalid = contract_with_units({"symbol": description, "quantity": "Measured length"})
     valid = contract_with_units({"symbol": "qx", "quantity": "Measured length"})
-    backend = FakeLLMBackend([invalid, valid])
+    backend = FakeLLMBackend([invalid, invalid, invalid, valid])
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
     assert stage["status"] == "success" and stage["attempts"] == 2
     assert not graph["entities"]
     assert graph["world_contract"]["world_premises"] == valid
-    assert len(backend.schema_calls) == 2
-    repaired_prompt = backend.schema_calls[1]["prompt"]
+    assert len(backend.schema_calls) == 4
+    assert all("SOURCE OUTPUT:" in c["prompt"] for c in backend.schema_calls[1:3])
+    repaired_prompt = backend.schema_calls[3]["prompt"]
     assert '"symbol"' in repaired_prompt and "REPAIR INSTRUCTIONS" in repaired_prompt
     repair_errors = json.loads(repaired_prompt.split("Fix EVERY violation below.\n", 1)[1]
                                .split("\nPREVIOUS OUTPUT:", 1)[0])

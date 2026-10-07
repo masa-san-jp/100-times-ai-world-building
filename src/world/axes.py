@@ -79,8 +79,10 @@ class WorldAxesBuilder:
         prompt: Optional[Mapping[str, str]] = None,
         language: Optional[str] = None,
         max_attempts: int = 3,
+        max_conversions: int = 2,
     ) -> None:
         self.max_attempts = max_attempts
+        self.max_conversions = max_conversions
         self.language = language
         self.backend = backend
         self.output_dir = Path(output_dir)
@@ -111,6 +113,7 @@ class WorldAxesBuilder:
         result = generate_structured(
             self.backend, self._render_prompt(brief, lang), world_axes_schema(self.catalog),
             task="world_axes", max_attempts=self.max_attempts,
+            max_conversions=self.max_conversions,
             system_prompt=self.prompt.get("system"),
         )
         if result.data is None:

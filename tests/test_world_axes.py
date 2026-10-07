@@ -76,12 +76,13 @@ def test_invalid_output_requires_repair_and_is_never_filled(tmp_path):
     bad = {"axes": [{"domain": "unknown", "weight": "high", "statement_ids": "s1"}]}
     good = {"axes": [{"domain": "history", "name": "", "meaning": "m", "weight": 0.7,
                        "statement_ids": ["s1"], "reason": ""}]}
-    backend = FakeLLMBackend([bad, good])
+    backend = FakeLLMBackend([bad, {}, {}, good])
     result = WorldAxesBuilder(backend, tmp_path).build(_brief("one"))
     assert _by_id(result)["history"]["weight"] == 0.7
-    assert len(backend.json_prompts) == 2
-    assert "REPAIR INSTRUCTIONS" in backend.json_prompts[1]
-    assert "enum" in backend.json_prompts[1] and "required" in backend.json_prompts[1]
+    assert len(backend.json_prompts) == 4
+    assert all("SOURCE OUTPUT:" in p for p in backend.json_prompts[1:3])
+    assert "REPAIR INSTRUCTIONS" in backend.json_prompts[3]
+    assert "enum" in backend.json_prompts[3] and "required" in backend.json_prompts[3]
 
 
 @pytest.mark.parametrize("response", [{}, {"axes": "x"}, {"statements": []}])

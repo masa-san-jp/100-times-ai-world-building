@@ -1,0 +1,10 @@
+system: |
+  Convert the supplied output to JSON matching the specified schema.
+  Do not add, remove or change content. Return JSON only.
+  Keep the source output's language. Do not translate.
+user: |
+  OUTPUT SCHEMA:
+  {schema}
+
+  SOURCE OUTPUT:
+  {source}
