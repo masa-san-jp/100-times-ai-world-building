@@ -37,8 +37,8 @@ steps:
   fact_check: 'Check whether the single fact below is a {kind} fact about {name}: {fact}. {kind_instruction} Return matches and a reason.'
   review: Review the assembled entity for consistency, objective register, absence of narrative voice, and compatibility with the supplied world contract and input. Return the four verdicts and issues identifying only name, summary or an indexed fact that must be corrected. For each false verdict, identify at least one affected field and explain why.
 fact_kinds:
-  number: State one measurement with a numeric value and a non-time unit from the contract when present.
+  number: Return subject (what is measured, 1 to 80 characters), value (a number), unit (one of the contract technology.units, or 1 to 20 characters when no contract exists), and fact (an objective measurement statement, 5 to 200 characters). Use a non-time measurement unit. Include the value and unit in the fact text.
   proper_noun: State one fact containing a specific proper name and its connection to this entity.
   object: State one fact about a physical item and this entity's use, ownership, location or handling of it.
   procedure: State one observable procedure performed by or on this entity.
-  period: State one date or period with a defined calendar marker and a numeric value or duration expression.
+  period: Return marker (the contract calendar.name or one of calendar.markers), value (a number), and fact (an objective date or period statement, 5 to 200 characters). Include the marker and value in the fact text.

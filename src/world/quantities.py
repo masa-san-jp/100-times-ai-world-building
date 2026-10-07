@@ -167,7 +167,8 @@ def units_in_text(text, contract, rules, declared=()):
     calendar = contract.get("calendar") or {}
     markers = [calendar.get("name", ""), *calendar.get("markers", [])]
     for marker in filter(None, markers):
-        text = re.sub(re.escape(normalized(marker)) + r"\s*\d+(?:\s*[-–~〜]\s*\d+)?(?:\s*年|\s+years?)?",
+        text = re.sub(re.escape(normalized(marker)) + r"\s*" + NUMBER
+                      + r"(?:\s*[-–~〜]\s*" + NUMBER + r")?(?:\s*年|\s+years?)?",
                       " ", text, flags=re.IGNORECASE)
     units = set()
     for match in TOKEN.finditer(text):

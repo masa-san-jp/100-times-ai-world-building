@@ -6,6 +6,7 @@ import json
 import re
 import unicodedata
 from dataclasses import asdict, dataclass
+from decimal import Decimal
 from pathlib import Path
 
 import yaml
@@ -14,7 +15,7 @@ from .graph import ENTITY_TYPES, get_entity, local_context, make_entity, next_en
 from .language import load_language_rules, rules_for
 from .operators import (OPERATORS, OperatorConfig, OperatorError, _TARGET_RELATION,
                         _clip, _world_context, load_prompts, placement)
-from .quantities import NUMBER, registered_unit, unit_factors, units_in_text
+from .quantities import NUMBER, is_counter, registered_unit, unit_factors, units_in_text
 from .schemas import step_schema
 from .structured import generate_structured
 from .textsim import ngrams_of, normalize_item
@@ -63,6 +64,12 @@ def overlap(text, reference):
 
 def check(criterion, ok, reason):
     return {"criterion": criterion, "ok": bool(ok), "reason": reason}
+
+
+def value_in_text(value, text):
+    """Compare complete numeric tokens after width and grouping normalization."""
+    return any(Decimal(token.replace(",", "")) == Decimal(str(value))
+               for token in re.findall(NUMBER, unicodedata.normalize("NFKC", text)))
 
 
 class EntityBuilder:
@@ -133,7 +140,8 @@ class EntityBuilder:
         def generate(step, slot, correction=""):
             nonlocal calls
             result = generate_structured(self.backend, prompt(step, slot, correction),
-                step_schema(step, **schema_args), task=step,
+                step_schema(step, **schema_args,
+                            kind=plan[slot] if step == "fact" else None, contract=contract), task=step,
                 system_prompt=self.prompts["common"]["system"], max_attempts=self.structured_attempts)
             calls += result.attempts
             entry = self.metrics["steps"].setdefault(step, {"calls": 0, "attempts": {}, "reasons": {}, "failures": 0})
@@ -153,6 +161,7 @@ class EntityBuilder:
                 entity["axes"] = values
             elif step == "fact":
                 fact = {"kind": plan[slot], "text": data["fact"], "provenance": copy.deepcopy(entity["provenance"])}
+                fact.update({key: data[key] for key in ("subject", "value", "unit", "marker") if key in data})
                 if slot < len(entity["facts"]):
                     entity["facts"][slot] = fact
                 else:
@@ -194,15 +203,12 @@ class EntityBuilder:
                     factors = unit_factors(unit)
                     return normalize_item(unit) not in times and (
                         factors is None or any(normalize_item(factor) not in times for factor in factors))
-                specific = bool(re.search(NUMBER, unicodedata.normalize("NFKC", text))) and any(non_time(u) for u in units)
-                specific_reason = "number requires a numeric value with a non-time unit"
+                specific = (value_in_text(data["value"], text) and data["unit"] in text
+                            and not is_counter(data["unit"], rl) and non_time(data["unit"]))
+                specific_reason = "number requires its value and non-time measurement unit in the fact text"
             elif kind == "period":
-                calendar = contract.get("calendar", {})
-                markers = [calendar.get("name", ""), *calendar.get("markers", [])]
-                specific = any(normalize_item(m) in normalize_item(text) for m in markers if m) and (
-                    bool(re.search(NUMBER, unicodedata.normalize("NFKC", text))) or any(
-                        re.search(p, text, re.IGNORECASE) for p in rl.get("duration_patterns", [])))
-                specific_reason = "period requires a defined calendar marker and a numeric value or duration"
+                specific = data["marker"] in text and value_in_text(data["value"], text)
+                specific_reason = "period requires its calendar marker and value in the fact text"
             else:
                 confirmed = generate("fact_check", slot)
                 entry = self.metrics["steps"]["fact_check"]

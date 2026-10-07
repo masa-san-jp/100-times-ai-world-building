@@ -20,7 +20,8 @@ def world_axes_schema(catalog):
     return schema
 
 
-def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(), fact_count=0):
+def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(), fact_count=0,
+                kind=None, contract=None):
     """Fill a step contract with the ids allowed by this build's context."""
     schema = load_schema("steps/" + step)
     props = schema["properties"]
@@ -34,6 +35,20 @@ def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(),
         props["derived_from"]["items"] = choices(entity_ids)
     elif step == "axes":
         props["axes"]["items"] = choices(axis_ids)
+    elif step == "fact" and kind in {"number", "period"}:
+        contract = contract or {}
+        props["value"] = {"type": "number"}
+        if kind == "number":
+            props["subject"] = {"type": "string", "minLength": 1, "maxLength": 80}
+            props["unit"] = (choices(contract.get("technology", {}).get("units", []))
+                             if contract else
+                             {"type": "string", "minLength": 1, "maxLength": 20})
+        else:
+            calendar = contract.get("calendar", {})
+            props["marker"] = choices([
+                *([calendar["name"]] if "name" in calendar else []),
+                *calendar.get("markers", [])])
+        schema["required"] = list(props)
     elif step == "relations":
         rel = props["relations"]["items"]["properties"]
         rel["type"] = choices(graph.RELATION_TYPES)

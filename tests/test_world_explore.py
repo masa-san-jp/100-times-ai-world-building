@@ -118,9 +118,12 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
             op = re.search(r"^OPERATION: (.+)$", prompt, re.M).group(1)
             bad = always_generic or (op in generic_ops and "PREVIOUS OUTPUT" not in prompt)
             if kind == "number":
-                return {"fact": "50 members" if bad else " ".join(words[:3]) + f" {rng.randint(2, 90)} quota."}
+                value = 50 if bad else rng.randint(2, 90)
+                return {"subject": "Capacity", "value": value, "unit": "quota",
+                        "fact": "50 members" if bad else " ".join(words[:3]) + f" {value} quota."}
             if kind == "period":
-                return {"fact": " ".join(words[:4]) + " Vela Count 1."}
+                return {"marker": "Vela Count", "value": 1,
+                        "fact": " ".join(words[:4]) + " Vela Count 1."}
             return {"fact": " ".join(w.title() for w in words[:6]) + "."}
         if step == "fact_check":
             return {"matches": True, "reason": "The synthetic fact matches the requested kind."}

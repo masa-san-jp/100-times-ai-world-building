@@ -12,7 +12,7 @@ from jsonschema import Draft202012Validator
 from src.llm.fake import FakeLLMBackend
 from src.world.builder import ALLOWED_TYPES, EntityBuilder, fact_plan, overlap
 from src.world.explore import ExplorationLoop, extract_preference_pairs, read_preference_log, run_world_engine
-from src.world.graph import SCALES, make_entity, new_graph, validate_graph
+from src.world.graph import GraphStore, SCALES, make_entity, new_graph, validate_graph
 from src.world.schemas import step_schema
 from tests.test_world_explore import AXES, BRIEF, RAW, SYNTHETIC_PREMISES, cfg, make_backend
 
@@ -64,7 +64,7 @@ def test_each_call_generates_exactly_one_item_in_the_planned_order():
     assert result.entity and result.failure is None
     assert [s.step for s in result.steps] == ["type", "grounding", "name", "axes", "summary", "fact", "fact", "review"]
     expected = [{"type"}, {"statement_ids", "derived_from", "reason"}, {"name"}, {"axes"},
-                {"summary"}, {"fact"}, {"fact"}, {"matches", "reason"}, {"verdicts", "issues"}]
+                {"summary"}, {"subject", "value", "unit", "fact"}, {"fact"}, {"matches", "reason"}, {"verdicts", "issues"}]
     assert [set(c["schema"]["properties"]) for c in backend.schema_calls] == expected
     assert result.calls == len(backend.schema_calls) == 9
     assert all(s.accepted and s.attempt == 1 for s in result.steps)
@@ -96,7 +96,7 @@ def test_low_capability_backend_recovers_both_duplicate_name_and_wrong_fact_kind
         if step == "name" and attempt == 1:
             return {"name": "Existing 1"}
         if step == "fact" and slot == 0 and attempt == 1:
-            return {"fact": "50 members"}
+            return {**good, "value": 50, "fact": "50 members"}
         if step == "fact" and slot == 0 and attempt == 2:
             assert "specific" in prompt and "50 members" in prompt
         return good
@@ -153,33 +153,36 @@ def test_wrong_semantic_kind_regenerates_only_that_fact():
     assert backend.attempts[("summary", None)] == 1
 
 
-@pytest.mark.parametrize("text", ["50 members", "Capacity is 5 years.", "Capacity is 5 hours."])
-def test_number_rejects_counts_and_time_only_units(text):
-    backend = backend_with(lambda step, slot, attempt, prompt, good: {"fact": text} if step == "fact" and slot == 0 else good)
+@pytest.mark.parametrize("value,unit,text", [(50, "members", "50 members"),
+    (5, "years", "Capacity is 5 years."), (5, "hours", "Capacity is 5 hours.")])
+def test_number_rejects_counts_and_time_only_units(value, unit, text):
+    backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": value, "unit": unit, "fact": text} if step == "fact" and slot == 0 else good)
     _, result = build(backend, config={"build": {"max_step_attempts": 2}})
     assert not result.entity and result.failure["step"] == "fact" and result.failure["slot"] == 0
     assert all(any(c["criterion"] == "specific" and not c["ok"] for c in r.checks) for r in result.steps if r.step == "fact")
 
 
-@pytest.mark.parametrize("text", ["Capacity is 3 qx.", "Capacity is 3 quota/qx."])
-def test_unknown_units_cannot_be_proposed_or_approved(text):
-    backend = backend_with(lambda step, slot, attempt, prompt, good: {"fact": text} if step == "fact" and slot == 0 else good)
+@pytest.mark.parametrize("unit", ["qx", "quota/qx"])
+def test_unknown_units_cannot_be_proposed_or_approved(unit):
+    backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": 3, "unit": unit, "fact": f"Capacity is 3 {unit}."} if step == "fact" and slot == 0 else good)
     _, result = build(backend, contract=SYNTHETIC_PREMISES)
-    assert result.entity is None and "fits_world" in result.failure["reason"]
+    assert result.entity is None and '"enum"' in result.failure["reason"]
     assert all("premise_extension" not in call["schema"]["properties"] for call in backend.schema_calls)
 
 
 @pytest.mark.parametrize("unit", ["quota", "quota²", "quota/term", "(quota/term)^2"])
-def test_registered_units_and_their_combinations_pass(unit):
-    backend = backend_with(lambda step, slot, attempt, prompt, good: {"fact": f"Measured capacity is 3 {unit}."} if step == "fact" and slot == 0 else good)
-    _, result = build(backend, contract=SYNTHETIC_PREMISES)
+def test_explicitly_registered_units_and_combinations_pass(unit):
+    contract = copy.deepcopy(SYNTHETIC_PREMISES)
+    contract["technology"]["units"].append(unit)
+    backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": 3, "unit": unit, "fact": f"Measured capacity is 3 {unit}."} if step == "fact" and slot == 0 else good)
+    _, result = build(backend, contract=contract)
     assert result.entity, result.failure
 
 
 @pytest.mark.parametrize("text", ["Founded in Other Count 18.", "Founded in 1987.", "Elapsed for 3 years."])
 def test_period_requires_the_contract_marker(text):
     g = graph("site")
-    backend = backend_with(lambda step, slot, attempt, prompt, good: {"fact": text} if step == "fact" and slot == 4 else good)
+    backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "fact": text} if step == "fact" and slot == 4 else good)
     _, result = build(backend, g, "zoom", "e5", SYNTHETIC_PREMISES)
     assert result.entity is None and result.failure["slot"] == 4
     assert "specific" in result.failure["reason"] or "fits_world" in result.failure["reason"]
@@ -189,19 +192,160 @@ def test_fullwidth_number_and_defined_calendar_are_recognized():
     g = graph("site")
     def change(step, slot, attempt, prompt, good):
         if step == "fact" and slot == 4:
-            return {"fact": "Opening records identify Vela Count １８."}
+            return {**good, "value": 18, "fact": "Opening records identify Vela Count １８."}
         if step == "fact" and slot == 0:
-            return {"fact": "The measured capacity is １２ quota."}
+            return {**good, "value": 12, "fact": "The measured capacity is １２ quota."}
         return good
     _, result = build(backend_with(change), g, "zoom", "e5", SYNTHETIC_PREMISES)
     assert result.entity, result.failure
+
+
+@pytest.mark.parametrize("kind,fields", [
+    ("number", {"subject", "value", "unit", "fact"}),
+    ("period", {"marker", "value", "fact"}),
+    ("proper_noun", {"fact"}), ("object", {"fact"}),
+    ("procedure", {"fact"}), ("other", {"fact"}),
+])
+def test_fact_schema_has_only_the_required_fields_for_its_kind(kind, fields):
+    schema = step_schema("fact", kind=kind, contract=SYNTHETIC_PREMISES)
+    Draft202012Validator.check_schema(schema)
+    assert set(schema["properties"]) == set(schema["required"]) == fields
+    assert schema["additionalProperties"] is False
+    assert schema["properties"]["fact"] == {"type": "string", "minLength": 5, "maxLength": 200}
+
+
+@pytest.mark.parametrize("field,value", [
+    ("subject", ""), ("subject", "x" * 81), ("subject", 3),
+    ("value", "12"), ("value", True), ("unit", ""), ("unit", "x" * 21),
+    ("unit", 3), ("fact", "tiny"), ("fact", "x" * 201),
+])
+def test_number_schema_enforces_types_and_lengths_without_a_contract(field, value):
+    validator = Draft202012Validator(step_schema("fact", kind="number"))
+    data = {"subject": "Capacity", "value": 12, "unit": "quota", "fact": "Capacity is 12 quota."}
+    assert not list(validator.iter_errors(data))
+    data[field] = value
+    assert list(validator.iter_errors(data))
+
+
+@pytest.mark.parametrize("kind,data", [
+    ("number", {"subject": "Capacity", "value": 12, "unit": "quota", "fact": "Capacity is 12 quota."}),
+    ("period", {"marker": "Vela Count", "value": 18, "fact": "Founded in Vela Count 18."}),
+])
+def test_each_structured_fact_field_is_required(kind, data):
+    validator = Draft202012Validator(step_schema("fact", kind=kind, contract=SYNTHETIC_PREMISES))
+    assert not list(validator.iter_errors(data))
+    for field in data:
+        errors = list(validator.iter_errors({k: v for k, v in data.items() if k != field}))
+        assert any(e.validator == "required" for e in errors), field
+
+
+@pytest.mark.parametrize("unit", ["quota²", "quota/term", "(quota/term)^2", "qx"])
+def test_number_schema_rejects_units_not_explicitly_listed_in_the_contract(unit):
+    validator = Draft202012Validator(step_schema("fact", kind="number", contract=SYNTHETIC_PREMISES))
+    data = {"subject": "Capacity", "value": 3, "unit": unit, "fact": f"Capacity is 3 {unit}."}
+    assert any(e.validator == "enum" and list(e.path) == ["unit"] for e in validator.iter_errors(data))
+
+
+def test_period_schema_accepts_calendar_name_and_markers_only():
+    contract = copy.deepcopy(SYNTHETIC_PREMISES)
+    contract["calendar"]["markers"] = ["Quota Cycle", "Ledger Cycle"]
+    validator = Draft202012Validator(step_schema("fact", kind="period", contract=contract))
+    for marker in ["Vela Count", "Quota Cycle", "Ledger Cycle"]:
+        assert not list(validator.iter_errors({"marker": marker, "value": 18, "fact": f"Founded in {marker} 18."}))
+    assert any(e.validator == "enum" for e in validator.iter_errors(
+        {"marker": "Other Count", "value": 18, "fact": "Founded in Other Count 18."}))
+
+
+def test_numberless_fact_only_fake_enters_schema_repair_loop():
+    def change(step, slot, attempt, prompt, good):
+        if step == "fact" and slot == 0:
+            if attempt == 1:
+                return {"fact": "The capacity is measured with quota."}
+            assert "REPAIR INSTRUCTIONS" in prompt
+            assert "required" in prompt and "value" in prompt
+        return good
+    backend = backend_with(change)
+    _, result = build(backend)
+    assert result.entity, result.failure
+    assert backend.attempts[("fact", 0)] == 2
+    assert len([r for r in result.steps if r.step == "fact" and r.slot == 0]) == 1
+    assert backend._structured_metrics["fact"]["attempts"] == {"2": 1, "1": 1}
+    assert backend.attempts[("summary", None)] == backend.attempts[("name", None)] == 1
+
+
+@pytest.mark.parametrize("text", [
+    "Capacity is measured with quota.", "Capacity is 112 quota.",
+    "Capacity is 12.", "Capacity is 12 term.",
+])
+def test_number_requires_its_declared_value_and_unit_in_the_text(text):
+    backend = backend_with(lambda step, slot, attempt, prompt, good:
+        {**good, "value": 12, "fact": text} if step == "fact" and slot == 0 else good)
+    _, result = build(backend, contract=SYNTHETIC_PREMISES, config={"build": {"max_step_attempts": 2}})
+    assert result.entity is None and result.failure["slot"] == 0
+    assert all(any(c["criterion"] == "specific" and not c["ok"] for c in r.checks)
+               for r in result.steps if r.step == "fact")
+
+
+def test_non_time_check_uses_declared_unit_even_when_text_has_another_measurement():
+    backend = backend_with(lambda step, slot, attempt, prompt, good:
+        {**good, "value": 12, "unit": "hours", "fact": "Capacity is 12 quota over 12 hours."}
+        if step == "fact" and slot == 0 else good)
+    _, result = build(backend, config={"build": {"max_step_attempts": 1}})
+    assert result.entity is None and "specific" in result.failure["reason"]
+
+
+@pytest.mark.parametrize("value,spelling", [
+    (1200, "1,200"), (1200, "１，２００"), (12.5, "１２．５"),
+    (-12, "－１２"), (1200, "1.2e3"),
+])
+@pytest.mark.parametrize("slot", [0, 4])
+def test_fact_value_comparison_normalizes_width_and_grouping(value, spelling, slot):
+    def change(step, current_slot, attempt, prompt, good):
+        if step == "fact" and current_slot == slot:
+            text = (f"Capacity measured {spelling} quota." if slot == 0 else
+                    f"Opening records identify Vela Count {spelling}.")
+            return {**good, "value": value, "fact": text}
+        return good
+    _, result = build(backend_with(change), graph("site"), "zoom", "e5", SYNTHETIC_PREMISES)
+    assert result.entity, result.failure
+
+
+@pytest.mark.parametrize("text", [
+    "Founded in Vela Count without a date.", "Founded in Vela Count 118.",
+    "Founded in Other Count 18.", "Founded long before 18 quota were recorded.",
+])
+def test_period_requires_its_declared_marker_and_value_in_the_text(text):
+    backend = backend_with(lambda step, slot, attempt, prompt, good:
+        {**good, "value": 18, "fact": text} if step == "fact" and slot == 4 else good)
+    _, result = build(backend, graph("site"), "zoom", "e5", SYNTHETIC_PREMISES,
+                      config={"build": {"max_step_attempts": 1}})
+    assert result.entity is None and result.failure["slot"] == 4
+    assert "specific" in result.failure["reason"]
+
+
+def test_structured_fact_fields_survive_graph_validation_and_roundtrip(tmp_path):
+    g = graph("site")
+    _, result = build(g=g, operator="zoom", target="e5", contract=SYNTHETIC_PREMISES)
+    assert result.entity, result.failure
+    for slot, fields in [(0, {"subject", "value", "unit"}), (4, {"marker", "value"})]:
+        output = next(r.output for r in result.steps if r.step == "fact" and r.slot == slot)
+        fact = result.entity["facts"][slot]
+        assert fact["text"] == output["fact"]
+        assert {field: fact[field] for field in fields} == {field: output[field] for field in fields}
+        assert fact["provenance"] == result.entity["provenance"]
+    assert set(result.entity["facts"][1]) == {"kind", "text", "provenance"}
+    g["entities"].append(result.entity)
+    assert validate_graph(g, AXES, BRIEF) == []
+    store = GraphStore(tmp_path, axes=AXES, brief=BRIEF)
+    store.save(g)
+    assert store.load()["entities"][-1]["facts"] == result.entity["facts"]
 
 
 def test_number_conflict_is_detected_against_other_facts():
     g = graph("settlement")
     def change(step, slot, attempt, prompt, good):
         if step == "fact" and slot == 0:
-            return {"fact": "Capacity measured 3 quota."}
+            return {**good, "value": 3, "fact": "Capacity measured 3 quota."}
         if step == "fact" and slot == 2:
             return {"fact": "Capacity measured 4 quota with physical containers."}
         return good
@@ -218,7 +362,7 @@ def test_informative_rejects_copied_summary_and_fact():
     assert not result.entity and result.failure["step"] == "summary"
     assert "informative" in result.failure["reason"]
     g["entities"][0]["facts"] = [{"kind": "number", "text": "Capacity is 18 quota.", "provenance": PROV}]
-    backend = backend_with(lambda step, slot, attempt, prompt, good: {"fact": "Capacity is 18 quota."} if step == "fact" and slot == 0 else good)
+    backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": 18, "fact": "Capacity is 18 quota."} if step == "fact" and slot == 0 else good)
     _, result = build(backend, g, "expand", "e1")
     assert not result.entity and "informative" in result.failure["reason"]
 
@@ -404,7 +548,7 @@ def test_loop_step_logs_preferences_and_bandit_reward_use_repairs(tmp_path):
     assert loop.bandit.arms["premise|empty"]["sum"] == pytest.approx(1 - 0.5 / capacity)
     pair, = extract_preference_pairs(records)
     assert pair["prompt"]["step"] == "fact" and pair["prompt"]["slot"] == 0
-    assert pair["rejected"] == {"fact": "50 members"}
+    assert pair["rejected"] == {"subject": "Capacity", "value": 50, "unit": "quota", "fact": "50 members"}
 
 
 def test_loop_discards_hard_failure_with_zero_reward_and_reports_step(tmp_path):
@@ -463,9 +607,9 @@ def test_invalid_build_settings_are_rejected(setting, value):
         EntityBuilder(make_backend(), {"build": {setting: value}})
 
 
-@pytest.mark.parametrize("text", ["Capacity is 3 hours^2.", "Capacity is 3 years/hours."])
-def test_pure_time_combinations_are_not_number_measurements(text):
-    backend = backend_with(lambda step, slot, attempt, prompt, good: {"fact": text} if step == "fact" and slot == 0 else good)
+@pytest.mark.parametrize("unit", ["hours^2", "years/hours"])
+def test_pure_time_combinations_are_not_number_measurements(unit):
+    backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": 3, "unit": unit, "fact": f"Capacity is 3 {unit}."} if step == "fact" and slot == 0 else good)
     _, result = build(backend)
     assert result.entity is None and "specific" in result.failure["reason"]
 
