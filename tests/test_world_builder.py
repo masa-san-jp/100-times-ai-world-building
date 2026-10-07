@@ -13,7 +13,7 @@ from src.llm.fake import FakeLLMBackend
 from src.world.builder import ALLOWED_TYPES, EntityBuilder, fact_plan, overlap
 from src.world.explore import ExplorationLoop, extract_preference_pairs, read_preference_log, run_world_engine
 from src.world.graph import GraphStore, SCALES, make_entity, new_graph, validate_graph
-from src.world.schemas import step_schema
+from src.world.schemas import load_schema, step_schema
 from tests.test_world_explore import AXES, BRIEF, RAW, SYNTHETIC_PREMISES, cfg, make_backend
 
 CRITERIA = yaml.safe_load((Path(__file__).resolve().parents[1] / "config/world/criteria.yaml").read_text())
@@ -170,10 +170,11 @@ def test_unknown_units_cannot_be_proposed_or_approved(unit):
     assert all("premise_extension" not in call["schema"]["properties"] for call in backend.schema_calls)
 
 
-@pytest.mark.parametrize("unit", ["quota", "quota²", "quota/term", "(quota/term)^2"])
+@pytest.mark.parametrize("unit", ["quota", "quota²", "quota/term", "quota²/term²"])
 def test_explicitly_registered_units_and_combinations_pass(unit):
     contract = copy.deepcopy(SYNTHETIC_PREMISES)
-    contract["technology"]["units"].append(unit)
+    contract["technology"]["units"].append({"symbol": unit, "quantity": "Measured capacity"})
+    assert Draft202012Validator(load_schema("world_contract")).is_valid(contract)
     backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": 3, "unit": unit, "fact": f"Measured capacity is 3 {unit}."} if step == "fact" and slot == 0 else good)
     _, result = build(backend, contract=contract)
     assert result.entity, result.failure

@@ -40,7 +40,9 @@ SYNTHETIC_PREMISES = {
     "calendar": {"name": "Vela Count", "origin": "first quota agreement",
                  "markers": ["Vela Count"]},
     "technology": {"description": "Seals and hand-written ledgers; no automated records",
-                   "capabilities": ["seal", "ledger"], "units": ["term", "quota"]},
+                   "capabilities": ["seal", "ledger"],
+                   "units": [{"symbol": "term", "quantity": "Record cycle duration"},
+                             {"symbol": "quota", "quantity": "Measured capacity"}]},
     "society": {"description": "Quota agreements define shared record procedures",
                 "institutions": []}}
 

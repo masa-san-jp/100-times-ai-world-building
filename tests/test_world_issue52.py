@@ -21,7 +21,10 @@ PROV = {"statement_ids": ["s1"], "derived_from": [], "reason": ""}
 CONTRACT = {
     "calendar": {"name": "照環紀", "origin": "最初の共同作業", "markers": ["照環紀"]},
     "technology": {"description": "刻み棒と手動の比較装置で長さと容器量を測る。遠隔自動計測はない。",
-                   "capabilities": ["刻み棒", "比較容器"], "units": ["刻", "槽", "年"]},
+                   "capabilities": ["刻み棒", "比較容器"],
+                   "units": [{"symbol": "刻", "quantity": "長さ"},
+                             {"symbol": "槽", "quantity": "容器量"},
+                             {"symbol": "年", "quantity": "期間"}]},
     "society": {"description": "参加者の持ち回り照合で割当を決める。恒常的な外部統治権はない。",
                 "institutions": ["札照合の持ち回り"]}}
 AXES = [{"id": "a1", "domain": "law", "name": "割当の規則",
@@ -250,7 +253,8 @@ def test_unit_algebra_works_for_invented_symbols_and_registered_composites(regis
     from src.world.quantities import registered_unit, units_in_text
     from src.world.language import load_language_rules, rules_for
     g = graph()
-    g["entities"][0]["world_premises"]["technology"]["units"] = registered
+    g["entities"][0]["world_premises"]["technology"]["units"] = [
+        {"symbol": symbol, "quantity": "容器量の比較値"} for symbol in registered]
     contract = world_premises(g)
     rules = rules_for(load_language_rules(), "ja")
     assert registered_unit(unit, contract, rules)
@@ -268,5 +272,6 @@ def test_algebra_cannot_register_unknown_factors_roots_or_malformed_expressions(
     from src.world.quantities import registered_unit
     from src.world.language import load_language_rules, rules_for
     g = graph()
-    g["entities"][0]["world_premises"]["technology"]["units"] = registered
+    g["entities"][0]["world_premises"]["technology"]["units"] = [
+        {"symbol": symbol, "quantity": "容器量の比較値"} for symbol in registered]
     assert not registered_unit(unit, world_premises(g), rules_for(load_language_rules(), "ja"))

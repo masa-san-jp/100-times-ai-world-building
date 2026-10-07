@@ -22,7 +22,7 @@ from .textsim import (
 )
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
-from .premises import contract_checks_enabled, premise_source, world_premises
+from .premises import contract_checks_enabled, premise_source, unit_symbols, world_premises
 from .quantities import count_only, observed_units, registered_unit, unit_notation, temporal_conflicts, units_in_text
 from .language import load_language_rules, rules_for
 
@@ -629,6 +629,7 @@ def _verify_premise_usage(entity, contract, language, add):
     the optional consistency judge checks those and missing declarations.
     """
     calendar, technology = contract["calendar"], contract["technology"]
+    symbols = unit_symbols(contract)
     markers = [unicodedata.normalize("NFKC", value).strip()
                for value in [calendar["name"], *calendar["markers"]]]
     usage = entity.get("premise_usage") or {}
@@ -636,7 +637,7 @@ def _verify_premise_usage(entity, contract, language, add):
     for key, allowed, code in (
             ("calendars", markers, "undefined_calendar"),
             ("technologies", technology["capabilities"], "undefined_technology"),
-            ("units", technology["units"], "undefined_unit")):
+            ("units", symbols, "undefined_unit")):
         for term in usage.get(key, []):
             if (not registered_unit(term, contract, rules) if key == "units"
                     else normalize_item(term) not in {normalize_item(v) for v in allowed}):
@@ -671,7 +672,7 @@ def _verify_premise_usage(entity, contract, language, add):
                     if any(suffix.startswith(u) and (
                             not u.isascii() or len(suffix) == len(u)
                             or not suffix[len(u)].isalpha())
-                           for u in technology["units"]):
+                           for u in symbols):
                         continue  # a duration/measurement, not a bare year
                 seen_dates.add(match.span())
                 prefix = date_text[max(0, match.start() - 48):match.start()]

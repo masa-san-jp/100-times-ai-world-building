@@ -9,7 +9,7 @@ from tests.helpers_world import candidate_output, deterministic_candidate, deter
 from src.llm.fake import FakeLLMBackend
 from src.world.graph import GraphStore, local_context, make_entity, new_graph, validate_graph
 from src.world.operators import OPERATORS, validate_candidate
-from src.world.premises import world_premises
+from src.world.premises import unit_symbols, world_premises
 from src.world.render import render_world_package
 
 
@@ -21,7 +21,11 @@ CONTRACT = {
                  "markers": ["巡輪紀", "架台紀"]},
     "technology": {"description": "手回し巻上げ器と刻み棒による測定。連続動力や自動計測はない。",
                    "capabilities": ["手回し巻上げ器", "刻み棒"],
-                   "units": ["cm", "m", "年", "巡", "間"]}}
+                   "units": [{"symbol": "cm", "quantity": "長さ"},
+                             {"symbol": "m", "quantity": "長さ"},
+                             {"symbol": "年", "quantity": "期間"},
+                             {"symbol": "巡", "quantity": "照合の間隔"},
+                             {"symbol": "間", "quantity": "期間"}]}}
 
 
 def graph():
@@ -90,7 +94,7 @@ def test_arbitrary_input_defined_calendar_capability_and_unit_are_allowed():
                                               "technologies": ["電動巻上げ器"], "units": ["V"]})
     g["entities"][0]["world_premises"]["calendar"]["markers"].append("西暦")
     g["entities"][0]["world_premises"]["technology"]["capabilities"].append("電動巻上げ器")
-    g["entities"][0]["world_premises"]["technology"]["units"].append("V")
+    g["entities"][0]["world_premises"]["technology"]["units"].append({"symbol": "V", "quantity": "定格電圧"})
     result = score(g, candidate)
     assert result.scores["consistency"] == 1
 
@@ -115,7 +119,7 @@ def test_unit_symbols_preserve_case_and_fullwidth_numeric_text_is_normalized():
 def test_compound_and_symbolic_units_with_unregistered_factors_need_registration(unit):
     g, candidate, _ = generated(f"荷揚げの測定値は12{unit}。", "number")
     assert any(d.code == "undefined_unit" for d in score(g, candidate).deductions)
-    g["entities"][0]["world_premises"]["technology"]["units"].append(unit)
+    g["entities"][0]["world_premises"]["technology"]["units"].append({"symbol": unit, "quantity": "荷揚げの測定値"})
     assert score(g, candidate).scores["consistency"] == 1
 
 
@@ -253,4 +257,4 @@ def test_invalid_extension_history_is_rejected_without_crashing(bad_extension):
     candidate["entity"]["premise_extension"] = bad_extension
     g["entities"].append(candidate["entity"])
     assert any("premise_extension" in e for e in validate_graph(g))
-    assert "kg" not in world_premises(g)["technology"]["units"]
+    assert "kg" not in unit_symbols(world_premises(g))

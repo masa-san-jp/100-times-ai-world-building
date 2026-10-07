@@ -17,3 +17,8 @@ user: |
   Keep strings at most 160 characters and arrays at most 4 entries.
   Calendar markers and measurement units must each have at least one entry;
   capabilities and institutions may be empty. No candidates or entities.
+  Each technology.units entry must contain symbol and quantity. The symbol
+  is a short notation written immediately after a number in the body text,
+  not a description: use 1 to 12 characters without whitespace, parentheses,
+  colons, commas or semicolons (including their fullwidth/Japanese forms).
+  In quantity, describe what the unit measures in 1 to 60 characters.

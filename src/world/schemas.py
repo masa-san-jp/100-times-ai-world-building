@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from . import graph
+from .premises import unit_symbols
 
 SCHEMA_DIR = Path(__file__).resolve().parents[2] / "config" / "schemas"
 
@@ -40,7 +41,7 @@ def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(),
         props["value"] = {"type": "number"}
         if kind == "number":
             props["subject"] = {"type": "string", "minLength": 1, "maxLength": 80}
-            props["unit"] = (choices(contract.get("technology", {}).get("units", []))
+            props["unit"] = (choices(unit_symbols(contract))
                              if contract else
                              {"type": "string", "minLength": 1, "maxLength": 20})
         else:
