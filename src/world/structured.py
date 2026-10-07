@@ -1,6 +1,7 @@
 """Generate, validate and repair every structured model response."""
 
 import json
+import re
 import time
 from dataclasses import dataclass
 from typing import Optional
@@ -57,8 +58,13 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
         modes.append(mode)
         raw = backend.generate_schema(current, schema, system_prompt=system_prompt,
                                       images=images, constrained=constrained)
+        json_response = raw
+        if isinstance(raw, str):
+            fenced = re.fullmatch(r"```(?:json)?[ \t]*\r?\n(.*?)\r?\n```", raw.strip(), re.DOTALL)
+            if fenced:
+                json_response = fenced.group(1)
         try:
-            parsed = json.loads(raw, parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
+            parsed = json.loads(json_response, parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
         except (TypeError, ValueError) as exc:
             violations = [{"path": "$", "expected": "valid JSON object",
                            "actual": raw, "message": str(exc)}]

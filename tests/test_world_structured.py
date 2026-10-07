@@ -69,7 +69,7 @@ def test_every_violation_is_enumerated_and_repaired_from_original_prompt():
     assert result.elapsed >= 0 and result.mode == "constrained"
 
 
-@pytest.mark.parametrize("bad", [None, "", "not JSON", '```json\n{}\n```'])
+@pytest.mark.parametrize("bad", [None, "", "not JSON", '```json\n{"description":\n```'])
 def test_empty_or_unparseable_constrained_output_switches_once_and_is_remembered(bad):
     backend = FakeLLMBackend([bad, {"description": "ok"}, {"description": "again"}])
     messages = []
@@ -83,6 +83,52 @@ def test_empty_or_unparseable_constrained_output_switches_once_and_is_remembered
     assert [c["constrained"] for c in backend.schema_calls] == [True, False, False]
     assert result.mode == again.mode == "unconstrained"
     assert len([m for m in messages if "switched" in m]) == 1
+
+
+@pytest.mark.parametrize("language", ["json", ""])
+@pytest.mark.parametrize("surrounding_whitespace", ["", " \n\t"])
+def test_fenced_compliant_output_succeeds_first_time_and_keeps_constraint(language, surrounding_whitespace):
+    raw = surrounding_whitespace + f'```{language}\n{{"description": "ok"}}\n```' + surrounding_whitespace
+    backend = FakeLLMBackend([raw, {"description": "again"}])
+    result = generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=3)
+    assert result.data == {"description": "ok"}
+    assert result.attempts == 1 and result.violations == [[]]
+    assert result.mode == "constrained"
+    assert len(backend.schema_calls) == 1
+    assert backend._structured_modes == {}
+    again = generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=3)
+    assert again.data == {"description": "again"} and again.attempts == 1
+    assert [c["constrained"] for c in backend.schema_calls] == [True, True]
+
+
+@pytest.mark.parametrize("language", ["json", ""])
+@pytest.mark.parametrize("prefix,suffix", [
+    ("Here is the JSON:\n", ""),
+    ("", "\nThis is the result."),
+    ("Here is the JSON:\n", "\nThis is the result."),
+])
+def test_prose_outside_code_block_remains_invalid_and_is_repaired(language, prefix, suffix):
+    raw = prefix + f'```{language}\n{{"description": "ok"}}\n```' + suffix
+    backend = FakeLLMBackend([raw, {"description": "repaired"}])
+    result = generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=3)
+    assert result.data == {"description": "repaired"} and result.attempts == 2
+    assert result.violations[0][0]["expected"] == "valid JSON object"
+    assert result.violations[0][0]["actual"] == raw
+    assert result.violations[1] == []
+    assert "REPAIR INSTRUCTIONS:" in backend.json_prompts[1]
+    assert "PREVIOUS OUTPUT:\n" + raw in backend.json_prompts[1]
+    assert [c["constrained"] for c in backend.schema_calls] == [True, False]
+
+
+@pytest.mark.parametrize("language", ["json", ""])
+def test_fenced_schema_violation_is_repaired_without_switching_constraint(language):
+    backend = FakeLLMBackend([f"```{language}\n{{}}\n```", {"description": "ok"}])
+    result = generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=2)
+    assert result.data == {"description": "ok"} and result.attempts == 2
+    assert result.violations[0][0]["expected"] == {"required": ["description"]}
+    assert result.violations[1] == []
+    assert [c["constrained"] for c in backend.schema_calls] == [True, True]
+    assert backend._structured_modes == {}
 
 
 def test_schema_violation_keeps_constraint_and_modes_are_per_client_and_model():
