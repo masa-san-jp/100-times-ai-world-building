@@ -1,14 +1,4 @@
-"""Verifiers that score one candidate entity (each score is in [0, 1]).
-
-Every verifier is deterministic by default and returns a
-:class:`VerifierResult` holding a score (1 is best) and structured
-:class:`Deduction` records saying which field was penalized and why, so a
-critique-and-rewrite step can act on them.  LLM judges and embedding
-similarity are optional plug-ins and are never used unless supplied.
-
-Verifiers know no genre, era or setting.  Language-dependent word lists come
-from ``config/world/language_rules.yaml`` keyed by language code.
-"""
+"""Retained deterministic checks for neutral reference material and consistency."""
 
 from __future__ import annotations
 
@@ -26,20 +16,17 @@ from typing import (
 
 import yaml
 
-from .schemas import judge_schema
-from .structured import generate_structured
 from .textsim import (
     character_ngrams, echo_coverage, is_cjk_text, jaccard, ngrams_of,
     normalize_item,
 )
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
 from .operators import OperatorError, validate_candidate
-from .premises import contract_checks_enabled, premise_source, proposed_extension, world_premises
+from .premises import contract_checks_enabled, premise_source, world_premises
 from .quantities import count_only, observed_units, registered_unit, unit_notation, temporal_conflicts, units_in_text
 from .language import load_language_rules, rules_for
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
-DEFAULT_VERIFIER_PROMPTS = CONFIG_DIR / "prompts" / "world" / "verifiers.yaml"
 
 Similarity = Callable[[str, str], float]
 
@@ -207,241 +194,6 @@ def reference_text(
         parts += [str(f.get("text") or "") for f in v.get("facts") or []
                   if isinstance(f, Mapping)]
     return "\n".join(x for x in parts if x)
-
-
-# ----------------------------------------------------------------- contrasts
-
-def _contrast_view(entity: Mapping[str, Any]) -> Dict[str, Any]:
-    return {"name": entity.get("name", ""), "summary": entity.get("summary", ""),
-            "facts": [f.get("text", "") for f in entity.get("facts") or []]}
-
-
-class ContrastProvider:
-    """Produce and cache *contrast candidates*: the model's prior for a slot.
-
-    A contrast is made by running the same operator on a placeholder target
-    of the same scale and type, with no brief, no axes and no world-specific
-    context, so the output reflects what the model writes for any world.
-    Results are cached per (operator, target scale, target type, language),
-    in memory and, if ``package_dir`` is given, in ``world/contrasts.json``.
-    """
-
-    RELATIVE_PATH = Path("world") / "contrasts.json"
-
-    def __init__(self, runner: Any, package_dir: Any = None, n: int = 3) -> None:
-        self.runner = runner
-        self.n = n
-        self.path = Path(package_dir) / self.RELATIVE_PATH if package_dir else None
-        self._cache: Dict[str, List[Dict[str, Any]]] = {}
-        if self.path and self.path.exists():
-            try:
-                data = json.loads(self.path.read_text(encoding="utf-8"))
-                if isinstance(data, dict):
-                    self._cache = {k: v for k, v in data.items()
-                                   if isinstance(v, list)}
-            except (OSError, ValueError):
-                self._cache = {}
-
-    @staticmethod
-    def key(operator: str, scale: str, etype: str, language: str) -> str:
-        return "|".join((operator, scale, etype, language))
-
-    def _save(self) -> None:
-        if not self.path:
-            return
-        from ..checkpoint_manager import CheckpointManager
-        payload = json.dumps(self._cache, ensure_ascii=False, indent=2,
-                             sort_keys=True).encode("utf-8")
-        CheckpointManager._atomic_write(self.path, payload)
-
-    @staticmethod
-    def _stub_graph(language: str, scale: str, etype: str):
-        """Placeholder ancestry down to ``scale``; no world content."""
-        graph = new_graph(language or "und")
-        prov = {"statement_ids": ["none"], "derived_from": [], "reason": ""}
-        parent = None
-        for i in range(SCALE_RANK[scale] + 1):
-            eid = f"e{i + 1}"
-            graph["entities"].append(make_entity(
-                eid, etype if SCALES[i] == scale else "concept",
-                f"unspecified {SCALES[i]}", SCALES[i], parent=parent,
-                provenance=prov))
-            parent = eid
-        return graph, parent
-
-    def get(
-        self, operator: str, graph: Mapping[str, Any],
-        target_id: Optional[str],
-    ) -> List[Dict[str, Any]]:
-        language = (graph.get("meta") or {}).get("language") or "und"
-        target = get_entity(graph, target_id) if target_id else None
-        scale = target["scale"] if target else "world"
-        etype = target["type"] if target else "-"
-        k = self.key(operator, scale, etype, language)
-        if k in self._cache:
-            return self._cache[k]
-        try:
-            if target is None:
-                stub, tid = new_graph(language), None
-            else:
-                stub, tid = self._stub_graph(language, scale, etype)
-            cands = self.runner.run(operator, stub, tid, self.n)
-        except OperatorError:
-            return []
-        views = [_contrast_view(c["entity"]) for c in cands]
-        if views:
-            self._cache[k] = views
-            self._save()
-        return views
-
-
-# ---------------------------------------------------------------- verifiers
-
-def verify_genericity(
-    candidate: Mapping[str, Any], contrasts: Sequence[Mapping[str, Any]],
-    similarity: Optional[Similarity] = None,
-    params: Optional[Mapping[str, Any]] = None, *,
-    siblings: Optional[Sequence[Mapping[str, Any]]] = None,
-    reference: str = "",
-) -> VerifierResult:
-    """How ordinary the candidate is *within its own topic*.
-
-    Three signals add up (each scaled by a weight in ``params``):
-
-    * convergence - wording shared with the other independent candidates
-      generated for the same slot (``siblings``); content that every
-      sample repeats is the model's default, not this world's own idea.
-      Wording that already appears in ``reference`` is ignored here.
-    * restatement - the summary or the name mostly repeats ``reference``
-      (the brief and the local context), so it adds little new.
-    * prior - closeness to the no-input contrast candidates (demoted:
-      such contrasts usually drift to another topic).
-    """
-    p = params or {}
-    size = int(p.get("ngram_size", 3))
-    sim = similarity or (lambda a, b: ngram_similarity(a, b, size))
-    entity = candidate["entity"]
-    deductions: List[Deduction] = []
-    penalty = 0.0
-    sibs = [s.get("entity", s) for s in siblings or []
-            if s is not candidate and s.get("entity", s) is not entity]
-    if not contrasts and not sibs and not reference.strip():
-        return VerifierResult("genericity", 1.0, [], skipped=True)
-
-    # -- prior: the no-input contrast
-    if contrasts:
-        floor = float(p.get("similarity_floor", 0.15))
-        flag = float(p.get("field_flag_similarity", 0.4))
-        cw = float(p.get("contrast_weight", 1.0))
-
-        def as_text(c: Mapping[str, Any]) -> str:
-            return "\n".join([c.get("name", ""), c.get("summary", "")]
-                             + list(c.get("facts", [])))
-
-        whole = [(sim(entity_text(entity), as_text(c)), c) for c in contrasts]
-        best, best_c = max(whole, key=lambda t: t[0])
-        pen = _penalty_from_similarity(best, floor) * cw
-        penalty += pen
-        if pen > 0:
-            pool = [c.get("summary", "") for c in contrasts] + \
-                   [t for c in contrasts for t in c.get("facts", [])]
-            fields = [("name", entity.get("name", "")),
-                      ("summary", entity.get("summary", ""))]
-            fields += [(f"facts[{i}]", f.get("text", ""))
-                       for i, f in enumerate(entity.get("facts") or [])]
-            found = False
-            for fname, text in fields:
-                if not text:
-                    continue
-                ref = [c.get("name", "") for c in contrasts] \
-                    if fname == "name" else pool
-                s = max((sim(text, r) for r in ref if r), default=0.0)
-                if s >= flag:
-                    found = True
-                    deductions.append(Deduction(
-                        "genericity", fname, "resembles_prior",
-                        "close to what the model writes for this slot "
-                        "without any input; make it specific to this world",
-                        _penalty_from_similarity(s, floor) * cw,
-                        {"similarity": round(s, 4)}))
-            if not found:
-                deductions.append(Deduction(
-                    "genericity", "entity", "resembles_prior",
-                    "overall close to the no-input contrast candidate",
-                    pen, {"similarity": round(best, 4),
-                          "contrast_name": best_c.get("name", "")}))
-
-    # -- convergence with the other samples of the same slot
-    csize = int(p.get("convergence_ngram_size", 4))
-    ref_c = ngrams_of(reference, csize) if reference else set()
-    if sibs:
-        floor = float(p.get("convergence_floor", 0.25))
-        flag = float(p.get("convergence_field_flag", 0.5))
-        cw = float(p.get("convergence_weight", 1.0))
-        min_g = int(p.get("min_fresh_grams", 8))
-        others: set = set()
-        for s in sibs:
-            others |= ngrams_of(entity_text(s), csize) - ref_c
-        mine = ngrams_of(entity_text(entity), csize) - ref_c
-        if len(mine) >= min_g:
-            share = len(mine & others) / len(mine)
-            pen = _penalty_from_similarity(share, floor) * cw
-            penalty += pen
-            if pen > 0:
-                fields = [("summary", entity.get("summary", ""))]
-                fields += [(f"facts[{i}]", f.get("text", ""))
-                           for i, f in enumerate(entity.get("facts") or [])]
-                found = False
-                for fname, text in fields:
-                    g = ngrams_of(text, csize) - ref_c
-                    if len(g) < 3:
-                        continue
-                    s = len(g & others) / len(g)
-                    if s >= flag:
-                        found = True
-                        deductions.append(Deduction(
-                            "genericity", fname, "converges_with_samples",
-                            "other independent samples for the same slot "
-                            "say the same; replace it with something only "
-                            "this world would have",
-                            _penalty_from_similarity(s, floor) * cw,
-                            {"shared": round(s, 4)}))
-                if not found:
-                    deductions.append(Deduction(
-                        "genericity", "entity", "converges_with_samples",
-                        "overall shares its wording with the other samples "
-                        "for the same slot", pen, {"shared": round(share, 4)}))
-
-    # -- restatement of the brief and local context
-    if reference.strip():
-        rsize = int(p.get("restatement_ngram_size", 3))
-        ref_r = ngrams_of(reference, rsize)
-        min_new = float(p.get("min_new_share", 0.6))
-        rw = float(p.get("restatement_weight", 0.8))
-        g = ngrams_of(entity.get("summary", ""), rsize)
-        if len(g) >= int(p.get("min_summary_grams", 6)) and min_new > 0:
-            new = len(g - ref_r) / len(g)
-            pen = _clamp((min_new - new) / min_new) * rw
-            penalty += pen
-            if pen > 0:
-                deductions.append(Deduction(
-                    "genericity", "summary", "restates_input",
-                    "the summary mostly repeats the input or the "
-                    "surrounding entities; add mechanisms, names, numbers "
-                    "or consequences that are not already stated",
-                    pen, {"new_share": round(new, 4)}))
-        ew = float(p.get("name_echo_weight", 0.5))
-        thr = float(p.get("name_echo_threshold", 0.5))
-        name = str(entity.get("name") or "")
-        cov = echo_coverage(name, reference, int(p.get("echo_min_chars", 2)))
-        if name and cov >= thr:
-            pen = ew * cov
-            penalty += pen
-            deductions.append(Deduction(
-                "genericity", "name", "name_echoes_input",
-                "the name is built from words of the input; give it a name "
-                "of its own", pen, {"coverage": round(cov, 4)}))
-    return VerifierResult("genericity", _clamp(1.0 - penalty), deductions)
 
 
 def verify_provenance(
@@ -881,7 +633,6 @@ def _verify_premise_usage(entity, contract, language, add):
                for value in [calendar["name"], *calendar["markers"]]]
     usage = entity.get("premise_usage") or {}
     rules = rules_for(load_language_rules(), language)
-    extension = proposed_extension(entity, contract, rules)
     for key, allowed, code in (
             ("calendars", markers, "undefined_calendar"),
             ("technologies", technology["capabilities"], "undefined_technology"),
@@ -889,8 +640,7 @@ def _verify_premise_usage(entity, contract, language, add):
         for term in usage.get(key, []):
             if (not registered_unit(term, contract, rules) if key == "units"
                     else normalize_item(term) not in {normalize_item(v) for v in allowed}):
-                actual_code = "technology_extension" if key == "technologies" and extension else code
-                add(f"premise_usage.{key}", actual_code,
+                add(f"premise_usage.{key}", code,
                     f"{term!r} is not defined; review measurability and capability limits", term=term)
 
     fields = [("name", entity.get("name", "")),
@@ -1057,164 +807,3 @@ def verify_novelty(
             break
     penalty = _clamp(penalty)
     return VerifierResult("novelty", 1.0 - penalty, d)
-
-
-# --------------------------------------------------------------- LLM judge
-
-def _extension_approval(response, proposal):
-    approvals = response.get("premise_extension_approvals", {})
-    return bool(proposal) and all(
-        {item["unit" if group == "units" else "capability"]: item["approved"]
-         for item in approvals.get(group, [])}.get(term) == "yes"
-        for group in ("units", "capabilities") for term in proposal.get(group, []))
-
-
-class LLMJudge:
-    """Optional LLM judge.  Sees one candidate and, for consistency, only
-    its bounded local context.  Returns ``None`` when the model fails."""
-
-    def __init__(self, backend: Any, prompts: Optional[Mapping[str, Any]] = None,
-                 context_limits: Optional[Mapping[str, int]] = None,
-                 max_attempts: int = 3) -> None:
-        self.backend = backend
-        self.max_attempts = max_attempts
-        self.last_structured_failure = None
-        self.prompts = dict(prompts) if prompts else yaml.safe_load(
-            DEFAULT_VERIFIER_PROMPTS.read_text(encoding="utf-8"))
-        self.context_limits = context_limits
-        self.last_response = None
-        self.last_response_text = None
-        self.last_structured_failure = None
-
-    def judge(self, criterion: str, candidate: Mapping[str, Any],
-              graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
-              ) -> Optional[List[Deduction]]:
-        """Compatibility entry point for a single criterion."""
-        result = self.judge_many([criterion], candidate, graph, brief).get(criterion)
-        return result.deductions if result else None
-
-    def judge_many(self, criteria: Sequence[str], candidate: Mapping[str, Any],
-                   graph: Mapping[str, Any], brief: Optional[Mapping[str, Any]] = None,
-                   axes: Optional[Sequence[Mapping[str, Any]]] = None,
-                   ) -> Dict[str, "JudgeAssessment"]:
-        """Evaluate requested criteria through schema validation and repair."""
-        self.last_response = None
-        self.last_response_text = None
-        self.last_structured_failure = None
-        criteria = list(dict.fromkeys(c for c in criteria if c in self.prompts["criteria"]))
-        if not criteria:
-            return {}
-        entity = candidate["entity"]
-        context: Any = {}
-        if "consistency" in criteria and candidate.get("target") and get_entity(graph, candidate["target"]):
-            context = local_context(graph, candidate["target"], self.context_limits)
-        contract = world_premises(graph)
-        context = {**context, "world_premises": contract,
-                   "proposed_premise_extension": proposed_extension(entity, contract,
-                       rules_for(load_language_rules(), language_of(graph))),
-                   "observed_units": observed_units(entity, contract,
-                       rules_for(load_language_rules(), language_of(graph))),
-                   "world_axes": [{k: a.get(k) for k in
-                       ("id", "domain", "name", "meaning", "statement_ids", "reason")}
-                       for a in axes or []][:24],
-                   "input_statements": [str(s.get("text") or "")[:200]
-                       for s in (brief or {}).get("statements", []) or []
-                       if isinstance(s, Mapping)][:12],
-                   "input_constraints": [s["text"][:200] for s in
-                       (brief or {}).get("constraints", []) or []][:12]}
-        view = {key: entity.get(key) for key in
-                ("type", "scale", "parent", "relations", "name", "summary", "provenance")}
-        view["facts"] = [{"kind": f.get("kind"), "text": f.get("text")}
-                         for f in entity.get("facts") or []]
-        for key in ("world_premises", "premise_usage"):
-            if key in entity:
-                view[key] = entity[key]
-        prompt = self.prompts["common"]["user"].format(
-            language=language_of(graph),
-            criterion="\n\n".join(c + ":\n" + (
-                "Check contradictions with existing facts and explicit input (numbers, periods, locations, membership, cause and effect). "
-                "The contract stage failed. Calendar, technology, unit and institution contract checks are disabled; "
-                "do not infer a missing framework or penalize unsupported contract references."
-                if c == "consistency" and not contract_checks_enabled(graph)
-                else self.prompts["criteria"][c].strip()) for c in criteria),
-            candidate=json.dumps(view, ensure_ascii=False),
-            context=json.dumps(context, ensure_ascii=False, separators=(",", ":")))
-        proposal = context["proposed_premise_extension"]
-        if "consistency" in criteria and proposal:
-            prompt += "\nFor EVERY proposed unit and capability return an explicit yes/no in premise_extension_approvals. " \
-                      "A measurable change of notation or scale in an existing dimension should be yes when the stated method respects technology.description; " \
-                      "do not reject it just because its name is unregistered. Empty proposals need no approval."
-        prompt += "\nReturn one result per requested criterion; use [] for no issues."
-        previous_meta = getattr(self.backend, "last_response_meta", None)
-        result = generate_structured(self.backend, prompt, judge_schema(criteria, proposal),
-            task="judge", max_attempts=self.max_attempts, system_prompt=self.prompts["common"]["system"])
-        resp = result.data
-        if resp is None:
-            self.last_structured_failure = result.failure("judge")
-        self.last_response = copy.deepcopy(resp)
-        response_meta = getattr(self.backend, "last_response_meta", None)
-        if isinstance(response_meta, Mapping) and response_meta is not previous_meta:
-            raw_text = response_meta.get("response")
-            if isinstance(raw_text, str):
-                self.last_response_text = raw_text
-        if resp is None and self.last_response_text:
-            try:
-                self.last_response = json.loads(self.last_response_text)
-            except ValueError:
-                pass
-        logging.getLogger(__name__).debug("world judge response: %r; raw text: %r", resp, self.last_response_text)
-        if not isinstance(resp, Mapping):
-            return {}
-        return {c: assessment for c in criteria
-                if (assessment := self._assessment(c, resp.get(c), proposal, resp)) is not None}
-
-    @staticmethod
-    def _assessment(criterion: str, resp: Any, proposal=None, envelope=None) -> Optional["JudgeAssessment"]:
-        if not isinstance(resp, Mapping):
-            return None
-        try:
-            if isinstance(resp["score"], bool):
-                return None
-            value = float(resp["score"])
-            if not math.isfinite(value):
-                return None
-            score = _clamp(value)
-        except (KeyError, TypeError, ValueError):
-            return None
-        issues = [i for i in resp["issues"] if isinstance(i, Mapping)]
-        reason_codes = {
-            "specificity": {"unrelated_fact", "purpose_without_mechanism", "non_object_fact", "thin_fact"},
-            "consistency": {"undefined_calendar", "undefined_technology", "undefined_unit", "implausible_value", "unsupported_institution", "dimension_conflict"},
-        }.get(criterion, set())
-        share = (1.0 - score) / max(1, len(issues))
-        deductions = [Deduction(criterion, i["field"].strip() or "entity",
-                       i.get("code") if isinstance(i.get("code"), str)
-                       and i["code"] in reason_codes else "llm_judge",
-                       i["why"].strip() or "judged below standard", share)
-                      for i in issues] if score < 1 else []
-        if score < 1 and not deductions:
-            deductions = [Deduction(criterion, "entity", "llm_judge", "judged below standard", 1.0 - score)]
-        approved = (criterion == "consistency" and value == 1 and not issues
-                    and resp.get("issues") == []
-                    and _extension_approval(resp, proposal or {}))
-        usable = (0 <= value <= 1 and isinstance(resp.get("issues"), list)
-                  and all(isinstance(i, Mapping) and i["field"].strip()
-                          and i["why"].strip() for i in resp["issues"])
-                  and not (value == 1 and resp["issues"]))
-        return JudgeAssessment(deductions, approved, usable)
-
-
-@dataclass
-class JudgeAssessment:
-    deductions: List[Deduction]
-    extension_approved: bool = False
-    review_usable: bool = True
-
-
-__all__ = [
-    "ContrastProvider", "Deduction", "LLMJudge", "Similarity", "VerifierResult",
-    "embedding_similarity", "entity_text", "language_of", "load_language_rules",
-    "ngram_similarity", "reference_text", "rules_for", "verify_consistency", "verify_genericity",
-    "verify_novelty", "verify_objectivity", "verify_provenance",
-    "verify_specificity",
-]

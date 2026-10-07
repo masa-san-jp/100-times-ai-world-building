@@ -51,8 +51,6 @@ ENGINE_FILES = [
     "config/prompts/input_brief.yaml",
     "config/prompts/world_axes.yaml",
     "config/prompts/world/operators.yaml",
-    "config/prompts/world/revision.yaml",
-    "config/prompts/world/verifiers.yaml",
     "config/world/domains.yaml",
     "config/world/explore.yaml",
     "config/world/language_rules.yaml",
@@ -77,6 +75,9 @@ ENGINE_FILES = [
     "src/world/operators.py",
     "src/world/verify.py",
     "src/world/reward.py",
+    "src/world/builder.py",
+    "config/prompts/world/steps.yaml",
+    "config/world/criteria.yaml",
     "src/world/explore.py",
     "src/world/render.py",
     "README.md",
@@ -132,14 +133,15 @@ def check_engine_config(config_path="config/ollama_config.yaml"):
 
     try:
         from src.world.axes import load_catalog
-        from src.world.operators import load_prompts, load_revision_prompts
+        from src.world.operators import load_prompts
+        from src.world.builder import EntityBuilder
         from src.world.reward import load_reward_config
 
         load_catalog()
         load_prompts()
-        load_revision_prompts()
+        EntityBuilder(object())
         load_reward_config()
-        print("✓ domain catalog, operator prompts and reward config load")
+        print("✓ domain catalog, operator/step prompts and deterministic parameters load")
     except Exception as exc:
         print(f"✗ engine resources: {exc}")
         ok = False

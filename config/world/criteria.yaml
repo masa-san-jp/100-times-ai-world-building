@@ -1,0 +1,24 @@
+grounded:
+  definition: An entity has at least one input statement or local entity as a source; derivation from an entity has an explanation of at least 10 characters.
+  checks: [grounding.sources, grounding.reason]
+consistent:
+  definition: Fields obey their output schemas and do not contradict existing numeric facts; relations do not refer to the entity itself; the whole entity has no contradictions.
+  checks: [all.schema, fact.number_conflict, relations.self_reference, review.consistent]
+objective:
+  definition: The name uses the output language's script and the explanation uses neutral, objective language.
+  checks: [name.language, summary.objectivity, review.objective]
+no_story:
+  definition: Reference material does not use quoted speech, personal narration or narrative voice.
+  checks: [summary.narrative_voice, review.no_story]
+specific:
+  definition: Each fact matches its planned kind; measurements have a number and a non-time unit, periods have a contract calendar marker and a number or duration, and the other kinds pass a small confirmation task.
+  checks: [fact.number, fact.period, fact_check.matches]
+informative:
+  definition: Character 3-gram overlap with the input and local context is at most 0.6; facts also add information beyond the entity's other facts.
+  checks: [summary.overlap, fact.overlap]
+distinct:
+  definition: Normalized entity names differ from existing names and facts do not duplicate other facts within the same entity.
+  checks: [name.duplicate, fact.duplicate]
+fits_world:
+  definition: Units and their combinations and calendar markers belong to the established contract; the assembled entity fits the supplied input and world.
+  checks: [fact.units, fact.calendar, review.fits_world]

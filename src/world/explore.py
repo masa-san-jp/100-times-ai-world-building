@@ -1,20 +1,4 @@
-"""Autonomous exploration loop for the world graph.
-
-One iteration: evaluate the graph into frontier items, pick one
-(frontier item x operator) pair with a bandit, generate candidates, score
-them, accept the best passing one (or critique and rewrite failing ones),
-and commit the result with a checkpoint.  No step asks a human anything.
-
-Bandit arms are ``operator|frontier-kind`` (optionally ``|axis``).  An arm's
-value is its mean reward (with a prior), plus a UCB1 exploration bonus or a
-Thompson sample; the frontier item adds a prior from its deficit and its
-axis weight.  All randomness comes from one seeded ``random.Random`` whose
-state is checkpointed, so a resumed run continues exactly where it stopped.
-
-Every candidate, its scores, deductions, decision and rewrite lineage is
-appended to ``world/preferences.jsonl``; :func:`extract_preference_pairs`
-turns that log into (prompt, chosen, rejected) records.
-"""
+"""Frontier and bandit exploration using checked, incremental entity builds."""
 
 from __future__ import annotations
 
@@ -23,7 +7,7 @@ import json
 import math
 import random
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import (
     Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union,
@@ -36,9 +20,9 @@ from .graph import (
     SCALE_RANK, SCALES, GraphStore, guess_language, local_context,
 )
 from .structured import StructuredFailure, client_instance, metrics_markdown
-from .operators import OperatorConfig, OperatorError, OperatorRunner
-from .reward import RewardVerifier
-from .verify import ContrastProvider, entity_text
+from .operators import OperatorConfig
+from .builder import EntityBuilder
+from .premises import world_premises
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 DEFAULT_EXPLORE_PATH = CONFIG_DIR / "world" / "explore.yaml"
@@ -54,9 +38,6 @@ STOP_REASONS = (
 # Operators that deliberately widen the world or add a second explanation
 # of an existing entity. They are policy data, not assumptions about content.
 BREADTH_OPERATORS = ("expand", "perspective", "cause", "history", "document")
-
-
-NO_CANDIDATES = object()  # the operator returned nothing usable
 
 
 class BudgetExhausted(RuntimeError):
@@ -570,7 +551,6 @@ class ExplorationLoop:
         language: Optional[str] = None,
         config: Optional[Mapping[str, Any]] = None,
         operator_config: Optional[OperatorConfig] = None,
-        verifier: Optional[RewardVerifier] = None,
         checkpoints: Any = None,
         manifest: Any = None,
         clock: Callable[[], float] = time.monotonic,
@@ -591,16 +571,11 @@ class ExplorationLoop:
         self.clock = clock
         self.state = _fresh_state(seed)
         self.backend = _CountingBackend(backend, self.state["counters"])
-        self.runner = OperatorRunner(self.backend, operator_config, max_attempts=structured_max_attempts)
-        self.provider = ContrastProvider(
-            self.runner, self.package_dir,
-            int(self.cfg["generation"].get("contrast_count", 3)))
-        self.verifier = verifier or RewardVerifier()
-        if self.verifier.contrasts is None:
-            self.verifier.contrasts = self.provider  # genericity always on
-        if getattr(self.verifier, "judge", None) is not None:
-            # Judge calls spend the same generation-call budget.
-            self.verifier.judge.backend = self.backend
+        builder_cfg = copy.deepcopy(self.cfg)
+        builder_cfg["structured"] = {"max_attempts": structured_max_attempts}
+        if operator_config is not None:
+            builder_cfg["operator"] = asdict(operator_config)
+        self.builder = EntityBuilder(self.backend, builder_cfg)
         self.store = GraphStore(
             self.package_dir, self.checkpoints, self.axes, self.brief)
         self.log_path = self.package_dir / PREFERENCES_RELATIVE_PATH
@@ -620,16 +595,19 @@ class ExplorationLoop:
             "stop_reason", "consecutive_failures") if k in data})
         self.bandit.arms = Bandit(self.cfg.get("selection", {}), self.rng,
                                   data.get("bandit")).arms
+        if "build" in data:
+            self.builder.metrics = copy.deepcopy(data["build"])
         _set_rng_state(self.rng, data["rng"])
         return True
 
     def _save_state(self) -> None:
         s = self.state
+        s["build"] = copy.deepcopy(self.builder.metrics)
         s["bandit"] = self.bandit.to_dict()
         s["rng"] = _rng_state(self.rng)
         self.checkpoints.save_checkpoint(CHECKPOINT_PHASE, copy.deepcopy(s))
         if self.manifest is not None:
-            self.manifest.update(world_explore={
+            self.manifest.update(build=copy.deepcopy(self.builder.metrics), world_explore={
                 "iteration": s["iteration"], "counters": dict(s["counters"]),
                 "stop_reason": s["stop_reason"],
                 "elapsed_seconds": round(s["elapsed_seconds"], 3)})
@@ -749,7 +727,6 @@ class ExplorationLoop:
 
     # -- one iteration
     def _iterate(self, graph: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
-        gen = self.cfg["generation"]
         by_axis = bool(self.cfg["selection"].get("arm_by_axis", False))
         pairs = candidate_pairs(evaluate_frontier(graph, self.axes, self.cfg), self.cfg)
         if not pairs:
@@ -759,184 +736,68 @@ class ExplorationLoop:
         item, operator = pairs[self.bandit.select(options)]
         arm = arm_key(operator, item, by_axis)
         target = item["target"]
-        gen_axes = self.axes
-        if item["kind"] == "axis_gap":
-            gen_axes = [a for a in self.axes if a["id"] == item["axis"]] or self.axes
-
         it = self.state["iteration"] + 1
         context = (local_context(graph, target) if target else
-                   {"language": graph["meta"]["language"],
-                    "entity_count": len(graph["entities"])})
-        records: List[Dict[str, Any]] = []
-        decisions: Dict[str, str] = {}
-
-        def score(cands, rnd, revision_of=None, findings=None, siblings=None):
-            rows = []
-            for idx, c in enumerate(cands):
-                try:
-                    res = self.verifier.verify(
-                        graph, c, brief=self.brief, axes=self.axes,
-                        store=True,
-                        siblings=cands if siblings is None else siblings)
-                except BudgetExhausted:
-                    raise
-                except Exception as exc:  # skip this candidate only
-                    logger.warning(
-                        f"candidate {idx} could not be verified: "
-                        f"{type(exc).__name__}: {exc}")
-                    self.state["counters"]["errors"] += 1
-                    records.append({
-                        "type": "candidate_error", "iteration": it,
-                        "round": rnd, "index": idx, "operator": operator,
-                        "error": {"class": type(exc).__name__,
-                                  "message": str(exc)[:300]}})
-                    continue
-                cid = f"i{it}.r{rnd}.c{idx}"
-                records.append({
-                    "type": "candidate", "id": cid, "iteration": it,
-                    "round": rnd, "index": idx, "arm": arm,
-                    "operator": operator, "target": target,
-                    "candidate": copy.deepcopy(c["entity"]),
-                    "result": res.to_dict(), "revision_of": revision_of,
-                    "findings": findings or [], "decision": "rejected"})
-                decisions[cid] = "rejected"
-                rows.append({"id": cid, "cand": c, "res": res})
-            return rows
-
-        def best_of(rows):
-            return max(rows, key=lambda r: (r["res"].passed, r["res"].reward))
-
-        accepted = None
-        self.iteration_discard_reasons = {}
-        self.iteration_structured_failures = []
-        error: Optional[Dict[str, str]] = None
+                   {"language": graph["meta"]["language"], "entity_count": len(graph["entities"])})
+        result, error = None, None
+        records = []
         try:
-            accepted = self._attempt(
-                graph, operator, target, gen, gen_axes, score, best_of)
-            if accepted is not None and accepted is not NO_CANDIDATES:
-                graph = self._commit(graph, accepted["cand"]["entity"], accepted["res"])
+            result = self._attempt(graph, operator, target, item)
+            records = [{"type": "step", "iteration": it, **asdict(r)} for r in result.steps]
         except BudgetExhausted:
             raise
-        except Exception as exc:  # bad model data or a backend failure
+        except Exception as exc:
             error = {"class": type(exc).__name__, "message": str(exc)[:300]}
-            logger.warning(
-                f"iteration {it} ({arm}) failed: "
-                f"{error['class']}: {error['message']}")
-            accepted = None
-        if error is not None:
+            logger.warning("iteration {} ({}) failed: {}", it, arm, error)
+        accepted = result is not None and result.entity is not None
+        reward = 0.0
+        if accepted:
+            # Each generated slot can be remade max_step_attempts - 1 times;
+            # review can be repeated review_rounds times. Skipped slots cost nothing.
+            counts = {}
+            for r in result.steps:
+                counts[(r.step, r.slot)] = max(counts.get((r.step, r.slot), 0), r.attempt)
+            extra = sum(n - 1 for n in counts.values())
+            capacity = sum(self.builder.review_rounds if step == "review" else
+                           self.builder.max_step_attempts - 1 for step, slot in counts)
+            reward = 1 - 0.5 * (extra / capacity if capacity else 0)
+            result.entity.setdefault("scores", {})["reward"] = reward
+            graph = self._commit(graph, result.entity)
+            self.state["counters"]["accepted"] += 1
+        else:
+            self.state["counters"]["rejected"] += 1
+        if result:
+            counts = {}
+            for r in result.steps:
+                counts[(r.step, r.slot)] = max(counts.get((r.step, r.slot), 0), r.attempt)
+            self.state["counters"]["rewrites"] += sum(n - 1 for n in counts.values())
+        if error:
             self.state["counters"]["errors"] += 1
             self.state["consecutive_failures"] += 1
         else:
             self.state["consecutive_failures"] = 0
-        if accepted is NO_CANDIDATES:
-            accepted = None
-            self.state["counters"]["no_candidates"] += 1
-            self.state["counters"]["rejected"] += 1
-        elif accepted is not None:
-            decisions[accepted["id"]] = "accepted"
-            arm_reward = accepted["res"].reward
-            self.state["counters"]["accepted"] += 1
-        else:
-            self.state["counters"]["rejected"] += 1
-        if accepted is None:
-            arm_reward = float(gen.get("discard_reward", 0.0))
-        for r in records:
-            if "id" in r:
-                r["decision"] = decisions[r["id"]]
-                review = r["result"].get("premise_review", {})
-                review["recorded"] = (r["decision"] == "accepted"
-                                      and bool(r["result"].get("premise_extension")))
-                if review["recorded"]:
-                    review["extension_status"] = "recorded"
-                elif review.get("extension_status") == "eligible":
-                    review["extension_status"] = "not_selected"
         records.append({
             "type": "iteration", "iteration": it, "arm": arm,
             "operator": operator, "target": target,
             "frontier": {k: item[k] for k in ("kind", "axis", "deficit")},
-            "context": context,
-            "outcome": ("error" if error else
-                        "accepted" if accepted else "discarded"),
-            "accepted_id": accepted["id"] if accepted else None,
-            "arm_reward": round(arm_reward, 4),
-            "discard_reasons": dict(self.iteration_discard_reasons),
-            **({"error": error} if error else {}),
-            **({"structured_failure": self.iteration_structured_failures}
-               if self.iteration_structured_failures else {})})
-        logger.info("iteration {} ({}) candidate discard reasons: {}", it, operator,
-                    self.iteration_discard_reasons)
-        self.bandit.update(arm, arm_reward)
+            "context": context, "outcome": "error" if error else "accepted" if accepted else "discarded",
+            "accepted_id": result.entity["id"] if accepted else None,
+            "arm_reward": round(reward, 4),
+            "failure": result.failure if result else None,
+            **({"error": error} if error else {})})
+        self.bandit.update(arm, reward)
         self._append_log(records)
         self.state["max_entity_n"] = _max_entity_n(graph)
         return graph, True
 
-    def _attempt(self, graph, operator, target, gen, gen_axes, score, best_of):
-        """Generate, score and rewrite; return the accepted row, ``None``
-        (nothing passed) or :data:`NO_CANDIDATES`."""
-        try:
-            cands = self.runner.run(
-                operator, graph, target, int(gen["candidates"]),
-                brief=self.brief, axes=gen_axes)
-        except OperatorError:
-            cands = []
-        finally:
-            self._collect_discard_reasons()
-        if not cands:
-            return NO_CANDIDATES
-        rows = score(cands, 0)
-        if not rows:
-            return None
-        base = best_of(rows)
-        if base["res"].passed:
-            return base
-        for rnd in range(1, int(gen["max_rewrites"]) + 1):
-            findings = self._findings(base["res"], int(gen["max_findings"]))
-            try:
-                revised = self.runner.revise(
-                    base["cand"], findings, graph,
-                    brief=self.brief, axes=gen_axes)
-            finally:
-                self._collect_discard_reasons()
-            self.state["counters"]["rewrites"] += 1
-            if revised is None:
-                break
-            new_rows = score([revised], rnd, base["id"], findings,
-                             siblings=[c for c in cands
-                                       if c is not base["cand"]])
-            if not new_rows:
-                break
-            row = new_rows[0]
-            if row["res"].passed:
-                return row
-            if row["res"].reward > base["res"].reward:
-                base = row
-        return None
+    def _attempt(self, graph, operator, target, item):
+        return self.builder.build(graph, operator, target, brief=self.brief,
+                                  axes=self.axes, contract=world_premises(graph),
+                                  frontier_axis=item["axis"] if item["kind"] == "axis_gap" else None)
 
-    def _collect_discard_reasons(self):
-        if self.runner.last_structured_failure is not None:
-            self.iteration_structured_failures.append(copy.deepcopy(self.runner.last_structured_failure))
-        for reason, count in self.runner.last_discard_reasons.items():
-            self.iteration_discard_reasons[reason] = self.iteration_discard_reasons.get(reason, 0) + count
-
-    @staticmethod
-    def _findings(result, limit: int) -> List[Dict[str, Any]]:
-        ded = sorted(result.deductions, key=lambda d: -d.penalty)[:limit]
-        out = [{"field": d.field, "code": d.code, "message": d.message}
-               for d in ded]
-        if not out:
-            out = [{"field": "entity", "code": "below_threshold",
-                    "message": "overall reward is below the threshold; make "
-                               "it more specific and better grounded"}]
-        return out
-
-    def _commit(self, graph: Dict[str, Any], entity: Mapping[str, Any], result=None):
-        accepted = copy.deepcopy(dict(entity))
-        # History is created only by the verifier, never by generated content.
-        accepted.pop("premise_extension", None)
-        if result is not None and result.passed and result.premise_extension:
-            accepted["premise_extension"] = copy.deepcopy(result.premise_extension)
+    def _commit(self, graph, entity):
         with self.store.transaction(graph["meta"]["language"]) as working:
-            working["entities"].append(accepted)
+            working["entities"].append(copy.deepcopy(entity))
         return working
 
 
@@ -950,69 +811,28 @@ def read_preference_log(path: Union[str, Path]) -> List[Dict[str, Any]]:
             if l.strip()]
 
 
-def _rank(rec: Mapping[str, Any]) -> Tuple[bool, float]:
-    return (bool(rec["result"]["passed"]), float(rec["result"]["reward"]))
-
-
-def extract_preference_pairs(
-    source: Union[str, Path, Sequence[Mapping[str, Any]]],
-    min_margin: float = 0.0,
-) -> List[Dict[str, Any]]:
-    """Return ``(prompt, chosen, rejected)`` records for DPO-style training.
-
-    Within each generation round the best candidate (passing first, then
-    higher reward) is *chosen* over every strictly worse sibling; a rewrite
-    that outranks the draft it revised is *chosen* over that draft.  The
-    prompt holds the operator, target, frontier kind and bounded context.
-    ``min_margin`` drops pairs whose reward gap is smaller.
-    """
-    records = (read_preference_log(source)
-               if isinstance(source, (str, Path)) else list(source))
-    its = {r["iteration"]: r for r in records if r.get("type") == "iteration"}
-    cands = [r for r in records if r.get("type") == "candidate"]
-    by_id = {c["id"]: c for c in cands}
-
-    def prompt(c, findings=None):
-        it = its.get(c["iteration"], {})
-        p = {"operator": c["operator"], "target": c["target"],
-             "frontier_kind": (it.get("frontier") or {}).get("kind"),
-             "axis": (it.get("frontier") or {}).get("axis"),
-             "context": it.get("context")}
-        if findings:
-            p["revision_findings"] = findings
-        return p
-
-    def pair(kind, win, lose, findings=None):
-        return {
-            "kind": kind, "prompt": prompt(win, findings),
-            "chosen": win["candidate"], "rejected": lose["candidate"],
-            "chosen_text": entity_text(win["candidate"]),
-            "rejected_text": entity_text(lose["candidate"]),
-            "chosen_id": win["id"], "rejected_id": lose["id"],
-            "chosen_reward": win["result"]["reward"],
-            "rejected_reward": lose["result"]["reward"],
-            "chosen_deductions": win["result"]["deductions"],
-            "rejected_deductions": lose["result"]["deductions"]}
-
-    pairs: List[Dict[str, Any]] = []
-    groups: Dict[Tuple[int, int], List[Mapping[str, Any]]] = {}
-    for c in cands:
-        groups.setdefault((c["iteration"], c["round"]), []).append(c)
-    for key in sorted(groups):
-        group = groups[key]
-        if len(group) < 2:
-            continue
-        top = max(group, key=lambda c: _rank(c))
-        for c in group:
-            if c is top or _rank(c) >= _rank(top):
+def extract_preference_pairs(source):
+    """Pair accepted and rejected outputs of the same build step and slot."""
+    records = (read_preference_log(source) if isinstance(source, (str, Path)) else list(source))
+    iterations = {r["iteration"]: r for r in records if r.get("type") == "iteration"}
+    groups = {}
+    for record in records:
+        if record.get("type") == "step":
+            groups.setdefault((record.get("iteration"), record["step"], record["slot"]), []).append(record)
+    pairs = []
+    for (iteration, step, slot), rows in groups.items():
+        context = iterations.get(iteration, {})
+        for chosen in rows:
+            if not chosen["accepted"]:
                 continue
-            if top["result"]["reward"] - c["result"]["reward"] >= min_margin:
-                pairs.append(pair("group", top, c))
-    for c in cands:
-        base = by_id.get(c.get("revision_of") or "")
-        if base is not None and _rank(c) > _rank(base) and \
-                c["result"]["reward"] - base["result"]["reward"] >= min_margin:
-            pairs.append(pair("revision", c, base, c.get("findings")))
+            for rejected in rows:
+                if rejected["accepted"] or chosen["output"] == rejected["output"]:
+                    continue
+                pairs.append({"kind": "step", "prompt": {"step": step, "slot": slot,
+                    "operator": context.get("operator"), "target": context.get("target"),
+                    "frontier": context.get("frontier"), "context": context.get("context")},
+                    "chosen": chosen["output"], "rejected": rejected["output"],
+                    "chosen_checks": chosen["checks"], "rejected_checks": rejected["checks"]})
     return pairs
 
 
@@ -1025,7 +845,6 @@ def run_world_engine(
     language: Optional[str] = None,
     config: Optional[Mapping[str, Any]] = None,
     operator_config: Optional[OperatorConfig] = None,
-    verifier: Optional[RewardVerifier] = None,
     vision_backend: Any = None, source_name: Optional[str] = None,
     resume: bool = True, render: bool = True,
     structured_max_attempts: int = 3,
@@ -1036,7 +855,7 @@ def run_world_engine(
     ``max_generation_calls``.  Files written under ``package_dir``:
     ``input/`` (raw input, images, ``input_brief.json``),
     ``world/world_axes.json``, ``world/graph.json``,
-    ``world/contrasts.json``, ``world/preferences.jsonl``,
+    ``world/preferences.jsonl``,
     ``checkpoints/`` and ``run_manifest.json``.  With ``resume`` an
     existing brief, axes and checkpoint are reused instead of regenerated.
     With ``render`` (default) the world reference material is written to
@@ -1092,7 +911,7 @@ def run_world_engine(
         loop = ExplorationLoop(
             backend, root, brief, axes, seed=seed, language=lang,
             config=config, operator_config=operator_config,
-            verifier=verifier, checkpoints=checkpoints, manifest=manifest,
+            checkpoints=checkpoints, manifest=manifest,
             structured_max_attempts=structured_max_attempts)
         from .contract import establish_contract
         graph = loop.store.load_or_create(lang)
@@ -1116,6 +935,7 @@ def run_world_engine(
                 "iterations": result.iterations,
                 "counters": result.counters,
                 "structured": metrics,
+                "build": loop.builder.metrics,
             }, explore_config=loop.cfg)
     except BaseException as exc:
         manifest.update(structured=metrics)
@@ -1137,7 +957,7 @@ __all__ = [
     "Bandit", "BudgetExhausted", "ExplorationLoop", "ExplorationResult",
     "BREADTH_OPERATORS", "PREFERENCES_RELATIVE_PATH", "STOP_REASONS", "arm_key", "axis_consumption",
     "axis_shares", "candidate_pairs", "coverage_status", "evaluate_frontier",
-    "NO_CANDIDATES", "extract_preference_pairs", "item_prior", "load_explore_config",
+    "extract_preference_pairs", "item_prior", "load_explore_config",
     "mean_reward", "operator_consumption", "pair_prior", "scale_needs",
     "read_preference_log", "run_world_engine",
 ]

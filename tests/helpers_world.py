@@ -69,21 +69,27 @@ def candidate_output(item):
                               "institutions": [], **item.get("premise_usage", {})}}
 
 
-def review_output(prompt, assessments):
-    """Emit the per-term approval fields requested by this synthetic prompt."""
+def deterministic_candidate(item, eid="e3", scale="region", parent="e1"):
     import copy
-    result = copy.deepcopy(assessments)
-    context = json.JSONDecoder().raw_decode(prompt.split(
-        "CONTEXT (world premises, local entities and explicit input; may be empty):\n", 1)[1].lstrip())[0]
-    proposal = context["proposed_premise_extension"]
-    for criterion, item in result.items():
-        if "_approve" not in item:
-            continue
-        approve = item.pop("_approve")
-        if criterion == "consistency" and proposal:
-            item["premise_extension_approvals"] = {
-                group: [{"unit" if group == "units" else "capability": term,
-                         "approved": "yes" if approve else "no", "why": "synthetic review"}
-                        for term in proposal.get(group, [])]
-                for group in ("units", "capabilities")}
-    return result
+    prov = {k: copy.deepcopy(item.get(k, [] if k != "reason" else ""))
+            for k in ("statement_ids", "derived_from", "reason")}
+    entity = make_entity(eid, item["type"], item["name"], scale, parent=parent,
+        axes=item["axes"], summary=item["summary"], provenance=prov,
+        facts=[{**f, "provenance": copy.deepcopy(prov)} for f in item["facts"]],
+        relations=item["relations"])
+    if "premise_usage" in item:
+        entity["premise_usage"] = copy.deepcopy(item["premise_usage"])
+    return {"operator": "expand", "target": "e2", "entity": entity}
+
+
+def deterministic_result(graph, candidate, brief):
+    from types import SimpleNamespace
+    from src.world.language import load_language_rules
+    from src.world.verify import verify_consistency, verify_specificity, language_of
+    rules = load_language_rules()
+    results = {"consistency": verify_consistency(candidate, graph, brief=brief),
+               "specificity": verify_specificity(candidate, language_of(graph), rules)}
+    return SimpleNamespace(scores={k: v.score for k, v in results.items()},
+        deductions=[d for r in results.values() for d in r.deductions],
+        failed=[k for k, v in results.items() if v.deductions],
+        deductions_for=lambda k: results[k].deductions)

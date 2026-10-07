@@ -11,11 +11,9 @@ from src.llm.fake import FakeLLMBackend
 from src.world.contract import establish_contract
 from src.world.explore import ExplorationLoop, read_preference_log, run_world_engine
 from src.world.graph import GraphStore, local_context, new_graph, validate_graph
-from src.world.operators import OperatorRunner
 from src.world.premises import CONTRACT_ID, premise_extensions, world_premises
 from src.world.render import render_world_package
-from src.world.reward import RewardVerifier, load_reward_config
-from src.world.verify import LLMJudge, verify_consistency
+from src.world.verify import verify_consistency
 from tests.test_world_explore import (
     AXES, BRIEF, RAW, SYNTHETIC_PREMISES, _generic, _specific, cfg, make_backend,
 )
@@ -107,56 +105,8 @@ def test_failed_contract_never_enables_exploration_fallback():
     assert not graph["entities"]
 
 
-def test_discard_reasons_aggregate_to_info_and_iteration_log(tmp_path):
-    good = _specific(random.Random(17), ["s1"], ["a1"])
-    no_provenance = {**good, "statement_ids": [], "derived_from": []}
-    thin = {**good, "facts": []}
-    invalid_contract = {**good, "world_premises": {}}
-    rows = [no_provenance, thin, good, good]
-    config = cfg(generation={"candidates": 4, "max_rewrites": 0})
-    backend = FakeLLMBackend({"candidates": rows})
-    messages = []
-    sink = logger.add(lambda message: messages.append(str(message)), level="INFO")
-    try:
-        result = ExplorationLoop(backend, tmp_path, BRIEF, AXES,
-                                 config=config).run(max_iterations=1)
-    finally:
-        logger.remove(sink)
-    iteration = next(r for r in read_preference_log(result.preferences_path)
-                     if r["type"] == "iteration")
-    assert iteration["discard_reasons"] == {"no_provenance": 1, "insufficient_facts": 1, "duplicate_name": 1}
-    assert all(reason in "\n".join(messages) for reason in iteration["discard_reasons"])
-    assert any("iteration 1" in m and "discard reasons" in m for m in messages)
 
 
-def test_new_contract_source_supports_reviewed_extensions_and_rollback(tmp_path):
-    from tests.test_world_issue48 import BRIEF as brief, graph, raw, score, batch_judge, assessment
-
-    g = graph()
-    original = g["entities"][0].pop("world_premises")
-    g["world_contract"] = {"id": CONTRACT_ID, "scale": "world",
-                           "world_premises": original, "provenance": g["entities"][0]["provenance"]}
-    item = raw("照合所の札束の重さは2kg。", "number", premise_usage={"units": ["kg"]})
-    candidate = OperatorRunner(FakeLLMBackend({"candidates": [item]})).run(
-        "expand", g, "e2", 1, brief=brief)[0]
-    judge = LLMJudge(batch_judge(specificity=assessment(), consistency=assessment(approve=True)))
-    result = score(g, candidate, judge, ["specificity", "consistency"])
-    assert result.passed and result.premise_extension["source_entity"] == CONTRACT_ID
-    candidate["entity"]["premise_extension"] = result.premise_extension
-    g["entities"].append(candidate["entity"])
-    assert not validate_graph(g, brief=brief)
-    store = GraphStore(tmp_path, brief=brief)
-    store.save(g)
-    loaded = store.load()
-    assert "kg" in world_premises(loaded)["technology"]["units"]
-    assert "kg" not in loaded["world_contract"]["world_premises"]["technology"]["units"]
-    assert premise_extensions(loaded)[0]["source_entity"] == CONTRACT_ID
-    assert local_context(loaded, "e2")["world_premises"]["source_entity"] == CONTRACT_ID
-    final = json.loads(render_world_package(tmp_path)["world_json"].read_text())
-    assert final["premise_extensions"] == premise_extensions(loaded)
-    loaded["entities"].pop()
-    assert "kg" not in world_premises(loaded)["technology"]["units"]
-    assert not premise_extensions(loaded)
 
 
 def test_legacy_graph_contract_is_reused_without_generation():
@@ -194,34 +144,3 @@ def test_contract_context_is_bounded_and_interrupts_propagate():
 
     with pytest.raises(KeyboardInterrupt):
         establish_contract(FakeLLMBackend(interrupt), new_graph("en"), BRIEF, AXES)
-
-
-def test_graph_inconsistency_and_contract_conflicts_have_distinct_reasons():
-    from tests.test_world_issue48 import graph, raw
-
-    g = graph()
-    conflict = json.loads(json.dumps(g["entities"][0]["world_premises"]))
-    conflict["calendar"]["origin"] = "another origin"
-    runner = OperatorRunner(FakeLLMBackend({"candidates": [raw(world_premises=conflict)]}))
-    assert not runner.run("premise", g, n=1)
-    assert runner.last_discard_reasons == {"structured_failure": 1}
-    # Pre-existing errors are ignored; an inherited invalid parent is a new error.
-    g["entities"][1]["parent"] = "missing-parent"
-    runner = OperatorRunner(FakeLLMBackend({"candidates": [raw()]}))
-    assert not runner.run("expand", g, "e2", n=1)
-    assert runner.last_discard_reasons == {"graph_inconsistent": 1}
-
-
-def test_rewrite_discard_reasons_are_in_the_same_iteration(tmp_path):
-    backend = FakeLLMBackend([
-        {"candidates": [_generic(0, ["s1"])]},
-        {"candidates": [{**_generic(1, ["s1"]), "statement_ids": []}]},
-    ])
-    verifier = RewardVerifier(contrasts=SimpleNamespace(get=lambda *args: []))
-    result = ExplorationLoop(backend, tmp_path, BRIEF, AXES, verifier=verifier,
-                             config=cfg(generation={"candidates": 1})).run(max_iterations=1)
-    iteration = next(r for r in read_preference_log(result.preferences_path)
-                     if r["type"] == "iteration")
-    assert result.counters["rewrites"] == 1
-    assert iteration["outcome"] == "discarded"
-    assert iteration["discard_reasons"] == {"no_provenance": 1}

@@ -29,8 +29,6 @@ from .run_manifest import RunManifest, file_sha256, snapshot_files, utc_now
 from .utils import load_config
 from .world.explore import ExplorationResult, load_explore_config, run_world_engine
 from .world.operators import OperatorConfig
-from .world.reward import RewardVerifier, load_reward_config
-from .world.verify import LLMJudge
 
 BUDGET_KEYS = ("max_iterations", "max_wall_seconds", "max_generation_calls")
 DEFAULT_INPUT_NAME = "user_input.txt"
@@ -117,7 +115,6 @@ class Pipeline:
             overrides=engine_cfg.get("explore") or {})
         self.operator_config = _operator_config(engine_cfg.get("operator") or {})
         self.generation_defaults = dict(self.config.get("generation") or {})
-        self.judge_config = dict(engine_cfg.get("judge") or {})
         self.budget_requested = {
             k: v for k, v in (budget or {}).items()
             if k in BUDGET_KEYS and v is not None}
@@ -208,26 +205,6 @@ class Pipeline:
             f"run_seed={self.run_seed}, model={self.model})")
 
     # ------------------------------------------------------------ set-up
-    def judge_enabled(self) -> bool:
-        """Whether the LLM judge scores candidates in this run.
-
-        ``engine.judge.enabled`` is ``true``, ``false`` or ``auto`` (default):
-        ``auto`` turns it on for the real backends (ollama, anthropic) and
-        leaves it off for injected backends such as the test fake.
-        """
-        enabled = self.judge_config.get("enabled", "auto")
-        if enabled == "auto":
-            return self.backend_name in {"ollama", "anthropic"}
-        return bool(enabled)
-
-    def _build_verifier(self) -> Optional[RewardVerifier]:
-        if not self.judge_enabled():
-            return None
-        criteria = list(self.judge_config.get("criteria") or ["specificity"])
-        return RewardVerifier(
-            load_reward_config(overrides={"llm_judges": criteria}),
-            judge=LLMJudge(self.client, max_attempts=self.structured_config["max_attempts"]))
-
     def _resolve_models(
         self, backend_name: str, model: Optional[str],
         vision_model: Optional[str], stored: Mapping[str, Any],
@@ -264,7 +241,7 @@ class Pipeline:
         config_file = Path(self.config_path)
         config_dir = Path("config")
         sources = [p for pattern in ("prompts/*.yaml", "prompts/world/*.yaml",
-                                     "world/*.yaml", "schemas/*.json")
+                                     "world/*.yaml", "schemas/*.json", "schemas/steps/*.json")
                    for p in config_dir.glob(pattern)]
         return {
             "schema_version": 2,
@@ -285,11 +262,7 @@ class Pipeline:
                 "operator": (dataclasses.asdict(self.operator_config)
                              if self.operator_config else {}),
                 "generation": self.generation_defaults,
-                "structured": self.structured_config,
-                "judge": {"enabled": self.judge_enabled(),
-                          "criteria": list(
-                              self.judge_config.get("criteria")
-                              or ["specificity"])}},
+                "structured": self.structured_config},
             "files": snapshot_files(sources, Path.cwd()),
             "paths": {"input": "input", "world": "world",
                       "checkpoints": "checkpoints", "final": "final"},
@@ -365,7 +338,6 @@ class Pipeline:
                 self.budget, self.run_seed,
                 config=self.explore_config,
                 operator_config=self.operator_config,
-                verifier=self._build_verifier(),
                 vision_backend=self.vision_client,
                 source_name=raw_name, resume=True, render=True,
                 structured_max_attempts=self.structured_config["max_attempts"])

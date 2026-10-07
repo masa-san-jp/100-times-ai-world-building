@@ -10,7 +10,6 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Mapping, Optional
 
-from .quantities import registered_unit
 
 MAX_ITEMS = 16
 MAX_TEXT = 160
@@ -98,25 +97,6 @@ def world_premises(graph: Mapping[str, Any]) -> Dict[str, Any]:
                             contract["technology"][key].append(term)
             return contract
     return {}
-
-
-def proposed_extension(entity: Mapping[str, Any], contract: Mapping[str, Any],
-                       rules: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
-    """Declared additions need a derivation; units alone remain usable."""
-    reason = (entity.get("provenance") or {}).get("reason")
-    usage = entity.get("premise_usage")
-    if not contract.get("source_entity") or not isinstance(reason, str) or not reason.strip():
-        return {}
-    if usage_errors(usage):
-        return {}
-    additions = {key: list(dict.fromkeys(
-        term for term in usage.get(usage_key, [])
-        if (not registered_unit(term, contract, rules or {}) if key == "units"
-            else term not in contract["technology"][key])))
-        for key, usage_key in (("units", "units"), ("capabilities", "technologies"))}
-    if not any(additions.values()):
-        return {}
-    return {"source_entity": contract["source_entity"], **additions, "reason": reason}
 
 
 def premise_extensions(graph: Mapping[str, Any]) -> list:
