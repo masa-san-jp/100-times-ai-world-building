@@ -91,6 +91,13 @@ def _unit_descriptions(units: Sequence[Any]) -> str:
         for unit in units)
 
 
+def _institution_descriptions(institutions: Sequence[Any]) -> str:
+    return ", ".join(
+        f"{_one_line(institution['name'])} ({_one_line(institution['description'])})"
+        if isinstance(institution, Mapping) else _one_line(institution)
+        for institution in institutions)
+
+
 def _esc(text: Any) -> str:
     """Escape text for use inside link text and table cells."""
     t = _one_line(text)
@@ -203,7 +210,7 @@ def _entity_page(ctx: _Ctx, e: Mapping[str, Any]) -> str:
         if contract.get("society"):
             society = contract["society"]
             out += [f"- {L('society')}: {_one_line(society['description'])}",
-                    f"- {L('institutions')}: " + ", ".join(society['institutions']), ""]
+                    f"- {L('institutions')}: " + _institution_descriptions(society['institutions']), ""]
 
     out += [f"## {L('relations')}", ""]
     rels = [f"- {ctx.sub('relation_types', r['type'])}: {ctx.link(r['target'])}"
@@ -510,7 +517,7 @@ def _report(ctx: _Ctx, limit: int) -> str:
                     f"- {L('units')}: " + _unit_descriptions(technology['units'])]
             if contract.get("society"):
                 out += [f"- {L('society')}: {_one_line(contract['society']['description'])}",
-                        f"- {L('institutions')}: " + ", ".join(contract['society']['institutions'])]
+                        f"- {L('institutions')}: " + _institution_descriptions(contract['society']['institutions'])]
             out.append("")
 
     cov = ctx.coverage

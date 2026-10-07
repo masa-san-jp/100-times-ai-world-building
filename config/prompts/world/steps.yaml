@@ -24,6 +24,8 @@ common:
     Generate only the requested item. Respect the supplied input and the contract.
     Use only defined units and their combinations, and defined calendar markers.
     Use technology.units[].symbol as the unit notation; quantity describes what it measures.
+    Use calendar.name, calendar.markers and society.institutions[].name verbatim
+    as short notations in body text; origin and description contain explanations.
     Do not propose additions to the contract.
     CORRECTION:
     {correction}

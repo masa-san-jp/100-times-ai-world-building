@@ -17,6 +17,14 @@ user: |
   Keep strings at most 160 characters and arrays at most 4 entries.
   Calendar markers and measurement units must each have at least one entry;
   capabilities and institutions may be empty. No candidates or entities.
+  calendar.name (1 to 20 characters), each calendar.markers entry (1 to 12
+  characters), and each society.institutions[].name (1 to 30 characters) are
+  short notations to write verbatim in body text. They must not contain
+  whitespace, parentheses, colons, commas, semicolons or Japanese full stops
+  (including their fullwidth/Japanese forms).
+  Each society.institutions entry must contain name and description;
+  description must have 1 to 80 characters. Put explanations in description,
+  origin or quantity, rather than in names, markers or symbols.
   Each technology.units entry must contain symbol and quantity. The symbol
   is a short notation written immediately after a number in the body text,
   not a description: use 1 to 12 characters without whitespace, parentheses,
