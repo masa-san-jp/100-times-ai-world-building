@@ -37,8 +37,8 @@ GENERIC_FACTS = [
     {"kind": "object", "text": "oak table"},
     {"kind": "object", "text": "iron lamp"}]
 SYNTHETIC_PREMISES = {
-    "calendar": {"name": "Vela Count", "origin": "first quota agreement",
-                 "markers": ["Vela Count"]},
+    "calendar": {"name": "VelaCount", "origin": "first quota agreement",
+                 "markers": ["VelaCount"]},
     "technology": {"description": "Seals and hand-written ledgers; no automated records",
                    "capabilities": ["seal", "ledger"],
                    "units": [{"symbol": "term", "quantity": "Record cycle duration"},
@@ -124,8 +124,8 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
                 return {"subject": "Capacity", "value": value, "unit": "quota",
                         "fact": "50 members" if bad else " ".join(words[:3]) + f" {value} quota."}
             if kind == "period":
-                return {"marker": "Vela Count", "value": 1,
-                        "fact": " ".join(words[:4]) + " Vela Count 1."}
+                return {"marker": "VelaCount", "value": 1,
+                        "fact": " ".join(words[:4]) + " VelaCount 1."}
             return {"fact": " ".join(w.title() for w in words[:6]) + "."}
         if step == "fact_check":
             return {"matches": True, "reason": "The synthetic fact matches the requested kind."}

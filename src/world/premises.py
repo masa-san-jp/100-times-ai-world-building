@@ -18,9 +18,13 @@ from jsonschema import Draft202012Validator
 MAX_ITEMS = 16
 MAX_TEXT = 160
 CONTRACT_ID = "world_contract"
-_UNIT_VALIDATOR = Draft202012Validator(json.loads(
+_CONTRACT_SCHEMA = json.loads(
     (Path(__file__).resolve().parents[2] / "config/schemas/world_contract.json")
-    .read_text(encoding="utf-8"))["properties"]["technology"]["properties"]["units"]["items"])
+    .read_text(encoding="utf-8"))
+_UNIT_VALIDATOR = Draft202012Validator(
+    _CONTRACT_SCHEMA["properties"]["technology"]["properties"]["units"]["items"])
+_INSTITUTION_VALIDATOR = Draft202012Validator(
+    _CONTRACT_SCHEMA["properties"]["society"]["properties"]["institutions"]["items"])
 
 
 def contract_checks_enabled(graph: Mapping[str, Any]) -> bool:
@@ -57,6 +61,13 @@ def unit_symbols(contract: Mapping[str, Any]) -> list[str]:
             for unit in (contract.get("technology") or {}).get("units", [])]
 
 
+def _institutions(value: Any) -> bool:
+    # Preserve bare terms in existing graphs, as with legacy unit notation.
+    return (_terms(value) or (
+        isinstance(value, list) and len(value) <= MAX_ITEMS
+        and all(_INSTITUTION_VALIDATOR.is_valid(institution) for institution in value)))
+
+
 def premise_errors(value: Any) -> list:
     if not isinstance(value, Mapping):
         return ["world_premises must be an object"]
@@ -75,7 +86,7 @@ def premise_errors(value: Any) -> list:
         society = value["society"]
         if not isinstance(society, Mapping) or not (
                 _text(society.get("description"))
-                and _terms(society.get("institutions"))):
+                and _institutions(society.get("institutions"))):
             errors.append("society needs description and institutions")
     return errors
 

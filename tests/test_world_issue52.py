@@ -26,7 +26,7 @@ CONTRACT = {
                              {"symbol": "槽", "quantity": "容器量"},
                              {"symbol": "年", "quantity": "期間"}]},
     "society": {"description": "参加者の持ち回り照合で割当を決める。恒常的な外部統治権はない。",
-                "institutions": ["札照合の持ち回り"]}}
+                "institutions": [{"name": "札照合の持ち回り", "description": "参加者が交替で割当札を照合する。"}]}}
 AXES = [{"id": "a1", "domain": "law", "name": "割当の規則",
          "meaning": "札の照合で参加者の順を決める。", "statement_ids": ["s1"]}]
 

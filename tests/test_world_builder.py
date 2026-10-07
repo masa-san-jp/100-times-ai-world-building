@@ -195,7 +195,7 @@ def test_fullwidth_number_and_defined_calendar_are_recognized():
     g = graph("site")
     def change(step, slot, attempt, prompt, good):
         if step == "fact" and slot == 4:
-            return {**good, "value": 18, "fact": "Opening records identify Vela Count １８."}
+            return {**good, "value": 18, "fact": "Opening records identify VelaCount １８."}
         if step == "fact" and slot == 0:
             return {**good, "value": 12, "fact": "The measured capacity is １２ quota."}
         return good
@@ -232,7 +232,7 @@ def test_number_schema_enforces_types_and_lengths_without_a_contract(field, valu
 
 @pytest.mark.parametrize("kind,data", [
     ("number", {"subject": "Capacity", "value": 12, "unit": "quota", "fact": "Capacity is 12 quota."}),
-    ("period", {"marker": "Vela Count", "value": 18, "fact": "Founded in Vela Count 18."}),
+    ("period", {"marker": "VelaCount", "value": 18, "fact": "Founded in VelaCount 18."}),
 ])
 def test_each_structured_fact_field_is_required(kind, data):
     validator = Draft202012Validator(step_schema("fact", kind=kind, contract=SYNTHETIC_PREMISES))
@@ -253,7 +253,7 @@ def test_period_schema_accepts_calendar_name_and_markers_only():
     contract = copy.deepcopy(SYNTHETIC_PREMISES)
     contract["calendar"]["markers"] = ["Quota Cycle", "Ledger Cycle"]
     validator = Draft202012Validator(step_schema("fact", kind="period", contract=contract))
-    for marker in ["Vela Count", "Quota Cycle", "Ledger Cycle"]:
+    for marker in ["VelaCount", "Quota Cycle", "Ledger Cycle"]:
         assert not list(validator.iter_errors({"marker": marker, "value": 18, "fact": f"Founded in {marker} 18."}))
     assert any(e.validator == "enum" for e in validator.iter_errors(
         {"marker": "Other Count", "value": 18, "fact": "Founded in Other Count 18."}))
@@ -307,7 +307,7 @@ def test_fact_value_comparison_normalizes_width_and_grouping(value, spelling, sl
     def change(step, current_slot, attempt, prompt, good):
         if step == "fact" and current_slot == slot:
             text = (f"Capacity measured {spelling} quota." if slot == 0 else
-                    f"Opening records identify Vela Count {spelling}.")
+                    f"Opening records identify VelaCount {spelling}.")
             return {**good, "value": value, "fact": text}
         return good
     _, result = build(backend_with(change), graph("site"), "zoom", "e5", SYNTHETIC_PREMISES)
@@ -315,7 +315,7 @@ def test_fact_value_comparison_normalizes_width_and_grouping(value, spelling, sl
 
 
 @pytest.mark.parametrize("text", [
-    "Founded in Vela Count without a date.", "Founded in Vela Count 118.",
+    "Founded in VelaCount without a date.", "Founded in VelaCount 118.",
     "Founded in Other Count 18.", "Founded long before 18 quota were recorded.",
 ])
 def test_period_requires_its_declared_marker_and_value_in_the_text(text):

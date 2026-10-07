@@ -47,6 +47,11 @@ def _path(parts):
     return "$" + "".join(f"[{p}]" if isinstance(p, int) else f"[{json.dumps(p)}]" for p in parts)
 
 
+def _is_schema_echo(data):
+    return (isinstance(data, dict) and len(data.keys() & {
+        "$schema", "properties", "required", "additionalProperties", "type"}) >= 2)
+
+
 def _validate_response(raw, validator):
     json_response = raw
     if isinstance(raw, str):
@@ -58,11 +63,48 @@ def _validate_response(raw, validator):
     except (TypeError, ValueError) as exc:
         return None, [{"path": "$", "expected": "valid JSON object",
                        "actual": raw, "message": str(exc)}], False
+    if _is_schema_echo(parsed):
+        return parsed, [{"path": "$", "expected": "content rather than a JSON Schema",
+                         "actual": parsed, "message": "Schema echo: output copies a JSON Schema"}], True
     violations = [{"path": _path(error.absolute_path),
                    "expected": {error.validator: error.validator_value},
                    "actual": error.instance, "message": error.message}
                   for error in validator.iter_errors(parsed)]
     return parsed, violations, True
+
+
+def _placeholder_violations(data, schema):
+    def normalize(value):
+        return unicodedata.normalize("NFKC", value).strip().lower()
+
+    placeholders = {"string", "number", "integer", "boolean", "object", "array", "null", "..."}
+
+    def collect(node):
+        if isinstance(node, dict):
+            placeholders.update(normalize(key) for key in node.get("properties", {}))
+            for child in node.values():
+                collect(child)
+        elif isinstance(node, list):
+            for child in node:
+                collect(child)
+
+    collect(schema)
+    violations = []
+
+    def check(value, node, parts):
+        node = node if isinstance(node, dict) else {}
+        if isinstance(value, dict):
+            for key, child in value.items():
+                check(child, node.get("properties", {}).get(key, {}), [*parts, key])
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                check(child, node.get("items", {}), [*parts, index])
+        elif isinstance(value, str) and "enum" not in node and normalize(value) in placeholders:
+            violations.append({"path": _path(parts), "expected": "non-placeholder content",
+                               "actual": value, "message": "Placeholder value: regenerate substantive content"})
+
+    check(data, schema, [])
+    return violations
 
 
 def _contains_boolean(schema):
@@ -135,6 +177,7 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
     mode = "constrained" if constrained else "unconstrained"
     converted = False
     conversions = {"tried": 0, "succeeded": 0, "fidelity_failures": 0, "schema_failures": 0}
+    content_counts = {"placeholder_violations": 0, "schema_echo": 0}
 
     def generate(current_prompt, current_system, current_images=None):
         nonlocal constrained, mode
@@ -143,19 +186,27 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
         raw = backend.generate_schema(current_prompt, schema, system_prompt=current_system,
                                       images=current_images, constrained=constrained)
         parsed, violations, parseable = _validate_response(raw, validator)
+        content_invalid = _is_schema_echo(parsed)
+        if content_invalid:
+            content_counts["schema_echo"] += 1
+        elif not violations:
+            violations = _placeholder_violations(parsed, schema)
+            content_counts["placeholder_violations"] += len(violations)
+            content_invalid = bool(violations)
         if not parseable and constrained and not forced:
             constrained = False
             client._structured_modes[key] = False
             logger.info("Structured output switched to unconstrained for backend={} model={}", *key)
-        return raw, parsed, violations, parseable
+        return raw, parsed, violations, parseable, content_invalid
 
     for attempt in range(1, max_attempts + 1):
-        raw, parsed, violations, _ = generate(current, system_prompt, images)
+        raw, parsed, violations, _, content_invalid = generate(current, system_prompt, images)
         history.append(list(violations))
         if not violations:
             data = parsed
             break
-        if isinstance(raw, str) and raw.strip() and not _contains_boolean(schema) and max_conversions:
+        if (not content_invalid and isinstance(raw, str) and raw.strip()
+                and not _contains_boolean(schema) and max_conversions):
             prompts = yaml.safe_load(CONVERT_PROMPT_PATH.read_text(encoding="utf-8"))
             conversion_prompt = prompts["user"].format(
                 schema=json.dumps(schema, ensure_ascii=False, separators=(",", ":")), source=raw)
@@ -165,17 +216,19 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
                 if feedback:
                     current_conversion += "\n\nPREVIOUS CONVERSION VIOLATIONS:\n" + json.dumps(feedback, ensure_ascii=False)
                 conversions["tried"] += 1
-                _, candidate, schema_violations, parseable = generate(current_conversion, prompts["system"])
+                _, candidate, conversion_violations, parseable, content_invalid = generate(current_conversion, prompts["system"])
                 fidelity_violations = _fidelity_violations(candidate, schema, raw) if parseable else []
-                conversions["schema_failures"] += bool(schema_violations)
+                conversions["schema_failures"] += bool(conversion_violations) and not content_invalid
                 conversions["fidelity_failures"] += bool(fidelity_violations)
-                feedback = schema_violations + fidelity_violations
+                feedback = conversion_violations + fidelity_violations
                 if not feedback:
                     data = candidate
                     converted = True
                     conversions["succeeded"] += 1
                     break
                 history[-1].extend(feedback)
+                if content_invalid:
+                    break
             if converted:
                 break
         current = (original + "\n\nREPAIR INSTRUCTIONS: Regenerate the complete JSON object. Fix EVERY violation below.\n"
@@ -195,6 +248,8 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
             count = str(attempt)
             entry["attempts"][count] = entry["attempts"].get(count, 0) + 1
         entry["elapsed"] += result.elapsed
+        for name, count in content_counts.items():
+            entry[name] = entry.get(name, 0) + count
         counts = entry.setdefault("conversions", {name: 0 for name in conversions})
         for name, count in conversions.items():
             counts[name] += count
@@ -205,10 +260,11 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
 
 def metrics_markdown(metrics):
     lines = ["## Structured output", "",
-             "| Task | Calls | Attempts to compliance | Failures | Seconds | Modes (attempts) | Conversions tried | Conversions succeeded | Fidelity failures | Schema failures |",
-             "| --- | ---: | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |"]
+             "| Task | Calls | Attempts to compliance | Failures | Seconds | Modes (attempts) | Placeholder violations | Schema echo | Conversions tried | Conversions succeeded | Fidelity failures | Schema failures |",
+             "| --- | ---: | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for task, entry in metrics.items():
         counts = entry.get("conversions", {})
         lines.append(f"| {task} | {entry['calls']} | {json.dumps(entry['attempts'])} | {entry['failures']} | {entry['elapsed']:.3f} | {json.dumps(entry['modes'])} | "
+                     f"{entry.get('placeholder_violations', 0)} | {entry.get('schema_echo', 0)} | "
                      f"{counts.get('tried', 0)} | {counts.get('succeeded', 0)} | {counts.get('fidelity_failures', 0)} | {counts.get('schema_failures', 0)} |")
     return "\n".join(lines) + "\n"
