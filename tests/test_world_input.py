@@ -106,13 +106,14 @@ def test_ids_are_assigned_after_schema_repair_and_quote_filtering(tmp_path):
                             {"text": "dropped", "quote": "存在しない"},
                             {"text": "b", "quote": "戊は己"}],
              "open_questions": ["q one", "q two", ""], "constraints": ["c one"]}
-    backend = FakeLLMBackend([invalid, valid])
+    backend = FakeLLMBackend([invalid, {}, {}, valid])
     brief = InputBriefBuilder(backend, tmp_path).build(raw).brief
     assert [s["id"] for s in brief["statements"]] == ["s1", "s2"]
     assert [q["id"] for q in brief["open_questions"]] == ["q1", "q2"]
     assert brief["open_questions"][1]["text"] == "q two"
     assert brief["constraints"] == [{"id": "c1", "text": "c one"}]
-    assert len(backend.json_prompts) == 2 and "Additional properties" in backend.json_prompts[1]
+    assert len(backend.json_prompts) == 4 and "Additional properties" in backend.json_prompts[3]
+    assert all("SOURCE OUTPUT:" in p for p in backend.json_prompts[1:3])
 
 
 def test_blank_or_whitespace_quotes_are_rejected(tmp_path):

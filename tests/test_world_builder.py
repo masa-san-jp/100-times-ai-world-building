@@ -41,6 +41,8 @@ def backend_with(change):
     inner = make_backend()
     attempts = {}
     def respond(prompt):
+        if prompt.startswith("OUTPUT SCHEMA:\n"):
+            return {}
         step, slot = step_of(prompt), slot_of(prompt)
         key = (step, slot)
         attempts[key] = attempts.get(key, 0) + 1
@@ -271,6 +273,7 @@ def test_numberless_fact_only_fake_enters_schema_repair_loop():
     assert backend.attempts[("fact", 0)] == 2
     assert len([r for r in result.steps if r.step == "fact" and r.slot == 0]) == 1
     assert backend._structured_metrics["fact"]["attempts"] == {"2": 1, "1": 1}
+    assert backend._structured_metrics["fact"]["conversions"]["tried"] == 2
     assert backend.attempts[("summary", None)] == backend.attempts[("name", None)] == 1
 
 
@@ -470,7 +473,8 @@ def test_schema_repair_does_not_regenerate_accepted_fields():
     assert result.entity and result.entity["id"] == "e1"
     assert backend.attempts[("type", None)] == backend.attempts[("grounding", None)] == 1
     assert len([s for s in result.steps if s.step == "name"]) == 1
-    assert result.calls == len(backend.schema_calls) == 10
+    assert result.calls == len(backend.schema_calls) == 12
+    assert backend._structured_metrics["name"]["conversions"]["tried"] == 2
 
 
 @pytest.mark.parametrize("grounding", [{"statement_ids": [], "derived_from": [], "reason": ""},

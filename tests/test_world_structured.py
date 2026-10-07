@@ -56,22 +56,25 @@ def test_all_assembled_schemas_are_valid_and_every_object_is_closed(schema):
 
 
 def test_every_violation_is_enumerated_and_repaired_from_original_prompt():
-    backend = FakeLLMBackend([{"description": 1, "extra": 2}, {"description": "visible"}])
+    backend = FakeLLMBackend([{"description": 1, "extra": 2}, {}, {}, {"description": "visible"}])
     result = generate_structured(backend, "original", SCHEMA, task="image_description", max_attempts=3)
     assert result.data == {"description": "visible"} and result.attempts == 2
-    assert len(result.violations[0]) == 2 and result.violations[1] == []
-    repair = backend.json_prompts[1]
+    assert len(result.violations[0]) == 4 and result.violations[1] == []
+    repair = backend.json_prompts[3]
     assert repair.startswith(backend.json_prompts[0])
     for violation in result.violations[0]:
         assert all(key in violation for key in ("path", "expected", "actual"))
         assert violation["message"] in repair
     assert "PREVIOUS OUTPUT" in repair and "OUTPUT SCHEMA:" in repair
     assert result.elapsed >= 0 and result.mode == "constrained"
+    assert result.conversions == 2 and not result.converted
+    assert result.violations[0][2]["message"] in backend.json_prompts[2]
 
 
 @pytest.mark.parametrize("bad", [None, "", "not JSON", '```json\n{"description":\n```'])
 def test_empty_or_unparseable_constrained_output_switches_once_and_is_remembered(bad):
-    backend = FakeLLMBackend([bad, {"description": "ok"}, {"description": "again"}])
+    conversion_responses = [{}, {}] if bad else []
+    backend = FakeLLMBackend([bad, *conversion_responses, {"description": "ok"}, {"description": "again"}])
     messages = []
     sink = logger.add(lambda message: messages.append(str(message)), level="INFO")
     try:
@@ -80,7 +83,8 @@ def test_empty_or_unparseable_constrained_output_switches_once_and_is_remembered
     finally:
         logger.remove(sink)
     assert result.data and again.data
-    assert [c["constrained"] for c in backend.schema_calls] == [True, False, False]
+    assert [c["constrained"] for c in backend.schema_calls] == [True, *([False] * (2 + len(conversion_responses)))]
+    assert result.conversions == len(conversion_responses)
     assert result.mode == again.mode == "unconstrained"
     assert len([m for m in messages if "switched" in m]) == 1
 
@@ -109,35 +113,37 @@ def test_fenced_compliant_output_succeeds_first_time_and_keeps_constraint(langua
 ])
 def test_prose_outside_code_block_remains_invalid_and_is_repaired(language, prefix, suffix):
     raw = prefix + f'```{language}\n{{"description": "ok"}}\n```' + suffix
-    backend = FakeLLMBackend([raw, {"description": "repaired"}])
+    backend = FakeLLMBackend([raw, {}, {}, {"description": "repaired"}])
     result = generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=3)
     assert result.data == {"description": "repaired"} and result.attempts == 2
     assert result.violations[0][0]["expected"] == "valid JSON object"
     assert result.violations[0][0]["actual"] == raw
     assert result.violations[1] == []
-    assert "REPAIR INSTRUCTIONS:" in backend.json_prompts[1]
-    assert "PREVIOUS OUTPUT:\n" + raw in backend.json_prompts[1]
-    assert [c["constrained"] for c in backend.schema_calls] == [True, False]
+    assert "REPAIR INSTRUCTIONS:" in backend.json_prompts[3]
+    assert "PREVIOUS OUTPUT:\n" + raw in backend.json_prompts[3]
+    assert [c["constrained"] for c in backend.schema_calls] == [True, False, False, False]
+    assert result.conversions == 2
 
 
 @pytest.mark.parametrize("language", ["json", ""])
 def test_fenced_schema_violation_is_repaired_without_switching_constraint(language):
-    backend = FakeLLMBackend([f"```{language}\n{{}}\n```", {"description": "ok"}])
+    backend = FakeLLMBackend([f"```{language}\n{{}}\n```", {}, {}, {"description": "ok"}])
     result = generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=2)
     assert result.data == {"description": "ok"} and result.attempts == 2
     assert result.violations[0][0]["expected"] == {"required": ["description"]}
     assert result.violations[1] == []
-    assert [c["constrained"] for c in backend.schema_calls] == [True, True]
+    assert [c["constrained"] for c in backend.schema_calls] == [True, True, True, True]
+    assert result.conversions == 2
     assert backend._structured_modes == {}
 
 
 def test_schema_violation_keeps_constraint_and_modes_are_per_client_and_model():
-    backend = FakeLLMBackend([{}, {"description": "ok"}, "", {"description": "ok"}, {"description": "ok"}])
+    backend = FakeLLMBackend([{}, {}, {}, {"description": "ok"}, "", {"description": "ok"}, {"description": "ok"}])
     generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=2)
     generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=2)
     backend.model = "other"
     generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=2)
-    assert [c["constrained"] for c in backend.schema_calls] == [True, True, True, False, True]
+    assert [c["constrained"] for c in backend.schema_calls] == [True, True, True, True, True, False, True]
     fresh = FakeLLMBackend({"description": "ok"})
     generate_structured(fresh, "p", SCHEMA, task="image_description", max_attempts=1)
     assert fresh.schema_calls[0]["constrained"] is True
@@ -147,6 +153,8 @@ def test_schema_violation_keeps_constraint_and_modes_are_per_client_and_model():
 def test_required_stage_failure_stops_engine_and_records_last_violations(tmp_path, task):
     inner = make_backend()
     def respond(prompt):
+        if prompt.startswith("OUTPUT SCHEMA:\n"):
+            return {}
         selected = (prompt.startswith("SOURCE MATERIAL") if task == "input_brief"
                     else "DOMAIN CATALOG" in prompt if task == "world_axes"
                     else prompt.startswith("WORLD CONTRACT"))
@@ -175,7 +183,8 @@ def test_image_description_failure_preserves_original_and_does_not_generate_brie
     with pytest.raises(StructuredFailure, match="image_description"):
         InputBriefBuilder(backend, tmp_path, max_attempts=2).build("raw", images=[b"original"])
     assert (tmp_path / "images/image_1.bin").read_bytes() == b"original"
-    assert len(backend.schema_calls) == 2
+    assert len(backend.schema_calls) == 6
+    assert backend._structured_metrics["image_description"]["conversions"]["tried"] == 4
 
 
 def test_successful_run_metrics_are_in_manifest_and_report(tmp_path):
@@ -194,6 +203,8 @@ def test_structured_stage_failure_returns_nonzero_from_cli(tmp_path, monkeypatch
     import example_run
     inner = make_backend()
     def respond(prompt):
+        if prompt.startswith("OUTPUT SCHEMA:\n"):
+            return {}
         selected = (prompt.startswith("SOURCE MATERIAL") if task == "input_brief"
                     else "DOMAIN CATALOG" in prompt if task == "world_axes"
                     else prompt.startswith("WORLD CONTRACT"))
@@ -212,13 +223,14 @@ def test_structured_stage_failure_returns_nonzero_from_cli(tmp_path, monkeypatch
 
 
 def test_metrics_include_repair_failure_modes_and_resume_cumulative_counts(tmp_path):
-    backend = FakeLLMBackend(["", {"description": "ok"}, {}, {}])
+    backend = FakeLLMBackend(["", {"description": "ok"}, *([{}] * 6)])
     success = generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=2)
     failure = generate_structured(backend, "p", SCHEMA, task="image_description", max_attempts=2)
     entry = backend._structured_metrics["image_description"]
     assert success.attempts == failure.attempts == 2
     assert entry["calls"] == 2 and entry["failures"] == 1 and entry["attempts"] == {"2": 1}
-    assert entry["modes"] == {"constrained": 1, "unconstrained": 3}
+    assert entry["modes"] == {"constrained": 1, "unconstrained": 7}
+    assert entry["conversions"] == {"tried": 4, "succeeded": 0, "fidelity_failures": 0, "schema_failures": 4}
     run_world_engine(RAW, package_dir=tmp_path, backend=make_backend(), config=cfg(), budget={"max_iterations": 1})
     original = json.loads((tmp_path / "run_manifest.json").read_text())["structured"]
     run_world_engine(RAW, package_dir=tmp_path, backend=make_backend(), config=cfg(), budget={"max_iterations": 2})

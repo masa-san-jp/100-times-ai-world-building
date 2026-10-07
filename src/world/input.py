@@ -96,8 +96,10 @@ is quote: it must stay exactly as written in SOURCE MATERIAL, never translated.
         vision_prompt: Optional[Mapping[str, str]] = None,
         language: Optional[str] = None,
         max_attempts: int = 3,
+        max_conversions: int = 2,
     ) -> None:
         self.max_attempts = max_attempts
+        self.max_conversions = max_conversions
         self.language = language
         self.backend = backend
         self.vision_backend = vision_backend or backend
@@ -137,6 +139,7 @@ is quote: it must stay exactly as written in SOURCE MATERIAL, never translated.
         result = generate_structured(
             self.backend, prompt, load_schema("input_brief"),
             task="input_brief", max_attempts=self.max_attempts,
+            max_conversions=self.max_conversions,
             system_prompt=self.prompt.get(
                 "system", self.DEFAULT_SYSTEM_PROMPT
             ),
@@ -230,6 +233,7 @@ is quote: it must stay exactly as written in SOURCE MATERIAL, never translated.
             self.vision_prompt.get("user", self.DEFAULT_VISION_USER_PROMPT),
             load_schema("image_description"), task="image_description",
             max_attempts=self.max_attempts,
+            max_conversions=self.max_conversions,
             system_prompt=self.vision_prompt.get("system", self.DEFAULT_VISION_SYSTEM_PROMPT),
             images=list(image_paths))
         if result.data is None:

@@ -24,6 +24,8 @@ def backend_without_candidate_contracts(contract_responses):
     responses = iter(contract_responses)
 
     def respond(prompt):
+        if prompt.startswith("OUTPUT SCHEMA:\n"):
+            return {}
         if prompt.startswith("WORLD CONTRACT"):
             response = next(responses)
             if isinstance(response, Exception):

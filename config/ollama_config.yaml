@@ -58,6 +58,7 @@ generation:
 engine:
   structured:
     max_attempts: 3
+    max_conversions: 2
   # Overrides merged over config/world/explore.yaml (selection, build,
   # operators, frontier, budget, coverage).
   explore: {}

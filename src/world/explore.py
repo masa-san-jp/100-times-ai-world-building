@@ -555,6 +555,7 @@ class ExplorationLoop:
         manifest: Any = None,
         clock: Callable[[], float] = time.monotonic,
         structured_max_attempts: int = 3,
+        structured_max_conversions: int = 2,
     ) -> None:
         self.package_dir = Path(package_dir)
         self.brief = brief
@@ -572,7 +573,8 @@ class ExplorationLoop:
         self.state = _fresh_state(seed)
         self.backend = _CountingBackend(backend, self.state["counters"])
         builder_cfg = copy.deepcopy(self.cfg)
-        builder_cfg["structured"] = {"max_attempts": structured_max_attempts}
+        builder_cfg["structured"] = {"max_attempts": structured_max_attempts,
+                                     "max_conversions": structured_max_conversions}
         if operator_config is not None:
             builder_cfg["operator"] = asdict(operator_config)
         self.builder = EntityBuilder(self.backend, builder_cfg)
@@ -848,6 +850,7 @@ def run_world_engine(
     vision_backend: Any = None, source_name: Optional[str] = None,
     resume: bool = True, render: bool = True,
     structured_max_attempts: int = 3,
+    structured_max_conversions: int = 2,
 ) -> ExplorationResult:
     """Input brief -> axes -> graph -> exploration loop, with no human input.
 
@@ -879,6 +882,8 @@ def run_world_engine(
         manifest.reconcile_interrupted()
     if isinstance(structured_max_attempts, bool) or not isinstance(structured_max_attempts, int) or structured_max_attempts < 1:
         raise ValueError("structured.max_attempts must be a positive integer")
+    if isinstance(structured_max_conversions, bool) or not isinstance(structured_max_conversions, int) or structured_max_conversions < 0:
+        raise ValueError("structured.max_conversions must be a nonnegative integer")
     metrics = copy.deepcopy(manifest.data.get("structured", {}))
     for client in (backend, vision_backend):
         if client is not None:
@@ -896,6 +901,7 @@ def run_world_engine(
             built = InputBriefBuilder(
                 backend, root / "input", vision_backend=vision_backend,
                 language=language, max_attempts=structured_max_attempts,
+                max_conversions=structured_max_conversions,
             ).build(raw_input, images, source_name)
             brief, raw_text = built.brief, built.raw_source
         # One output language for the brief, axes and every later prompt:
@@ -906,18 +912,21 @@ def run_world_engine(
             axes = load_axes(axes_path)
         else:
             axes = WorldAxesBuilder(
-                backend, root / "world", language=lang, max_attempts=structured_max_attempts).build(brief).axes
+                backend, root / "world", language=lang, max_attempts=structured_max_attempts,
+                max_conversions=structured_max_conversions).build(brief).axes
         checkpoints = CheckpointManager(str(root / "checkpoints"))
         loop = ExplorationLoop(
             backend, root, brief, axes, seed=seed, language=lang,
             config=config, operator_config=operator_config,
             checkpoints=checkpoints, manifest=manifest,
-            structured_max_attempts=structured_max_attempts)
+            structured_max_attempts=structured_max_attempts,
+            structured_max_conversions=structured_max_conversions)
         from .contract import establish_contract
         graph = loop.store.load_or_create(lang)
         try:
             stage = establish_contract(backend, graph, brief, axes,
-                                       max_attempts=structured_max_attempts)
+                                       max_attempts=structured_max_attempts,
+                                       max_conversions=structured_max_conversions)
         finally:
             loop.store.save(graph)
             if "contract_stage" in graph:

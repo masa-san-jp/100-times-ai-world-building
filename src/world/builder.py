@@ -80,9 +80,11 @@ class EntityBuilder:
         self.max_step_attempts = build.get("max_step_attempts", 4)
         self.review_rounds = build.get("review_rounds", 2)
         self.structured_attempts = self.cfg.get("structured", {}).get("max_attempts", 3)
+        self.structured_conversions = self.cfg.get("structured", {}).get("max_conversions", 2)
         for key, value, minimum in (("max_step_attempts", self.max_step_attempts, 1),
                                     ("review_rounds", self.review_rounds, 0),
-                                    ("structured.max_attempts", self.structured_attempts, 1)):
+                                    ("structured.max_attempts", self.structured_attempts, 1),
+                                    ("structured.max_conversions", self.structured_conversions, 0)):
             if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
                 raise ValueError(f"{key} must be an integer >= {minimum}")
         self.operator_cfg = OperatorConfig(**self.cfg.get("operator", {}))
@@ -142,10 +144,11 @@ class EntityBuilder:
             result = generate_structured(self.backend, prompt(step, slot, correction),
                 step_schema(step, **schema_args,
                             kind=plan[slot] if step == "fact" else None, contract=contract), task=step,
-                system_prompt=self.prompts["common"]["system"], max_attempts=self.structured_attempts)
-            calls += result.attempts
+                system_prompt=self.prompts["common"]["system"], max_attempts=self.structured_attempts,
+                max_conversions=self.structured_conversions)
+            calls += result.attempts + result.conversions
             entry = self.metrics["steps"].setdefault(step, {"calls": 0, "attempts": {}, "reasons": {}, "failures": 0})
-            entry["calls"] += result.attempts
+            entry["calls"] += result.attempts + result.conversions
             return result
 
         def apply(step, slot, data):
