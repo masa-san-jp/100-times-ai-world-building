@@ -21,6 +21,7 @@ default:
   proper_noun_min_chars: 3
 
 ja:
+  name_script: '[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]'
   count_only_patterns:
     - '^[^\d。;；\nをにで]+?\s*(?:は|が|[:：])?\s*{number}\s*{counter}(?:だけ|のみ)?(?:である|です|だ)?[。.]?\s*$'
     - '^\s*{number}\s*{counter}(?:だけ|のみ)?(?:である|です|だ)?[。.]?\s*$'
@@ -164,6 +165,7 @@ ja:
   flourish: [壮大な, 圧倒的, まさに, 驚くべき, 息をのむ, 決して忘れ, 運命の, 圧巻]
 
 en:
+  name_script: '[A-Za-z]'
   count_only_patterns:
     - '^(?:[A-Za-z][A-Za-z\s\x27-]*?(?:[:：]|is|are)?\s*)?{number}\s+{counter}(?:\s+only)?[.]?\s*$'
   mechanism_actor_patterns: ['\b[A-Za-z][A-Za-z -]*\s+(?:compares?|checks?|collects?|measures?|records?|closes?|opens?|exchanges?|removes?|distributes?)\b']
@@ -291,3 +293,13 @@ en:
     - '(?:\w+\s+){0,2}(?:said|asked|replied|shouted|whispered|cried|exclaimed|answered|declared|yelled)\b'
   speech_before:
     - '\b(?:said|asked|replied|shouted|whispered|cried|exclaimed|answered|declared|yelled)\W*$'
+
+# Script ranges used by the existing input-language detector.
+ko:
+  name_script: '[\u1100-\u11ff\uac00-\ud7af]'
+zh:
+  name_script: '[\u4e00-\u9fff]'
+ru:
+  name_script: '[\u0400-\u04ff]'
+ar:
+  name_script: '[\u0600-\u06ff]'

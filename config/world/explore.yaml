@@ -1,5 +1,5 @@
 # Autonomous exploration loop: frontier evaluation, bandit selection,
-# generation, scoring, critique-and-rewrite and stop conditions.
+# incremental entity building and stop conditions.
 # Nothing here names a genre, era, setting or technology.
 
 selection:
@@ -16,12 +16,9 @@ selection:
   arm_by_axis: false        # also split arms by axis
   max_items_per_kind: 12    # frontier items kept per kind (most deficient first)
 
-generation:
-  candidates: 3             # candidates per operator call
-  max_rewrites: 2           # critique-and-rewrite rounds per iteration
-  max_findings: 8           # deductions fed back into a rewrite
-  contrast_count: 3         # contrast candidates per slot (cached in the package)
-  discard_reward: 0.0       # arm reward recorded when nothing is accepted
+build:
+  max_step_attempts: 4
+  review_rounds: 2
 
 # Operators tried for each kind of frontier item.
 operators:

@@ -8,13 +8,19 @@ Older graphs without a contract remain readable.
 from __future__ import annotations
 
 import copy
+import json
+from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
-from .quantities import registered_unit
+from jsonschema import Draft202012Validator
+
 
 MAX_ITEMS = 16
 MAX_TEXT = 160
 CONTRACT_ID = "world_contract"
+_UNIT_VALIDATOR = Draft202012Validator(json.loads(
+    (Path(__file__).resolve().parents[2] / "config/schemas/world_contract.json")
+    .read_text(encoding="utf-8"))["properties"]["technology"]["properties"]["units"]["items"])
 
 
 def contract_checks_enabled(graph: Mapping[str, Any]) -> bool:
@@ -37,6 +43,20 @@ def _terms(value: Any, required: bool = False) -> bool:
             and (bool(value) or not required) and all(_text(v) for v in value))
 
 
+def _units(value: Any) -> bool:
+    # Existing graphs and extension histories can still contain bare terms.
+    # Newly generated contracts are checked against world_contract.json.
+    return (_terms(value, required=True) or (
+        isinstance(value, list) and 0 < len(value) <= MAX_ITEMS
+        and all(_UNIT_VALIDATOR.is_valid(unit) for unit in value)))
+
+
+def unit_symbols(contract: Mapping[str, Any]) -> list[str]:
+    """Return notation only; measurement descriptions never register units."""
+    return [unit["symbol"] if isinstance(unit, Mapping) else unit
+            for unit in (contract.get("technology") or {}).get("units", [])]
+
+
 def premise_errors(value: Any) -> list:
     if not isinstance(value, Mapping):
         return ["world_premises must be an object"]
@@ -49,7 +69,7 @@ def premise_errors(value: Any) -> list:
     if not isinstance(technology, Mapping) or not (
             _text(technology.get("description"))
             and _terms(technology.get("capabilities"))
-            and _terms(technology.get("units"), required=True)):
+            and _units(technology.get("units"))):
         errors.append("technology needs description, capabilities and nonempty units")
     if "society" in value:
         society = value["society"]
@@ -94,29 +114,11 @@ def world_premises(graph: Mapping[str, Any]) -> Dict[str, Any]:
                     continue
                 for key in ("units", "capabilities"):
                     for term in extension[key]:
-                        if term not in contract["technology"][key]:
+                        known = unit_symbols(contract) if key == "units" else contract["technology"][key]
+                        if term not in known:
                             contract["technology"][key].append(term)
             return contract
     return {}
-
-
-def proposed_extension(entity: Mapping[str, Any], contract: Mapping[str, Any],
-                       rules: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
-    """Declared additions need a derivation; units alone remain usable."""
-    reason = (entity.get("provenance") or {}).get("reason")
-    usage = entity.get("premise_usage")
-    if not contract.get("source_entity") or not isinstance(reason, str) or not reason.strip():
-        return {}
-    if usage_errors(usage):
-        return {}
-    additions = {key: list(dict.fromkeys(
-        term for term in usage.get(usage_key, [])
-        if (not registered_unit(term, contract, rules or {}) if key == "units"
-            else term not in contract["technology"][key])))
-        for key, usage_key in (("units", "units"), ("capabilities", "technologies"))}
-    if not any(additions.values()):
-        return {}
-    return {"source_entity": contract["source_entity"], **additions, "reason": reason}
 
 
 def premise_extensions(graph: Mapping[str, Any]) -> list:

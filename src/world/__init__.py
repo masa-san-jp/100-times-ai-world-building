@@ -1,5 +1,6 @@
 """Input acceptance and world-axis primitives for the world-building engine."""
 
+from .builder import EntityBuilder, BuildResult, StepRecord
 from .axes import WorldAxesBuilder, WorldAxesResult, load_axes, load_catalog
 from .graph import (
     GraphError, GraphStore, guess_language, local_context, make_entity,
@@ -13,6 +14,7 @@ from .render import RenderError, render_world_package
 from .input import InputBriefBuilder, InputBriefResult, InputSourceError
 
 __all__ = [
+    "EntityBuilder", "BuildResult", "StepRecord",
     "RenderError", "render_world_package",
     "Bandit", "ExplorationLoop", "ExplorationResult",
     "extract_preference_pairs", "run_world_engine",

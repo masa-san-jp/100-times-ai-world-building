@@ -40,7 +40,9 @@ SYNTHETIC_PREMISES = {
     "calendar": {"name": "Vela Count", "origin": "first quota agreement",
                  "markers": ["Vela Count"]},
     "technology": {"description": "Seals and hand-written ledgers; no automated records",
-                   "capabilities": ["seal", "ledger"], "units": ["term", "quota"]},
+                   "capabilities": ["seal", "ledger"],
+                   "units": [{"symbol": "term", "quantity": "Record cycle duration"},
+                             {"symbol": "quota", "quantity": "Measured capacity"}]},
     "society": {"description": "Quota agreements define shared record procedures",
                 "institutions": []}}
 
@@ -79,60 +81,59 @@ def _generic(i, ids):
 
 
 def make_backend(generic_ops=(), always_generic=False, fail_after=None):
-    """Prompt-dependent synthetic backend; deterministic per prompt."""
+    """Offline step backend with repeatable outputs and correctable kind errors."""
     calls = {"n": 0}
-
     def respond(prompt):
         calls["n"] += 1
         if fail_after is not None and calls["n"] > fail_after:
-            # A user interrupt / kill: unlike a backend error, it is never
-            # swallowed by the loop's per-iteration failure handling.
             raise KeyboardInterrupt("interrupted")
         if prompt.startswith("SOURCE MATERIAL"):
-            return {"statements": [
-                {"text": "alpha rule", "quote": "alpha rule"},
-                {"text": "beta supply", "quote": "beta supply"}],
-                "open_questions": [], "constraints": []}
+            return {"statements": [{"text": "alpha rule", "quote": "alpha rule"},
+                                   {"text": "beta supply", "quote": "beta supply"}],
+                    "open_questions": [], "constraints": []}
         if "DOMAIN CATALOG" in prompt:
             return {"axes": [{"domain": "resources_economy", "meaning": "m",
-                              "weight": 0.9, "statement_ids": ["s1"], "name": "", "reason": ""}]}
+                "weight": 0.9, "statement_ids": ["s1"], "name": "", "reason": ""}]}
         if prompt.startswith("WORLD CONTRACT"):
             return SYNTHETIC_PREMISES
-        m = re.search(r"that you may tag:\n(.*?)\n\n", prompt, re.S)
-        axis_ids = [l.split(":")[0] for l in m.group(1).splitlines()
-                    if ":" in l] if m else []
-        m = re.search(r"that you may cite:\n(.*?)\n\n", prompt, re.S)
-        ids = [l.split(":")[0] for l in m.group(1).splitlines()
-               if re.match(r"s\d+:", l)] if m else []
-        ids = ids or ["s1"]
-        rng = random.Random(zlib.crc32(prompt.encode("utf-8")))
-        def with_contract(rows):
-            # Synthetic causes/history must precede their target. Otherwise
-            # wording changes to the prompt seed can create accidental time
-            # contradictions in tests of exploration policy.
-            temporal = ("Explain why" in prompt or "Link something" in prompt
-                        or 'operation "cause"' in prompt or 'operation "history"' in prompt)
-            for row in rows:
-                if temporal:
-                    for fact in row["facts"]:
-                        if fact["kind"] == "period":
-                            fact["text"] = re.sub(r"\d+", "1", fact["text"])
-
-                row["reason"] = "Quota agreements determine record cycles and recording methods"
-            return {"candidates": rows}
-
-        if "REVIEW FINDINGS" in prompt:
-            if always_generic:
-                return with_contract([_generic(0, ids)])
-            return with_contract([_specific(rng, ids, axis_ids)])
-        n = int(re.search(r"exactly (\d+) candidates", prompt).group(1))
-        task = re.search(r"TASK: (.*)", prompt).group(1)
-        op = next(v for k, v in OPS.items() if task.startswith(k))
-        no_input = ids == ["s1"] and "(none)" in prompt
-        if no_input or always_generic or op in generic_ops:
-            return with_contract([_generic(i, ids) for i in range(n)])
-        return with_contract([_specific(rng, ids, axis_ids) for _ in range(n)])
-
+        schema = json.loads(prompt.split("OUTPUT SCHEMA:\n", 1)[1].split("\n\nREPAIR INSTRUCTIONS:", 1)[0])
+        props = schema["properties"]
+        step = re.search(r"^STEP: (.+)$", prompt, re.M).group(1)
+        rng = random.Random(zlib.crc32(prompt.encode()))
+        words = ["".join(rng.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(8)) for _ in range(18)]
+        entity = json.JSONDecoder().raw_decode(prompt.split("FIELDS ALREADY DECIDED:\n", 1)[1])[0]
+        if step == "type":
+            allowed = props["type"]["enum"]
+            return {"type": "place" if "place" in allowed else allowed[0]}
+        if step == "grounding":
+            ids = props["statement_ids"]["items"]
+            return {"statement_ids": ids["enum"][:1] if ids else [], "derived_from": [],
+                    "reason": "Quota agreements determine record cycles and recording methods"}
+        if step == "name":
+            return {"name": " ".join(w.title() for w in words[:2])}
+        if step == "axes":
+            return {"axes": props["axes"]["items"]["enum"][:1]}
+        if step == "summary":
+            return {"summary": " ".join(words[:15]) + "."}
+        if step == "fact":
+            kind = re.search(r"Give exactly one (\w+) fact", prompt).group(1)
+            op = re.search(r"^OPERATION: (.+)$", prompt, re.M).group(1)
+            bad = always_generic or (op in generic_ops and "PREVIOUS OUTPUT" not in prompt)
+            if kind == "number":
+                value = 50 if bad else rng.randint(2, 90)
+                return {"subject": "Capacity", "value": value, "unit": "quota",
+                        "fact": "50 members" if bad else " ".join(words[:3]) + f" {value} quota."}
+            if kind == "period":
+                return {"marker": "Vela Count", "value": 1,
+                        "fact": " ".join(words[:4]) + " Vela Count 1."}
+            return {"fact": " ".join(w.title() for w in words[:6]) + "."}
+        if step == "fact_check":
+            return {"matches": True, "reason": "The synthetic fact matches the requested kind."}
+        if step == "relations":
+            return {"relations": []}
+        if step == "review":
+            return {"verdicts": {k: True for k in ("consistent", "objective", "no_story", "fits_world")}, "issues": []}
+        raise AssertionError(step)
     backend = FakeLLMBackend(respond)
     backend.calls = calls
     return backend
@@ -143,7 +144,7 @@ def cfg(**over):
     c["budget"]["max_iterations"] = 12
     c["coverage"]["enabled"] = False
     for k, v in over.items():
-        c[k].update(v)
+        c.setdefault(k, {}).update(v)
     return c
 
 
@@ -274,29 +275,11 @@ def test_loop_runs_without_human_input_to_coverage(tmp_path, monkeypatch):
     first = min(graph["entities"], key=lambda e: int(e["id"][1:]))
     assert first["scale"] == "world"  # premise first
     log = read_preference_log(tmp_path / "world" / "preferences.jsonl")
-    assert any(r["type"] == "candidate" and r["decision"] == "accepted"
-               for r in log)
-    # genericity is on inside the loop and contrasts are cached in the package
-    accepted = [r for r in log if r.get("decision") == "accepted"]
-    assert all("genericity" in r["result"]["scores"] for r in accepted)
-    assert (tmp_path / "world" / "contrasts.json").exists()
+    assert any(r["type"] == "step" and r["accepted"] for r in log)
+    assert not (tmp_path / "world" / "contrasts.json").exists()
     assert all(0 <= e["scores"]["reward"] <= 1 for e in graph["entities"])
 
 
-def test_critique_and_rewrite_path(tmp_path):
-    backend = make_backend(generic_ops={"premise", "zoom", "cause"})
-    result = loop(tmp_path, backend, cfg(budget={"max_iterations": 6})).run()
-    log = read_preference_log(tmp_path / "world" / "preferences.jsonl")
-    revised = [r for r in log if r["type"] == "candidate" and r["round"] >= 1]
-    assert revised and result.counters["rewrites"] >= 1
-    first = next(r for r in revised)
-    base = next(r for r in log if r.get("id") == first["revision_of"])
-    assert not base["result"]["passed"] and base["decision"] == "rejected"
-    assert first["result"]["passed"] and first["decision"] == "accepted"
-    assert any(f["code"] == "resembles_prior" for f in first["findings"])
-    assert any("REVIEW FINDINGS" in p and "resembles_prior" in p
-               for p in backend.json_prompts)
-    assert first["result"]["reward"] > base["result"]["reward"]
 
 
 def test_discarded_iteration_records_low_reward_for_the_arm(tmp_path):
@@ -313,39 +296,8 @@ def test_discarded_iteration_records_low_reward_for_the_arm(tmp_path):
                       )["entities"] == []
 
 
-def test_preferences_yield_chosen_rejected_pairs(tmp_path):
-    backend = make_backend(generic_ops={"premise", "cause"})
-    loop(tmp_path, backend, cfg(budget={"max_iterations": 8})).run()
-    path = tmp_path / "world" / "preferences.jsonl"
-    pairs = extract_preference_pairs(path)
-    assert pairs
-    kinds = {p["kind"] for p in pairs}
-    assert "revision" in kinds
-    for p in pairs:
-        assert p["chosen_reward"] >= p["rejected_reward"]
-        assert p["chosen"] != p["rejected"] and p["chosen_text"]
-        assert p["prompt"]["operator"] and "context" in p["prompt"]
-    rev = next(p for p in pairs if p["kind"] == "revision")
-    assert rev["prompt"]["revision_findings"]
-    assert extract_preference_pairs(path, min_margin=2.0) == []
 
 
-def test_group_pairs_rank_by_pass_then_reward_and_respect_margin():
-    def rec(cid, passed, reward):
-        return {"type": "candidate", "id": cid, "iteration": 1, "round": 0,
-                "operator": "expand", "target": "e1", "revision_of": None,
-                "candidate": {"name": cid, "summary": cid, "facts": []},
-                "result": {"passed": passed, "reward": reward,
-                           "deductions": []}}
-    records = [
-        {"type": "iteration", "iteration": 1, "frontier": {
-            "kind": "unexpanded", "axis": None}, "context": {"k": 1}},
-        rec("a", True, 0.8), rec("b", False, 0.9), rec("c", False, 0.4)]
-    pairs = extract_preference_pairs(records)
-    assert [(p["chosen_id"], p["rejected_id"]) for p in pairs] == [
-        ("a", "c")]  # a-over-b is dropped: its reward gap is negative
-    assert pairs[0]["prompt"]["context"] == {"k": 1}
-    assert extract_preference_pairs(records, min_margin=0.5) == []
 
 
 def test_resume_after_interruption_matches_uninterrupted_run(tmp_path):
@@ -355,7 +307,7 @@ def test_resume_after_interruption_matches_uninterrupted_run(tmp_path):
 
     part = tmp_path / "part"
     with pytest.raises(KeyboardInterrupt):
-        loop(part, make_backend(fail_after=10), c).run()
+        loop(part, make_backend(fail_after=15), c).run()
     mid = json.loads((part / "world" / "graph.json").read_text())
     assert 0 < len(mid["entities"])
     resumed = loop(part, config=c).run()
@@ -440,7 +392,7 @@ def test_run_world_engine_chains_input_axes_graph_and_loop(tmp_path, monkeypatch
     assert r.stop_reason == "max_iterations" and r.iterations == 3
     for rel in ("input/user_input.txt", "input/input_brief.json",
                 "world/world_axes.json", "world/graph.json",
-                "world/contrasts.json", "world/preferences.jsonl",
+                "world/preferences.jsonl",
                 "run_manifest.json"):
         assert (tmp_path / rel).exists(), rel
     assert (tmp_path / "checkpoints").is_dir()
@@ -469,7 +421,7 @@ BANNED_TERMS = [
 
 
 @pytest.mark.parametrize("rel", [
-    "prompts/world/revision.yaml", "world/explore.yaml"])
+    "prompts/world/steps.yaml", "world/explore.yaml"])
 def test_revision_prompt_and_config_have_no_story_or_genre_terms(rel):
     raw = (CONFIG / rel).read_text("utf-8").lower()
     for t in BANNED_TERMS:
@@ -477,12 +429,3 @@ def test_revision_prompt_and_config_have_no_story_or_genre_terms(rel):
             assert not re.search(r"\b" + re.escape(t.lower()) + r"\b", raw), t
         else:
             assert t not in raw, t
-
-
-def test_revision_prompt_carries_findings_language_and_bounded_context():
-    from src.world.operators import load_revision_prompts
-    p = load_revision_prompts()["common"]
-    text = p["system"] + p["user"]
-    for needle in ("{language}", "{findings}", "{draft}", "{context}",
-                   "neutral"):
-        assert needle in text

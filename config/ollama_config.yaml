@@ -58,20 +58,11 @@ generation:
 engine:
   structured:
     max_attempts: 3
-  # Overrides merged over config/world/explore.yaml (selection, generation,
+  # Overrides merged over config/world/explore.yaml (selection, build,
   # operators, frontier, budget, coverage).
   explore: {}
-  # Overrides for the operator runner (see src/world/operators.py:OperatorConfig).
+  # Context limits and fact minimums (see src/world/operators.py:OperatorConfig).
   operator: {}
-  # LLM judge that reviews the substance of candidates (hollow proper nouns,
-  # bare counts, restated input, unrelated facts, implausible values and
-  # contradictions with the world premises) on top of the deterministic checks.
-  # enabled: auto = on for real backends (ollama, anthropic), off for injected
-  # backends such as test fakes; true / false force it. Each judged candidate
-  # costs one extra generation call per criterion.
-  judge:
-    enabled: auto
-    criteria: [specificity, consistency]
 
 # Checkpointing
 # ----------------------------------------

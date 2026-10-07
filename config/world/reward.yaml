@@ -1,55 +1,4 @@
-# Composite reward for world-entity candidates.
-# reward = sum(weight * score) / sum(weight) over the verifiers that ran,
-# so it stays in [0, 1]. Every verifier score is in [0, 1] (1 is best).
-weights:
-  genericity: 2.0
-  provenance: 1.0
-  specificity: 2.0
-  consistency: 1.5
-  objectivity: 1.0
-  novelty: 1.0
-
-# A candidate passes when every verifier score is at least its threshold
-# and the total reward is at least `total`.
-thresholds:
-  genericity: 0.5
-  provenance: 0.8
-  specificity: 0.5
-  consistency: 0.7
-  objectivity: 0.7
-  novelty: 0.5
-  total: 0.7
-
-# Verifiers that may also consult an LLM judge (only when a judge is given).
-# Real runs enable it through `engine.judge` in the backend configuration,
-# which supplies the judge and the criteria; the default stays off.
-llm_judges: []
-
-# Genericity measures how ordinary a candidate is within its own topic:
-#   convergence   wording shared with the other independent samples of the
-#                 same slot (their common content is the model's default)
-#   restatement   summary / name that mostly repeat the brief and context
-#   prior         closeness to the no-input contrast (demoted: it usually
-#                 drifts to another topic, so it cannot see in-topic clichés)
-genericity:
-  ngram_size: 3
-  similarity_floor: 0.15   # prior: similarity at or below this costs nothing
-  field_flag_similarity: 0.4  # prior: a field this similar is reported alone
-  contrast_count: 3
-  contrast_weight: 0.5     # prior: scale of its penalty (1 = full strength)
-  convergence_ngram_size: 4
-  convergence_floor: 0.25  # shared share of fresh n-grams at or below: free
-  convergence_field_flag: 0.5
-  convergence_weight: 1.0
-  min_fresh_grams: 8       # fewer fresh n-grams than this: not measured
-  restatement_ngram_size: 3
-  min_new_share: 0.6       # summary must carry at least this share of new n-grams
-  min_summary_grams: 6
-  restatement_weight: 0.8
-  name_echo_threshold: 0.5 # share of the name made of input words
-  name_echo_weight: 0.7    # penalty = weight * covered share
-  echo_min_chars: 2
-
+# Parameters for retained deterministic checks. Adoption uses step checks.
 novelty:
   ngram_size: 3
   similarity_floor: 0.4
@@ -58,26 +7,24 @@ novelty:
   duplicate_phrase_penalty: 0.3
   duplicate_phrase_min_ngrams: 3
   duplicate_phrase_share: 0.18
-
 specificity:
-  min_fact_kinds: 3        # distinct fact kinds expected
+  min_fact_kinds: 3
   min_proper_noun_facts: 1
   require_numeral: true
-  max_abstract_density: 0.04   # share of characters made of abstract words
-  fact_echo_threshold: 0.6     # proper_noun/object made of input words this much is hollow
+  max_abstract_density: 0.04
+  fact_echo_threshold: 0.6
   echo_min_chars: 2
   penalties:
-    hollow_fact: 0.2         # per fact that only fills its kind label
-    hollow_cap: 0.5          # most the hollow facts can cost together
-    kind_coverage: 0.4       # scaled by the shortfall
+    hollow_fact: 0.2
+    hollow_cap: 0.5
+    kind_coverage: 0.4
     proper_noun: 0.25
     numeral: 0.15
-    abstract_density: 0.4    # scaled by the excess, capped at this value
+    abstract_density: 0.4
     unsupported_evaluation: 0.25
     unsupported_evaluation_cap: 0.4
     purpose_without_mechanism: 0.25
     no_facts: 0.6
-
 consistency:
   penalties:
     graph_invalid: 0.5
@@ -90,11 +37,9 @@ consistency:
     premise_conflict: 0.5
     undefined_calendar: 0.4
     undefined_technology: 0.4
-    # Unregistered units are warnings; the LLM checks measurability.
     undefined_unit: 0.0
     dimension_conflict: 0.5
     review_missing: 0.4
-
 objectivity:
   penalties:
     quotation: 0.4
@@ -103,7 +48,6 @@ objectivity:
     exclamation: 0.2
     question: 0.15
     flourish: 0.15
-
 provenance:
   penalties:
     no_anchor: 1.0

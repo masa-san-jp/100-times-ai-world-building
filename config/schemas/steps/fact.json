@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "fact": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 200
+    }
+  },
+  "required": [
+    "fact"
+  ],
+  "additionalProperties": false
+}

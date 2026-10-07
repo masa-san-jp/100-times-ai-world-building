@@ -84,6 +84,13 @@ def _one_line(text: Any) -> str:
     return re.sub(r"\s+", " ", str(text)).strip()
 
 
+def _unit_descriptions(units: Sequence[Any]) -> str:
+    return ", ".join(
+        f"{_one_line(unit['symbol'])} ({_one_line(unit['quantity'])})"
+        if isinstance(unit, Mapping) else _one_line(unit)
+        for unit in units)
+
+
 def _esc(text: Any) -> str:
     """Escape text for use inside link text and table cells."""
     t = _one_line(text)
@@ -192,7 +199,7 @@ def _entity_page(ctx: _Ctx, e: Mapping[str, Any]) -> str:
                 f"- {L('calendar_markers')}: " + ", ".join(calendar['markers']),
                 f"- {L('technology')}: {_one_line(technology['description'])}",
                 f"- {L('capabilities')}: " + ", ".join(technology['capabilities']),
-                f"- {L('units')}: " + ", ".join(technology['units']), ""]
+                f"- {L('units')}: " + _unit_descriptions(technology['units']), ""]
         if contract.get("society"):
             society = contract["society"]
             out += [f"- {L('society')}: {_one_line(society['description'])}",
@@ -477,6 +484,10 @@ def _report(ctx: _Ctx, limit: int) -> str:
     if run.get("structured"):
         out.append(metrics_markdown(run["structured"]))
 
+    if run.get("build"):
+        from .builder import build_metrics_markdown
+        out.append(build_metrics_markdown(run["build"]))
+
     stage = ctx.graph.get("contract_stage")
     if stage:
         out += [f"## {L('contract_stage')}", "",
@@ -496,7 +507,7 @@ def _report(ctx: _Ctx, limit: int) -> str:
                     f"- {L('calendar_markers')}: " + ", ".join(calendar['markers']),
                     f"- {L('technology')}: {_one_line(technology['description'])}",
                     f"- {L('capabilities')}: " + ", ".join(technology['capabilities']),
-                    f"- {L('units')}: " + ", ".join(technology['units'])]
+                    f"- {L('units')}: " + _unit_descriptions(technology['units'])]
             if contract.get("society"):
                 out += [f"- {L('society')}: {_one_line(contract['society']['description'])}",
                         f"- {L('institutions')}: " + ", ".join(contract['society']['institutions'])]
@@ -638,8 +649,9 @@ def render_world_package(
             "stop_reason": stored.get("stop_reason"),
             "iterations": stored.get("iteration", 0),
             "counters": stored.get("counters") or {},
-            "structured": manifest.get("structured", {})}
-    run = {"structured": run_summary.get("structured", {}), "stop_reason": run_summary.get("stop_reason"),
+            "structured": manifest.get("structured", {}),
+            "build": manifest.get("build", {})}
+    run = {"build": run_summary.get("build", {}), "structured": run_summary.get("structured", {}), "stop_reason": run_summary.get("stop_reason"),
            "iterations": int(run_summary.get("iterations") or 0),
            "counters": {k: int(v) for k, v in sorted(
                (run_summary.get("counters") or {}).items())}}

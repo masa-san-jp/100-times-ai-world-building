@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "verdicts": {
+      "type": "object",
+      "properties": {
+        "consistent": {
+          "type": "boolean"
+        },
+        "objective": {
+          "type": "boolean"
+        },
+        "no_story": {
+          "type": "boolean"
+        },
+        "fits_world": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "consistent",
+        "objective",
+        "no_story",
+        "fits_world"
+      ],
+      "additionalProperties": false
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "enum": [
+              "name",
+              "summary"
+            ]
+          },
+          "criterion": {
+            "enum": [
+              "consistent",
+              "objective",
+              "no_story",
+              "fits_world"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "criterion",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "verdicts",
+    "issues"
+  ],
+  "additionalProperties": false
+}

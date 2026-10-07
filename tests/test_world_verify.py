@@ -7,11 +7,10 @@ import pytest
 
 from src.llm.fake import FakeLLMBackend
 from src.world.graph import make_entity, new_graph
-from src.world.operators import OperatorRunner
-from src.world.reward import RewardVerifier, VERIFIERS, load_reward_config
+from src.world.reward import load_reward_config
 from src.world.verify import (
-    ContrastProvider, LLMJudge, embedding_similarity, load_language_rules,
-    ngram_similarity, verify_consistency, verify_genericity, verify_novelty,
+    embedding_similarity, load_language_rules,
+    ngram_similarity, verify_consistency, verify_novelty,
     verify_objectivity, verify_provenance, verify_specificity,
 )
 
@@ -65,80 +64,16 @@ def test_similarity_is_deterministic_and_handles_cjk():
     assert ngram_similarity("abc", "abc") == ngram_similarity("abc", "abc")
 
 
-def test_genericity_penalizes_near_copy_of_contrast_and_not_distinct():
-    copy_ = cand(name="Central Guild", summary=CONTRAST["summary"],
-                 facts=[{"kind": "other", "text": t} for t in CONTRAST["facts"]])
-    r = verify_genericity(copy_, [CONTRAST])
-    assert r.score < 0.1
-    assert r.deductions and r.deductions[0].code == "resembles_prior"
-    distinct = verify_genericity(cand(), [CONTRAST])
-    assert distinct.score > 0.9 and not distinct.deductions
 
 
-def test_genericity_japanese_and_skip_without_contrast():
-    c = {"name": "中央組合", "summary": "様々な活動を支える重要な組織である。", "facts": []}
-    same = cand(name="中央組合", summary=c["summary"], facts=[])
-    assert verify_genericity(same, [c]).score < 0.2
-    other = cand(name="潮見台帳所", summary="入港した船の積荷量を台帳に記し、係留料を定める。")
-    assert verify_genericity(other, [c]).score > 0.9
-    assert verify_genericity(same, []).skipped
 
 
-def test_embedding_similarity_is_pluggable():
-    sim = embedding_similarity(lambda t: [1.0, 0.0] if "a" in t else [0.0, 1.0])
-    assert sim("a", "ab") == 1.0 and sim("a", "b") == 0.0
-    r = verify_genericity(cand(), [CONTRAST], similarity=lambda a, b: 1.0)
-    assert r.score == 0.0
 
 
-def contrast_runner(counter):
-    def respond(prompt):
-        counter.append(prompt)
-        return {"candidates": [{
-            "type": "institution", "name": "Central Guild", "axes": [],
-            "summary": CONTRAST["summary"],
-            "facts": [{"kind": "proper_noun", "text": "Guild Hall"},
-                      {"kind": "number", "text": "50 members"},
-                      {"kind": "object", "text": "oak table"}],
-            "statement_ids": ["x"], "derived_from": [], "reason": "", "relations": [],
-            "premise_usage": {k: [] for k in ("calendars", "technologies", "units", "institutions")}}]}
-    return OperatorRunner(FakeLLMBackend(respond))
 
 
-def test_contrast_provider_strips_input_and_caches(tmp_path):
-    calls = []
-    g = graph()
-    g["entities"][1]["summary"] = "UNIQUE-WORLD-MARKER"
-    cp = ContrastProvider(contrast_runner(calls), tmp_path, n=1)
-    first = cp.get("expand", g, "e2")
-    assert first and len(calls) == 1
-    assert "UNIQUE-WORLD-MARKER" not in calls[0] and "alpha" not in calls[0]
-    cp.get("expand", g, "e2")
-    assert len(calls) == 1  # memory cache
-    cp2 = ContrastProvider(contrast_runner(calls), tmp_path, n=1)
-    assert cp2.get("expand", g, "e2") == first and len(calls) == 1  # file cache
-    assert (tmp_path / "world" / "contrasts.json").exists()
-    cp2.get("zoom", g, "e2")
-    assert len(calls) == 2  # other slot
 
 
-def test_reward_genericity_uses_contrast_provider():
-    calls = []
-    # The no-input contrast is demoted by default (contrast_weight 0.5);
-    # at full weight an exact copy of the prior still scores near zero.
-    rv = RewardVerifier(
-        load_reward_config(overrides={"genericity": {"contrast_weight": 1.0}}),
-        contrasts=ContrastProvider(contrast_runner(calls), n=1))
-    g = graph()
-    dull = cand(name="Central Guild", summary=CONTRAST["summary"],
-                facts=[{"kind": "proper_noun", "text": "Guild Hall"},
-                       {"kind": "number", "text": "50 members"},
-                       {"kind": "object", "text": "oak table"}])
-    good = rv.verify(g, cand())
-    bad = rv.verify(g, dull)
-    assert good.scores["genericity"] > 0.9
-    assert bad.scores["genericity"] < 0.2
-    assert "genericity" in bad.failed
 
 
 # --------------------------------------------------------------- provenance
@@ -341,67 +276,10 @@ def test_novelty_good_and_bad():
 
 # ------------------------------------------------------------------- reward
 
-def test_reward_structure_weights_and_storage():
-    g = graph()
-    rv = RewardVerifier()
-    c = cand()
-    res = rv.verify(g, c, brief=BRIEF)
-    # Without a contrast provider genericity still runs: it measures
-    # restatement of the brief and local context.  It is skipped only when
-    # there is nothing at all to compare against.
-    assert res.skipped == []
-    assert set(res.scores) == set(VERIFIERS)
-    assert verify_genericity(c, []).skipped
-    assert 0.0 <= res.reward <= 1.0 and res.passed and not res.failed
-    assert c["entity"]["scores"]["reward"] == round(res.reward, 4)
-    assert c["entity"]["scores"]["novelty"] == round(res.scores["novelty"], 4)
-
-    bad = cand(summary='"Wow!" I said, you rich various complex thing.',
-               facts=[{"kind": "other", "text": "stuff"}],
-               prov={"statement_ids": [], "derived_from": [], "reason": ""})
-    r2 = rv.verify(g, bad, brief=BRIEF, store=False)
-    assert not r2.passed and r2.reward < res.reward
-    assert {"provenance", "specificity", "objectivity"} <= set(r2.failed)
-    assert bad["entity"]["scores"] == {}
-    for d in r2.to_dict()["deductions"]:
-        assert set(d) == {"verifier", "field", "code", "message", "penalty", "detail"}
-        assert d["verifier"] in VERIFIERS and d["field"] and d["message"]
-    assert r2.deductions_for("provenance")
 
 
-def test_reward_weights_are_configurable():
-    g = graph()
-    c = cand(summary='"Wow!" I said.')  # only objectivity is hurt
-    base = RewardVerifier().verify(g, c, brief=BRIEF, store=False)
-    only_obj = RewardVerifier(load_reward_config(overrides={
-        "weights": {n: (1.0 if n == "objectivity" else 0.0) for n in VERIFIERS}}))
-    r = only_obj.verify(g, c, brief=BRIEF, store=False)
-    assert r.reward == pytest.approx(base.scores["objectivity"])
-    assert r.reward < base.reward
-    assert not base.passed and base.failed == ["objectivity"]
-    lenient = RewardVerifier(load_reward_config(overrides={
-        "thresholds": {"objectivity": 0.0, "total": 0.0}}))
-    assert lenient.verify(g, c, brief=BRIEF, store=False).passed
-    strict = RewardVerifier(load_reward_config(overrides={
-        "thresholds": {"objectivity": 0.0, "total": 0.99}}))
-    assert not strict.verify(g, c, brief=BRIEF, store=False).passed
 
 
-def test_llm_judges_off_by_default_and_pluggable():
-    g = graph()
-    backend = FakeLLMBackend({"consistency": {"score": 0.2, "issues": [
-        {"field": "summary", "why": "contradicts e2", "code": "llm_judge"}]}})
-    rv = RewardVerifier(judge=LLMJudge(backend))
-    rv.verify(g, cand(), brief=BRIEF)
-    assert backend.json_prompts == []  # not enabled by config
-    on = RewardVerifier(
-        load_reward_config(overrides={"llm_judges": ["consistency"]}),
-        judge=LLMJudge(backend))
-    res = on.verify(g, cand(), brief=BRIEF, store=False)
-    assert len(backend.json_prompts) == 1
-    assert res.scores["consistency"] == pytest.approx(0.2)
-    d = res.deductions_for("consistency")[0]
-    assert d.code == "llm_judge" and d.field == "summary"
 
 
 # ------------------------------------------------------------- prompt/config
@@ -416,7 +294,7 @@ BANNED_TERMS = [
 
 
 @pytest.mark.parametrize("rel", [
-    "prompts/world/verifiers.yaml", "world/reward.yaml"])
+    "prompts/world/steps.yaml", "world/reward.yaml"])
 def test_verifier_prompts_and_config_have_no_story_or_genre_terms(rel):
     raw = (CONFIG / rel).read_text("utf-8").lower()
     for t in BANNED_TERMS:

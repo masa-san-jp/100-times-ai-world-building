@@ -20,10 +20,9 @@ from src.world.graph import make_entity, new_graph
 from src.world.input import InputBriefBuilder
 from src.world.language import language_name, localized
 from src.world.render import render_world_package
-from src.world.reward import RewardVerifier
 from src.world.textsim import echo_coverage
 from src.world.verify import (
-    LLMJudge, reference_text, verify_genericity, verify_specificity,
+    reference_text, verify_specificity,
     load_language_rules,
 )
 from tests.test_world_explore import make_backend
@@ -105,98 +104,24 @@ SPECIFIC = [
 ]
 
 
-def verifier(**over):
-    from src.world.reward import load_reward_config
-    return RewardVerifier(load_reward_config(overrides=over))
 
 
-def verify(c, siblings=None, graph=None, rv=None):
-    g = graph or new_graph("ja")
-    return (rv or verifier()).verify(
-        g, c, brief=BRIEF_JA, store=False, siblings=siblings)
 
 
 # ------------------------------------------------------------- A: genericity
 
-@pytest.mark.parametrize("i", range(len(THIN)))
-def test_real_run_shaped_thin_candidates_fall_below_a_threshold(i):
-    res = verify(THIN[i], siblings=THIN)
-    assert not res.passed
-    assert {"genericity", "specificity"} & set(res.failed), res.to_dict()
-    assert res.reward < 0.8
 
 
-def test_specific_candidates_pass():
-    for c in SPECIFIC:
-        res = verify(c, siblings=SPECIFIC)
-        assert res.passed, res.to_dict()
-        assert res.scores["genericity"] > 0.9
-        assert res.scores["specificity"] > 0.9
 
 
-def test_name_that_only_concatenates_input_words_is_detected():
-    ref = reference_text(new_graph("ja"), None, BRIEF_JA)
-    assert echo_coverage("塩の盆地地下水道改修委員会", ref) > 0.5
-    assert echo_coverage("ハルメ堰守会", ref) < 0.2
-    res = verify_genericity(THIN[2], [], reference=ref)
-    assert "name_echoes_input" in {d.code for d in res.deductions}
-    own = verify_genericity(SPECIFIC[0], [], reference=ref)
-    assert own.score == 1.0 and not own.deductions
 
 
-def test_restating_the_input_summary_is_penalized():
-    ref = reference_text(new_graph("ja"), None, BRIEF_JA)
-    res = verify_genericity(THIN[0], [], reference=ref)
-    assert "restates_input" in {d.code for d in res.deductions}
-    assert res.score < 0.5
 
 
-def test_convergence_between_samples_of_one_slot_is_penalized():
-    ref = reference_text(new_graph("en"), None, {"statements": []})
-    shared = ("The office assigns every request to a clerk in the order it "
-              "arrived and files a duplicate in the archive hall each season.")
-    same = [candidate(f"Registry {n}", "institution", shared,
-                      [("proper_noun", f"Registry {n}")]) for n in "ABC"]
-    res = verify_genericity(same[0], [], siblings=same, reference=ref)
-    assert res.score < 0.2
-    assert res.deductions[0].code == "converges_with_samples"
-    distinct = [
-        candidate("Tern Pier Office", "institution",
-                  "Berth fees at pier seven are set by the harbour clerk at "
-                  "twelve marks per tide and posted on a brass board.",
-                  [("proper_noun", "Tern Pier")]),
-        candidate("Quarry Lamp Guild", "institution",
-                  "Lamp oil for the quarry galleries is rationed by the "
-                  "guild stewards, one flask for each shift of nine hours.",
-                  [("proper_noun", "Quarry Lamp")]),
-        candidate("Ninth Sluice", "place",
-                  "A sluice gate that diverts spring melt into the lower "
-                  "terraces, opened by the first frost warden of autumn.",
-                  [("proper_noun", "Ninth Sluice")])]
-    assert verify_genericity(
-        distinct[0], [], siblings=distinct, reference=ref).score > 0.9
 
 
-def test_wording_already_in_the_input_is_not_counted_as_convergence():
-    # Samples that share only the input's own words converge on nothing new.
-    ref = reference_text(new_graph("ja"), None, BRIEF_JA)
-    res = verify_genericity(SPECIFIC[0], [], siblings=SPECIFIC, reference=ref)
-    assert res.score == 1.0
 
 
-def test_no_input_contrast_is_demoted_and_unrelated_topics_do_not_fire():
-    contrast = [{"name": "星間連合委員会",
-                 "summary": "銀河の諸勢力を調整する評議機関である。",
-                 "facts": ["議席は九つ"]}]
-    plain = verify_genericity(THIN[1], contrast)
-    assert plain.score == 1.0  # a different topic: the prior cannot see it
-    copy_ = {"entity": {"name": "中央組合", "summary": "様々な活動を支える重要な組織である。",
-                        "facts": []}}
-    c0 = [{"name": "中央組合", "summary": "様々な活動を支える重要な組織である。",
-           "facts": []}]
-    half = verify_genericity(copy_, c0, params={"contrast_weight": 0.5})
-    full = verify_genericity(copy_, c0, params={"contrast_weight": 1.0})
-    assert full.score < half.score <= 0.55
 
 
 # ---------------------------------------------------------- B: fact substance
@@ -253,36 +178,8 @@ def test_hollow_facts_do_not_count_toward_kind_coverage():
     assert kinds and kinds[0].detail["kinds"] == []
 
 
-def test_llm_judge_sees_input_statements_and_is_pluggable():
-    backend = FakeLLMBackend({"specificity": {"score": 0.3, "issues": [
-        {"field": "facts[0]", "why": "hollow proper noun", "code": "llm_judge"}]}})
-    rv = verifier(llm_judges=["specificity"])
-    rv.judge = LLMJudge(backend)
-    res = rv.verify(new_graph("ja"), SPECIFIC[0], brief=BRIEF_JA, store=False)
-    assert len(backend.json_prompts) == 1
-    assert "塩の盆地" in backend.json_prompts[0]  # the input statements
-    assert "hollow" in backend.json_prompts[0]
-    assert any(d.code == "llm_judge" for d in res.deductions_for("specificity"))
-    off = verifier()
-    off.judge = LLMJudge(backend)
-    off.verify(new_graph("ja"), SPECIFIC[0], brief=BRIEF_JA, store=False)
-    assert len(backend.json_prompts) == 1  # off by default
 
 
-def test_pipeline_enables_the_judge_for_real_backends_only(tmp_path):
-    from src.pipeline import Pipeline
-    p = Pipeline(output_dir=tmp_path, backend=make_backend(), seed=1,
-                 budget={"max_iterations": 1})
-    assert not p.judge_enabled() and p._build_verifier() is None  # fake
-    p.backend_name = "ollama"
-    assert p.judge_enabled()
-    v = p._build_verifier()
-    assert v.judge is not None and v.config["llm_judges"] == ["specificity", "consistency"]
-    p.judge_config = {"enabled": False}
-    assert p._build_verifier() is None
-    p.backend_name = "fake"
-    p.judge_config = {"enabled": True, "criteria": ["objectivity"]}
-    assert p._build_verifier().config["llm_judges"] == ["objectivity"]
 
 
 # ---------------------------------------------------------------- C: depth
@@ -452,30 +349,9 @@ def test_english_input_keeps_english_catalog_names(tmp_path):
 # ------------------------------------------- malformed model output (#43 fix)
 
 from src.world.explore import STOP_REASONS, read_preference_log
-from src.world.operators import OperatorRunner
-from src.world.schemas import candidates_schema
 from src.world.structured import generate_structured
-from tests.test_world_operators import _cand
 
 
-@pytest.mark.parametrize("field,value", [
-    ("derived_from", [{"id": "e1"}]), ("derived_from", "e1"),
-    ("derived_from", [["e1"]]), ("statement_ids", "s1, s2"),
-    ("axes", [{"id": "a1"}, 4]), ("facts", ["bare string"]),
-    ("reason", {"text": "why"}), ("relations", [{"type": "causes", "target": {"id": "e1"}}]),
-    ("name", {"x": 1}), ("summary", None), ("type", ["concept"]),
-    ("facts", [{"kind": "number", "value": 3}]),
-])
-def test_malformed_fields_require_schema_repair(field, value):
-    good = {"candidates": [_cand()]}
-    bad = {"candidates": [{**good["candidates"][0], field: value}]}
-    backend = FakeLLMBackend([bad, good])
-    result = generate_structured(backend, "generate", candidates_schema(1),
-                                 task="candidates", max_attempts=3)
-    assert result.data == good and result.attempts == 2
-    assert result.violations[0]
-    assert field in backend.json_prompts[1]
-    assert "PREVIOUS OUTPUT" in backend.json_prompts[1]
 
 
 # ----------------------------------------------- resilient loop (#43 fix)
@@ -543,9 +419,20 @@ def test_consecutive_failure_limit_stops_with_a_clear_reason(tmp_path):
 
 
 def test_a_success_resets_the_consecutive_failure_count(tmp_path):
-    result = run_loop(tmp_path, flaky_backend({2, 3, 7, 8}), iterations=10,
+    inner = make_backend()
+    iterations = {"n": 0}
+    def respond(prompt):
+        if "STEP: type\n" in prompt:
+            iterations["n"] += 1
+            if iterations["n"] in {2, 3, 7, 8}:
+                raise TimeoutError("backend timed out")
+        return json.loads(inner.generate_schema(prompt, {}, constrained=True))
+    result = run_loop(tmp_path, FakeLLMBackend(respond), iterations=10,
                       max_consecutive_failures=3)
     assert result.stop_reason == "max_iterations"
+    assert result.counters["errors"] == 4
+    assert result.counters["accepted"] == 6
+
 
 
 def test_example_run_exits_nonzero_on_too_many_failures():

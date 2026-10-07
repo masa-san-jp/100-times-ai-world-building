@@ -1,237 +1,49 @@
-"""Tests for the world generation operators (fake backend only)."""
-
-import re
+"""Operation placement, validation and genre-neutral task descriptions."""
 from pathlib import Path
-
+import re
 import pytest
-
-from src.llm.fake import FakeLLMBackend
-from src.world.graph import make_entity, new_graph, validate_graph
-from src.world.operators import (
-    OPERATORS, OperatorConfig, OperatorError, OperatorRunner, expand,
-    load_prompts, run_operator, validate_candidate, zoom,
-)
-
-from tests.test_world_explore import SYNTHETIC_PREMISES
-
-CONFIG = Path(__file__).resolve().parent.parent / "config"
-
-BRIEF = {"statements": [{"id": "s1", "text": "alpha rule", "quote": "alpha"},
-                        {"id": "s2", "text": "beta supply", "quote": "beta"}]}
-AXES = [{"id": "geo", "name": "Geo", "meaning": "land"},
-        {"id": "eco", "name": "Eco", "meaning": "trade"}]
+from src.world.builder import ALLOWED_TYPES, EntityBuilder
+from src.world.operators import OPERATORS, OperatorError, load_prompts
+from src.world.graph import new_graph, make_entity, validate_graph
+from tests.test_world_explore import BRIEF, AXES, make_backend
+CONFIG = Path(__file__).resolve().parents[1] / "config"
 PROV = {"statement_ids": ["s1"], "derived_from": [], "reason": ""}
 
-
-def _graph():
-    g = new_graph("xx")
-
-    def mk(i, s, p):
-        return make_entity(i, "place", f"Name{i}", s, axes=["geo"], parent=p,
-                           summary=f"sum {i}", provenance=PROV)
-    g["entities"] = [mk("e1", "world", None), mk("e2", "region", "e1"),
-                     mk("e3", "settlement", "e2"), mk("e4", "detail", "e3")]
-    return g
-
-
-def _cand(name="N", **kw):
-    c = {
-        "type": "concept", "name": name, "axes": ["eco"],
-        "summary": "Objective explanation.",
-        "facts": [{"kind": "proper_noun", "text": "Harbor Ledger"},
-                  {"kind": "number", "text": "42 units"},
-                  {"kind": "object", "text": "brass seal"},
-                  {"kind": "object", "text": "tin cup"}],
-        "statement_ids": ["s1"], "derived_from": [], "reason": "derived recording order",
-        "relations": [],
-        "premise_usage": {k: [] for k in ("calendars", "technologies", "units", "institutions")},
-    }
-    c.update(kw)
-    return c
-
-
-def _backend(*cands):
-    return FakeLLMBackend(lambda prompt: {"candidates": list(cands)})
-
-
-def _run(op, cands, target="e3", n=None, graph=None, **kw):
-    n = len(cands) if n is None else n
-    g = graph or _graph()
-    r = OperatorRunner(_backend(*cands), **kw)
-    return g, r.run(op, g, None if op == "premise" else target, n,
-                    brief=BRIEF, axes=AXES)
-
-
 @pytest.mark.parametrize("op", OPERATORS)
-def test_each_operator_returns_valid_candidates(op):
-    cands = [_cand(f"Name-{i}", type="document" if op == "document" else "event")
-             for i in range(3)]
-    g, out = _run(op, cands, n=3)
-    assert len(out) == 3
-    ids = [c["entity"]["id"] for c in out]
-    assert len(set(ids)) == 3
-    for c in out:
-        assert c["operator"] == op
-        assert c["entity"]["summary"] and c["entity"]["facts"]
-        assert validate_candidate(g, c, AXES, BRIEF) == []
-    g["entities"].extend(c["entity"] for c in out)
-    assert validate_graph(g, AXES, BRIEF) == []
+def test_each_operator_builds_a_valid_entity_without_committing(op):
+    graph = new_graph("en")
+    graph["entities"] = [make_entity("e1", "place", "Root", "world", provenance=PROV)]
+    original = list(graph["entities"])
+    result = EntityBuilder(make_backend()).build(graph, op, None if op == "premise" else "e1",
+        brief=BRIEF, axes=AXES, contract={}, frontier_axis=None)
+    assert result.entity, result.failure
+    assert graph["entities"] == original
+    e = result.entity
+    assert e["type"] in ALLOWED_TYPES[op]
+    assert e["scale"] == ("region" if op == "zoom" else "world")
+    assert e["parent"] == ("e1" if op == "zoom" else None)
+    if op in {"cause", "perspective", "history", "document"}:
+        assert "e1" in e["provenance"]["derived_from"]
+        relation = {"cause": "causes", "history": "affects"}.get(op, "related_to")
+        assert {"type": relation, "target": "e1"} in e["relations"]
+    if op == "document":
+        assert e["type"] == "document"
+        assert not any(s.step == "type" for s in result.steps)
+    graph["entities"].append(e)
+    assert validate_graph(graph, AXES, BRIEF) == []
 
-
-def test_candidates_are_not_committed():
-    g, out = _run("expand", [_cand()])
-    assert len(g["entities"]) == 4 and out
-
-
-def test_candidates_without_provenance_are_dropped():
-    g, out = _run("expand", [
-        _cand("A", statement_ids=[], derived_from=[]),
-        _cand("B", statement_ids=["nope"], derived_from=["e999"]),
-        _cand("C", derived_from=["e1"], statement_ids=[], reason=""),
-        _cand("D"),
-    ])
-    assert [c["entity"]["name"] for c in out] == ["D"]
-
-
-def test_derived_from_with_reason_is_accepted():
-    _, out = _run("expand", [
-        _cand("A", statement_ids=[], derived_from=["e2"], reason="because")])
-    assert out[0]["entity"]["provenance"]["derived_from"] == ["e2"]
-
-
-def test_model_supplied_ids_scale_parent_require_repair_before_code_assigns_them():
-    invalid = _cand("A", id="e1", scale="world", parent="e1")
-    backend = FakeLLMBackend([{"candidates": [invalid]}, {"candidates": [_cand("A")]}])
-    out = OperatorRunner(backend).run("zoom", _graph(), "e3", 1, brief=BRIEF, axes=AXES)
-    e = out[0]["entity"]
-    assert e["id"] == "e5" and e["scale"] == "district" and e["parent"] == "e3"
-    assert len(backend.json_prompts) == 2
-    assert "Additional properties" in backend.json_prompts[1]
-
-
-def test_zoom_places_one_scale_below_target():
-    _, out = _run("zoom", [_cand("A")], target="e2")
-    e = out[0]["entity"]
-    assert (e["scale"], e["parent"]) == ("settlement", "e2")
-
+@pytest.mark.parametrize("op,target", [("unknown", None), ("zoom", None), ("expand", "absent")])
+def test_invalid_requests(op, target):
+    with pytest.raises(OperatorError):
+        EntityBuilder(make_backend()).build(new_graph("en"), op, target,
+            brief=BRIEF, axes=AXES, contract={}, frontier_axis=None)
 
 def test_zoom_below_detail_is_an_error():
+    graph = new_graph("en")
+    graph["entities"] = [make_entity("e1", "place", "Root", "detail", provenance=PROV)]
     with pytest.raises(OperatorError):
-        _run("zoom", [_cand()], target="e4")
-
-
-def test_expand_is_sibling_of_target():
-    _, out = _run("expand", [_cand()], target="e3")
-    e = out[0]["entity"]
-    assert (e["scale"], e["parent"]) == ("settlement", "e2")
-
-
-def test_relation_operators_link_to_target():
-    expect = {"cause": "causes", "perspective": "related_to",
-              "history": "affects", "document": "related_to"}
-    for op, rel in expect.items():
-        _, out = _run(op, [_cand(type="event")])
-        assert {"type": rel, "target": "e3"} in out[0]["entity"]["relations"]
-
-
-def test_document_type_is_forced():
-    _, out = _run("document", [_cand(type="event")])
-    assert out[0]["entity"]["type"] == "document"
-
-
-def test_premise_is_world_scale_without_target():
-    _, out = _run("premise", [_cand()])
-    e = out[0]["entity"]
-    assert (e["scale"], e["parent"]) == ("world", None)
-    assert out[0]["target"] is None
-
-
-def test_lower_scales_require_more_concrete_facts():
-    few = _cand("A", facts=[{"kind": "proper_noun", "text": "X"},
-                            {"kind": "period", "text": "long ago"}])
-    _, deep = _run("zoom", [few], target="e3")      # district needs 2
-    assert deep == []
-    _, shallow = _run("zoom", [few], target="e1")   # region needs 1
-    assert len(shallow) == 1
-
-
-def test_minimum_is_configurable():
-    few = _cand("A", facts=[{"kind": "period", "text": "long ago"}])
-    _, none = _run("zoom", [few], target="e3")
-    assert none == []
-    cfg = OperatorConfig(min_concrete_facts={"district": 0})
-    _, out = _run("zoom", [few], target="e3", config=cfg)
-    assert len(out) == 1
-
-
-def test_facts_and_summary_are_required():
-    _, out = _run("expand", [_cand("A", facts=[]), _cand("B", summary=" "),
-                             _cand("C", facts=[{"kind": "bad", "text": "t"}])])
-    assert out == []
-
-
-def test_unknown_axes_and_relations_are_filtered():
-    _, out = _run("expand", [_cand(axes=["zzz"], relations=[
-        {"type": "causes", "target": "e999"},
-        {"type": "opposes", "target": "e1"}])])
-    e = out[0]["entity"]
-    assert e["axes"] == ["geo"]  # inherited from target
-    assert e["relations"] == [{"type": "opposes", "target": "e1"}]
-
-
-def test_duplicate_names_are_dropped_and_output_count_is_enforced():
-    _, out = _run("expand", [_cand("Namee1"), _cand("X"), _cand("x"), _cand("Y"), _cand("Z")], n=5)
-    assert [c["entity"]["name"] for c in out] == ["X", "Y", "Z"]
-    backend = FakeLLMBackend([{"candidates": [_cand("X")]}, {"candidates": [_cand("X"), _cand("Y")]}])
-    runner = OperatorRunner(backend, OperatorConfig(max_candidates=2))
-    out = runner.run("expand", _graph(), "e3", 9, brief=BRIEF, axes=AXES)
-    assert [c["entity"]["name"] for c in out] == ["X", "Y"]
-    assert len(backend.json_prompts) == 2
-    assert "too short" in backend.json_prompts[1]
-
-
-def test_bad_responses_yield_no_candidates():
-    g = _graph()
-    for resp in ({}, {"candidates": "x"}, {"candidates": [1, None]}):
-        r = OperatorRunner(FakeLLMBackend(lambda p, resp=resp: resp))
-        assert r.run("expand", g, "e3", 2, brief=BRIEF, axes=AXES) == []
-
-
-def test_invalid_requests():
-    r = OperatorRunner(_backend())
-    with pytest.raises(OperatorError):
-        r.run("nope", _graph(), "e3")
-    with pytest.raises(OperatorError):
-        r.run("expand", _graph(), None)
-    with pytest.raises(OperatorError):
-        r.run("expand", _graph(), "e999")
-    with pytest.raises(OperatorError):
-        r.run("expand", _graph(), "e3", 0)
-
-
-def test_prompt_uses_language_and_bounded_context():
-    g = _graph()
-    g["meta"]["language"] = "qq-LANG"
-    for i in range(5, 60):
-        g["entities"].append(make_entity(
-            f"e{i}", "place", f"Sib{i}", "settlement", axes=["geo"],
-            parent="e2", summary="s" * 500, provenance=PROV))
-    backend = _backend(_cand())
-    OperatorRunner(backend).run("expand", g, "e3", 1, brief=BRIEF, axes=AXES)
-    prompt = backend.json_prompts[0]
-    assert 'with code "qq-LANG"' in prompt
-    assert "Sib10" in prompt and "Sib59" not in prompt
-    assert len(prompt.split("OUTPUT SCHEMA:")[0]) < 8000
-    assert "OUTPUT SCHEMA:" in prompt
-
-
-def test_wrappers_and_dispatch():
-    g = _graph()
-    b = _backend(_cand())
-    assert zoom(b, g, "e3", 1, brief=BRIEF, axes=AXES)
-    assert expand(b, g, "e3", 1, brief=BRIEF, axes=AXES)
-    assert run_operator("premise", b, g, None, 1, brief=BRIEF, axes=AXES)
-
+        EntityBuilder(make_backend()).build(graph, "zoom", "e1", brief=BRIEF,
+                                          axes=AXES, contract={}, frontier_axis=None)
 
 BANNED_TERMS = [
     "protagonist", "主人公", "plot", "プロット", "chapter", "章", "novel",
@@ -251,11 +63,3 @@ def test_operator_prompts_have_no_story_or_genre_terms():
             assert not re.search(r"\b" + re.escape(t.lower()) + r"\b", raw), t
         else:
             assert t not in raw, t
-
-
-def test_prompts_require_concreteness_consistency_and_language():
-    p = load_prompts()["common"]
-    text = p["system"] + p["user"]
-    assert "{language}" in text
-    for needle in ("proper nouns", "numbers", "consistent", "neutral"):
-        assert needle in text
