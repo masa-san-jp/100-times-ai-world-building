@@ -7,6 +7,7 @@ import pytest
 import yaml
 
 from src.llm.fake import FakeLLMBackend
+from src.world.criteria import real_world_check
 from src.world.explore import run_world_engine
 from src.world.schemas import load_schema, step_schema
 from src.world.structured import CONVERT_PROMPT_PATH, generate_structured, metrics_markdown
@@ -151,18 +152,31 @@ def test_enums_still_require_schema_compliance_and_numeric_fidelity():
 
 
 @pytest.mark.parametrize("task,good", [
-    ("real_world_check", {"items": [{"term": "Synthetic", "real_world": False, "reason": "visible"}]}),
+    ("real_world_check", {"items": [{"term": "Synthetic", "category": "invented", "reason": "visible"}]}),
     ("review", {"verdicts": {k: True for k in ("consistent", "objective", "no_outside_premises")}, "issues": []}),
 ])
-def test_boolean_task_schemas_bypass_conversion(task, good):
+def test_classification_and_boolean_tasks_bypass_conversion(task, good):
     backend = FakeLLMBackend(["ambiguous", good])
-    result = generate_structured(backend, "Generate content", step_schema(task, terms=["Synthetic"]), task=task, max_attempts=2)
+    if task == "real_world_check":
+        result = real_world_check(backend, ["Synthetic"], language="en", max_attempts=2, max_conversions=2)
+    else:
+        result = generate_structured(backend, "Generate content", step_schema(task), task=task, max_attempts=2)
     assert result.data == good and result.attempts == 2
     assert not result.converted and result.conversions == 0
     assert len(backend.schema_calls) == 2
     assert "REPAIR INSTRUCTIONS" in backend.json_prompts[1]
     assert backend._structured_metrics[task]["conversions"] == {
         "tried": 0, "succeeded": 0, "fidelity_failures": 0, "schema_failures": 0}
+
+
+def test_conversion_can_be_explicitly_disabled_for_a_nonboolean_schema():
+    data = {"description": "new content"}
+    backend = FakeLLMBackend(["ambiguous", data])
+    result = convert(backend, allow_conversion=False)
+    assert result.data == data and result.attempts == 2
+    assert not result.converted and result.conversions == 0
+    assert len(backend.schema_calls) == 2
+    assert "REPAIR INSTRUCTIONS" in backend.json_prompts[1]
 
 
 def test_boolean_property_nested_inside_array_bypasses_conversion():

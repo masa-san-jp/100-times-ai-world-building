@@ -9,7 +9,7 @@ from jsonschema import Draft202012Validator
 from src.llm.fake import FakeLLMBackend
 from src.world.builder import EntityBuilder
 from src.world.contract import establish_contract
-from src.world.criteria import contract_terms, measurement_present, new_name, real_world_check
+from src.world.criteria import contract_terms, measurement_present, new_name, outside_terms, real_world_check
 from src.world.graph import new_graph
 from src.world.quantities import outside_units
 from src.world.schemas import step_schema
@@ -148,14 +148,68 @@ def test_number_unit_is_checked_by_field_instead_of_body_extraction():
 
 
 TERMS = ["Zelvra", "Tavren"]
-GOOD_CHECK = {"items": [{"term": t, "real_world": False, "reason": "Invented name."} for t in TERMS]}
+GOOD_CHECK = {"items": [{"term": t, "category": "invented", "reason": "Invented name."} for t in TERMS]}
+
+
+REAL_CATEGORIES = ["real_calendar", "real_unit", "real_person_name",
+                   "real_place_name", "real_organization_name"]
+CATEGORIES = [*REAL_CATEGORIES, "general_word", "invented"]
+
+
+@pytest.mark.parametrize("category", CATEGORIES)
+def test_real_world_category_schema_and_reason_bounds(category):
+    validator = Draft202012Validator(step_schema("real_world_check", terms=["Zelvra"]))
+    item = {"term": "Zelvra", "category": category, "reason": "Explanation."}
+    assert validator.is_valid({"items": [item]})
+    for length in [1, 200]:
+        assert validator.is_valid({"items": [{**item, "reason": "x" * length}]})
+    for length in [0, 201]:
+        assert not validator.is_valid({"items": [{**item, "reason": "x" * length}]})
+    for field in item:
+        assert not validator.is_valid({"items": [{k: v for k, v in item.items() if k != field}]})
+    for invalid in [True, False, "real_other", "", None, 3]:
+        assert not validator.is_valid({"items": [{**item, "category": invalid}]})
+    assert not validator.is_valid({"items": [{**item, "real_world": False}]})
+    assert not validator.is_valid({"items": [{**item, "term": "Other"}]})
+
+
+@pytest.mark.parametrize("category", CATEGORIES)
+@pytest.mark.parametrize("allowed", [False, True])
+def test_only_real_categories_absent_from_normalized_input_are_violations(category, allowed):
+    item = {"term": "Zelvra", "category": category, "reason": "Classification fixture."}
+    raw = "prefix ＺＥＬ ＶＲＡ suffix" if allowed else "Unrelated source."
+    assert outside_terms({"items": [item]}, raw) == (
+        [item] if category in REAL_CATEGORIES and not allowed else [])
+
+
+def test_contract_accepts_general_words_absent_from_original_input():
+    general_words = {"term", "quota", "seal", "ledger"}
+    contract_calls, judgments = [], []
+    def respond(prompt):
+        if prompt.startswith("WORLD CONTRACT"):
+            contract_calls.append(prompt)
+            return SYNTHETIC_PREMISES
+        terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
+        judgments.extend(terms)
+        return {"items": [{"term": t,
+                           "category": "general_word" if t in general_words else "invented",
+                           "reason": "Ordinary word." if t in general_words else "Invented name."}
+                          for t in terms]}
+    backend = FakeLLMBackend(respond)
+    g = new_graph("en")
+    stage = establish_contract(backend, g, BRIEF, AXES, max_attempts=2, raw_input=RAW)
+    assert stage["status"] == "success" and stage["attempts"] == len(contract_calls) == 1
+    assert g["world_contract"]["world_premises"] == SYNTHETIC_PREMISES
+    assert general_words <= set(judgments)
+    assert all(t not in RAW for t in general_words)
+    assert backend._structured_metrics["real_world_check"]["conversions"]["tried"] == 0
 
 
 @pytest.mark.parametrize("bad", [
     {"items": GOOD_CHECK["items"][:1]},
     {"items": GOOD_CHECK["items"] + GOOD_CHECK["items"][:1]},
     {"items": [GOOD_CHECK["items"][0], GOOD_CHECK["items"][0]]},
-    {"items": [GOOD_CHECK["items"][0], {"term": "Other", "real_world": False, "reason": "Other name."}]},
+    {"items": [GOOD_CHECK["items"][0], {"term": "Other", "category": "invented", "reason": "Other name."}]},
     "Unstructured answer",
 ])
 def test_real_world_check_repairs_term_underflow_overflow_duplicates_and_unknowns(bad):
@@ -190,7 +244,7 @@ def test_contract_real_world_terms_regenerate_unless_in_original_input(field, al
                 assert term in prompt and "Real system fixture." in prompt
             return bad if len(contracts) == 1 else SYNTHETIC_PREMISES
         terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
-        return {"items": [{"term": t, "real_world": t == term,
+        return {"items": [{"term": t, "category": "real_unit" if t == term else "invented",
                            "reason": "Real system fixture."} for t in terms]}
     backend = FakeLLMBackend(respond)
     g = new_graph("en")
@@ -204,7 +258,7 @@ def test_contract_real_world_terms_regenerate_unless_in_original_input(field, al
 def test_contract_real_world_exhaustion_is_failed_and_resumable():
     inner = make_backend()
     backend = FakeLLMBackend(lambda prompt:
-        {"items": [{"term": t, "real_world": True, "reason": "Real fixture system."}
+        {"items": [{"term": t, "category": "real_calendar", "reason": "Real fixture system."}
                    for t in json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]]}
         if "STEP: real_world_check\n" in prompt else inner.generate_schema(prompt, {}, constrained=True))
     g = new_graph("en")
@@ -230,7 +284,7 @@ def test_real_name_rewrites_only_its_step_with_reason(step, slot):
         if current == "real_world_check":
             if good["items"][0]["term"] == "Zelvra":
                 judged += 1
-                good["items"][0].update(real_world=True, reason="Real fixture name.")
+                good["items"][0].update(category="real_person_name", reason="Real fixture name.")
         if current == step and current_slot == slot and attempt == 2:
             assert "Zelvra" in prompt and "Real fixture name." in prompt
         return good
@@ -249,7 +303,7 @@ def test_entity_name_in_original_input_is_allowed_even_if_real():
         if step == "name":
             return {"name": "Zelvra"}
         if step == "real_world_check" and good["items"][0]["term"] == "Zelvra":
-            good["items"][0].update(real_world=True, reason="Real fixture name.")
+            good["items"][0].update(category="real_person_name", reason="Real fixture name.")
         return good
     builder = EntityBuilder(backend_with(change))
     result = builder.build(new_graph("en"), "premise", None, brief=BRIEF, axes=AXES,
@@ -337,7 +391,7 @@ def test_raw_input_reaches_contract_and_entity_checks_through_engine(tmp_path, s
             return {"name": "alpha rule"}
         if "STEP: real_world_check\n" in prompt:
             terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
-            return {"items": [{"term": t, "real_world": t == "alpha rule", "reason": "Real fixture name."}
+            return {"items": [{"term": t, "category": "real_organization_name" if t == "alpha rule" else "invented", "reason": "Real fixture name."}
                               for t in terms]}
         return inner.generate_schema(prompt, {}, constrained=True)
     backend = FakeLLMBackend(respond)

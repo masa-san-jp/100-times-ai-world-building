@@ -56,13 +56,15 @@ def real_world_check(backend, terms, *, language, max_attempts, max_conversions)
         language=language, terms=json.dumps(terms, ensure_ascii=False)),
         step_schema("real_world_check", terms=terms), task="real_world_check",
         system_prompt=prompts["system"], max_attempts=max_attempts,
-        max_conversions=max_conversions)
+        max_conversions=max_conversions, allow_conversion=False)
 
 
 def outside_terms(data, raw_input):
     raw = normalize_term(raw_input)
     return [item for item in data["items"]
-            if item["real_world"] and normalize_term(item["term"]) not in raw]
+            if item["category"] in {"real_calendar", "real_unit", "real_person_name",
+                                    "real_place_name", "real_organization_name"}
+            and normalize_term(item["term"]) not in raw]
 
 
 def measurement_present(value, unit, brief, views, entities):

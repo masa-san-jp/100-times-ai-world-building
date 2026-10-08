@@ -103,7 +103,7 @@ def contract_backend(responses):
     def respond(prompt):
         if "STEP: real_world_check\n" in prompt:
             terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
-            return {"items": [{"term": t, "real_world": False,
+            return {"items": [{"term": t, "category": "invented",
                                "reason": "Synthetic fixture term."} for t in terms]}
         return inner.generate_schema(prompt, {}, constrained=True)
 

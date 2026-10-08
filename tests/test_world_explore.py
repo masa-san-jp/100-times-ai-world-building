@@ -98,7 +98,7 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
             return SYNTHETIC_PREMISES
         if "STEP: real_world_check\n" in prompt:
             terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
-            return {"items": [{"term": term, "real_world": False,
+            return {"items": [{"term": term, "category": "invented",
                                "reason": "Invented synthetic term."} for term in terms]}
         schema = json.loads(prompt.split("OUTPUT SCHEMA:\n", 1)[1].split("\n\nREPAIR INSTRUCTIONS:", 1)[0])
         props = schema["properties"]

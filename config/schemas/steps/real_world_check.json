@@ -10,8 +10,17 @@
           "term": {
             "type": "string"
           },
-          "real_world": {
-            "type": "boolean"
+          "category": {
+            "type": "string",
+            "enum": [
+              "real_calendar",
+              "real_unit",
+              "real_person_name",
+              "real_place_name",
+              "real_organization_name",
+              "general_word",
+              "invented"
+            ]
           },
           "reason": {
             "type": "string",
@@ -21,7 +30,7 @@
         },
         "required": [
           "term",
-          "real_world",
+          "category",
           "reason"
         ],
         "additionalProperties": false

@@ -156,7 +156,8 @@ def _fidelity_violations(data, schema, source):
 
 
 def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
-                        images=None, max_attempts, max_conversions=2, content_validator=None):
+                        images=None, max_attempts, max_conversions=2, content_validator=None,
+                        allow_conversion=True):
     if isinstance(max_attempts, bool) or not isinstance(max_attempts, int) or max_attempts < 1:
         raise ValueError("structured.max_attempts must be a positive integer")
     if isinstance(max_conversions, bool) or not isinstance(max_conversions, int) or max_conversions < 0:
@@ -215,7 +216,7 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
         if not violations:
             data = parsed
             break
-        if (not content_invalid and isinstance(raw, str) and raw.strip()
+        if (allow_conversion and not content_invalid and isinstance(raw, str) and raw.strip()
                 and not _contains_boolean(schema) and max_conversions):
             prompts = yaml.safe_load(CONVERT_PROMPT_PATH.read_text(encoding="utf-8"))
             conversion_prompt = prompts["user"].format(
