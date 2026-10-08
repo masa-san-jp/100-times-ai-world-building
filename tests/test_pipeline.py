@@ -105,7 +105,7 @@ def test_structured_attempts_default_for_older_configs(tmp_path):
 
 @pytest.mark.parametrize("conversions", [0, 1, 3])
 def test_structured_conversions_config_reaches_every_generation_stage(tmp_path, monkeypatch, conversions):
-    from src.world import axes, builder, contract, input as world_input
+    from src.world import axes, builder, contract, criteria, input as world_input
     from src.world.structured import generate_structured
     observed = {}
 
@@ -113,12 +113,12 @@ def test_structured_conversions_config_reaches_every_generation_stage(tmp_path, 
         observed[kwargs["task"]] = kwargs["max_conversions"]
         return generate_structured(*args, **kwargs)
 
-    for module in (axes, builder, contract, world_input):
+    for module in (axes, builder, contract, criteria, world_input):
         monkeypatch.setattr(module, "generate_structured", generate)
     config_path = write_config(tmp_path, engine={"structured": {"max_conversions": conversions}})
     pipeline = make(tmp_path, config_path=config_path, budget={"max_iterations": 1})
     pipeline.run(RAW)
-    assert set(observed) >= {"input_brief", "world_axes", "world_contract", "name", "fact", "review", "fact_check"}
+    assert set(observed) >= {"input_brief", "world_axes", "world_contract", "name", "fact", "review", "real_world_check"}
     assert set(observed.values()) == {conversions}
     manifest = json.loads((pipeline.package_dir / "run_manifest.json").read_text())
     assert manifest["engine_config"]["structured"]["max_conversions"] == conversions

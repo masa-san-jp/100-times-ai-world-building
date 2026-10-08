@@ -7,6 +7,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from src.llm.fake import FakeLLMBackend
+from tests.helpers_world import contract_backend
 from src.world.contract import establish_contract
 from src.world.graph import GraphStore, make_entity, new_graph
 from src.world.language import load_language_rules, rules_for
@@ -53,13 +54,13 @@ def test_contract_accepts_bounded_arbitrary_symbols_and_descriptions(symbol, qua
 def test_description_used_as_symbol_enters_contract_schema_repair_loop(description):
     invalid = contract_with_units({"symbol": description, "quantity": "Measured length"})
     valid = contract_with_units({"symbol": "qx", "quantity": "Measured length"})
-    backend = FakeLLMBackend([invalid, invalid, invalid, valid])
+    backend = contract_backend([invalid, invalid, invalid, valid])
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
     assert stage["status"] == "success" and stage["attempts"] == 2
     assert not graph["entities"]
     assert graph["world_contract"]["world_premises"] == valid
-    assert len(backend.schema_calls) == 4
+    assert len(backend.schema_calls) == 5
     assert all("SOURCE OUTPUT:" in c["prompt"] for c in backend.schema_calls[1:3])
     repaired_prompt = backend.schema_calls[3]["prompt"]
     assert '"symbol"' in repaired_prompt and "REPAIR INSTRUCTIONS" in repaired_prompt
@@ -106,7 +107,7 @@ def test_unit_extraction_and_registration_use_symbols_without_registering_descri
 def test_unit_descriptions_survive_persistence_and_both_renderers(tmp_path):
     contract = contract_with_units({"symbol": "qx", "quantity": "Measured container volume"})
     graph = new_graph("en")
-    establish_contract(FakeLLMBackend(contract), graph, BRIEF, AXES)
+    establish_contract(contract_backend(contract), graph, BRIEF, AXES)
     provenance = {"statement_ids": ["s1"], "derived_from": [], "reason": ""}
     root = make_entity("e1", "place", "Test world", "world", provenance=provenance)
     root.update(origin_operator="premise", world_premises=copy.deepcopy(contract))

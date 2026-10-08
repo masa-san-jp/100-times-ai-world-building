@@ -8,6 +8,7 @@ import pytest
 
 from tests.helpers_world import candidate_output, deterministic_candidate, deterministic_result
 from src.llm.fake import FakeLLMBackend
+from tests.helpers_world import contract_backend
 from src.world.explore import ExplorationLoop, load_explore_config, read_preference_log
 from src.world.graph import make_entity, new_graph, validate_graph
 from src.world.operators import OPERATORS
@@ -121,7 +122,7 @@ def test_bootstrap_society_is_recorded_by_separate_contract_stage():
     from src.world.contract import establish_contract
     g = new_graph("ja")
     before = copy.deepcopy(BRIEF)
-    stage = establish_contract(FakeLLMBackend(CONTRACT), g, BRIEF, AXES)
+    stage = establish_contract(contract_backend(CONTRACT), g, BRIEF, AXES)
     assert stage["status"] == "success" and BRIEF == before and not g["entities"]
     assert g["world_contract"]["world_premises"]["society"] == CONTRACT["society"]
 

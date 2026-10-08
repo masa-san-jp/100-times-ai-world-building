@@ -22,7 +22,7 @@ def world_axes_schema(catalog):
 
 
 def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(), fact_count=0,
-                kind=None, contract=None):
+                kind=None, contract=None, terms=()):
     """Fill a step contract with the ids allowed by this build's context."""
     schema = load_schema("steps/" + step)
     props = schema["properties"]
@@ -50,6 +50,16 @@ def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(),
                 *([calendar["name"]] if "name" in calendar else []),
                 *calendar.get("markers", [])])
         schema["required"] = list(props)
+    elif step == "fact" and kind in {"proper_noun", "object", "procedure"}:
+        fields = {"proper_noun": {"name": (2, 30)}, "object": {"object": (1, 30)},
+                  "procedure": {"actor": (1, 30), "action": (1, 60)}}[kind]
+        for field, (minimum, maximum) in fields.items():
+            props[field] = {"type": "string", "minLength": minimum, "maxLength": maximum}
+        schema["required"] = list(props)
+    elif step == "real_world_check":
+        terms = list(dict.fromkeys(terms))
+        props["items"]["items"]["properties"]["term"] = choices(terms)
+        props["items"]["minItems"] = props["items"]["maxItems"] = len(terms)
     elif step == "relations":
         rel = props["relations"]["items"]["properties"]
         rel["type"] = choices(graph.RELATION_TYPES)

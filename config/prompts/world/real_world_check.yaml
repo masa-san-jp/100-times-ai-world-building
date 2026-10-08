@@ -1,0 +1,13 @@
+system: |
+  Classify terms. Return only the requested structured JSON, with one item for every supplied term.
+user: |
+  STEP: real_world_check
+  SLOT: None
+  TASK: real_world_check
+  OUTPUT LANGUAGE: {language}
+  TERMS:
+  {terms}
+  For each term, determine whether this term itself is a system or proper name used in the real world:
+  a real calendar, a unit of a real unit system, or a real person, place, organization or institution name.
+  Do not classify a term merely because it resembles or describes a real-world concept.
+  Return term verbatim, real_world as a boolean, and reason (1 to 200 characters).

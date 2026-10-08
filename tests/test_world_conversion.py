@@ -151,12 +151,12 @@ def test_enums_still_require_schema_compliance_and_numeric_fidelity():
 
 
 @pytest.mark.parametrize("task,good", [
-    ("fact_check", {"matches": True, "reason": "visible"}),
-    ("review", {"verdicts": {k: True for k in ("consistent", "objective", "no_story", "fits_world")}, "issues": []}),
+    ("real_world_check", {"items": [{"term": "Synthetic", "real_world": False, "reason": "visible"}]}),
+    ("review", {"verdicts": {k: True for k in ("consistent", "objective", "no_outside_premises")}, "issues": []}),
 ])
 def test_boolean_task_schemas_bypass_conversion(task, good):
     backend = FakeLLMBackend(["ambiguous", good])
-    result = generate_structured(backend, "Generate content", step_schema(task), task=task, max_attempts=2)
+    result = generate_structured(backend, "Generate content", step_schema(task, terms=["Synthetic"]), task=task, max_attempts=2)
     assert result.data == good and result.attempts == 2
     assert not result.converted and result.conversions == 0
     assert len(backend.schema_calls) == 2

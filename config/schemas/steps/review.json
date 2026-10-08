@@ -11,18 +11,14 @@
         "objective": {
           "type": "boolean"
         },
-        "no_story": {
-          "type": "boolean"
-        },
-        "fits_world": {
+        "no_outside_premises": {
           "type": "boolean"
         }
       },
       "required": [
         "consistent",
         "objective",
-        "no_story",
-        "fits_world"
+        "no_outside_premises"
       ],
       "additionalProperties": false
     },
@@ -41,8 +37,7 @@
             "enum": [
               "consistent",
               "objective",
-              "no_story",
-              "fits_world"
+              "no_outside_premises"
             ]
           },
           "reason": {

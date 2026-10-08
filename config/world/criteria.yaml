@@ -1,24 +1,45 @@
-grounded:
-  definition: An entity has at least one input statement or local entity as a source; derivation from an entity has an explanation of at least 10 characters.
+faithful:
+  level: both
+  definition: Entities derive from input statements or local entities with an explained derivation; the world remains faithful to the input (world checks implemented in issue 71).
   checks: [grounding.sources, grounding.reason]
-consistent:
-  definition: Fields obey their output schemas and do not contradict existing numeric facts; relations do not refer to the entity itself; the whole entity has no contradictions.
-  checks: [all.schema, fact.number_conflict, relations.self_reference, review.consistent]
+  method: structure
+no_outside_premises:
+  level: entity
+  definition: Units and calendar markers obey the contract; real-world systems and proper names are permitted only when specified in the original input; the entity introduces no outside premises.
+  checks: [contract.real_world_check, name.real_world_check, fact.real_world_check, fact.units, fact.calendar, summary.units, summary.calendar, review.no_outside_premises]
+  method: judge
+breadth:
+  level: world
+  definition: The world covers the areas derived from the input (implemented in issue 71).
+  checks: [world.breadth]
+  method: structure
+depth:
+  level: world
+  definition: The world explains underlying causes and mechanisms (implemented in issue 71).
+  checks: [world.depth]
+  method: structure
+scale:
+  level: world
+  definition: The world connects facts across its scale layers (implemented in issue 71).
+  checks: [world.scale]
+  method: structure
+detail:
+  level: entity
+  definition: Every fact supplies its kind-specific fields and includes them in its text; proper names are new, measurements include their value and non-time unit, and periods include their calendar marker and value.
+  checks: [fact.number, fact.period, fact.proper_noun, fact.object, fact.procedure]
+  method: structure
 objective:
-  definition: The name uses the output language's script and the explanation uses neutral, objective language.
-  checks: [name.language, summary.objectivity, review.objective]
-no_story:
-  definition: Reference material does not use quoted speech, personal narration or narrative voice.
-  checks: [summary.narrative_voice, review.no_story]
-specific:
-  definition: Each fact matches its planned kind; measurements have a number and a non-time unit, periods have a contract calendar marker and a number or duration, and the other kinds pass a small confirmation task.
-  checks: [fact.number, fact.period, fact_check.matches]
-informative:
-  definition: Character 3-gram overlap with the input and local context is at most 0.6; facts also add information beyond the entity's other facts.
-  checks: [summary.overlap, fact.overlap]
-distinct:
-  definition: Normalized entity names differ from existing names and facts do not duplicate other facts within the same entity.
-  checks: [name.duplicate, fact.duplicate]
-fits_world:
-  definition: Units and their combinations and calendar markers belong to the established contract; the assembled entity fits the supplied input and world.
-  checks: [fact.units, fact.calendar, review.fits_world]
+  level: entity
+  definition: Names use the output language's script and explanations use objective reference language without quoted speech, personal narration or narrative voice.
+  checks: [name.language, summary.objectivity, summary.narrative_voice, review.objective]
+  method: judge
+consistent:
+  level: both
+  definition: Fields obey schemas, numeric facts do not contradict existing facts, relations avoid self-reference and entities have no contradictions; world consistency is implemented in issue 71.
+  checks: [all.schema, fact.number_conflict, relations.self_reference, review.consistent]
+  method: judge
+new_information:
+  level: entity
+  definition: Each entity includes a new proper name or a measurement value and unit pair absent from the brief, local context and all existing entity facts; normalized names and facts do not duplicate existing names or other facts in the entity.
+  checks: [name.duplicate, fact.duplicate, entity.new_information]
+  method: rule

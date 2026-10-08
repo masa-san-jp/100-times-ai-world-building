@@ -37,7 +37,7 @@ def test_every_task_calls_only_structured_harness():
     world_axes_schema(load_catalog()),
     *(step_schema(step, types=["place"], statement_ids=["s1"], entity_ids=["e1"],
                   axis_ids=["a1"], fact_count=3) for step in
-      ("type", "grounding", "name", "axes", "summary", "fact", "relations", "review", "fact_check"))])
+      ("type", "grounding", "name", "axes", "summary", "fact", "relations", "review", "real_world_check"))])
 def test_all_assembled_schemas_are_valid_and_every_object_is_closed(schema):
     Draft202012Validator.check_schema(schema)
     def check(node):
@@ -190,7 +190,7 @@ def test_image_description_failure_preserves_original_and_does_not_generate_brie
 def test_successful_run_metrics_are_in_manifest_and_report(tmp_path):
     run_world_engine(RAW, package_dir=tmp_path, backend=make_backend(), config=cfg(), budget={"max_iterations": 1})
     manifest = json.loads((tmp_path / "run_manifest.json").read_text())
-    for task in ("input_brief", "world_axes", "world_contract", "type", "grounding", "name", "axes", "summary", "fact", "fact_check", "review"):
+    for task in ("input_brief", "world_axes", "world_contract", "type", "grounding", "name", "axes", "summary", "fact", "real_world_check", "review"):
         entry = manifest["structured"][task]
         assert entry["calls"] >= 1 and entry["attempts"]["1"] >= 1
         assert entry["failures"] == 0 and entry["elapsed"] >= 0

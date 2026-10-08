@@ -193,6 +193,17 @@ def units_in_text(text, contract, rules, declared=()):
     return sorted(units)
 
 
+def outside_units(text, contract, rules):
+    """Remove complete contract symbols before extracting other quantities."""
+    text = normalized(text)
+    symbols = sorted({normalized(u) for u in unit_symbols(contract)}, key=len, reverse=True)
+    if symbols:
+        pattern = (r"(?<![A-Za-z\d.])" + NUMBER + r"[ \t]*(?:" +
+                   "|".join(re.escape(u) for u in symbols) + r")(?![A-Za-z0-9_/^*·×])")
+        text = re.sub(pattern, " ", text)
+    return units_in_text(text, contract, rules)
+
+
 def observed_units(entity, contract, rules):
     usage = entity.get("premise_usage") or {}
     return sorted({u for _, text in text_fields(entity)
