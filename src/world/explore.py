@@ -963,7 +963,10 @@ def run_world_engine(
             if render:
                 report = root / "final" / "world_report.md"
                 report.parent.mkdir(parents=True, exist_ok=True)
-                report.write_text(f"# World report\n\nRun failed: {exc}\n\n" + metrics_markdown(metrics), encoding="utf-8")
+                from .contract import contract_metrics_markdown
+                contract_report = contract_metrics_markdown(manifest.data.get("world_contract", {}))
+                report.write_text(f"# World report\n\nRun failed: {exc}\n\n" +
+                                  contract_report + metrics_markdown(metrics), encoding="utf-8")
         manifest.set_status(
             "cancelled" if isinstance(exc, KeyboardInterrupt) else "failed",
             error=None if isinstance(exc, KeyboardInterrupt) else str(exc))

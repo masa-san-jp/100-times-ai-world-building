@@ -507,6 +507,9 @@ def _report(ctx: _Ctx, limit: int) -> str:
             if attempt.get("errors"):
                 out.append(f"- {attempt['attempt']}: " + " / ".join(_one_line(e) for e in attempt["errors"]))
         out.append("")
+        from .contract import contract_metrics_markdown
+        if stage.get("steps"):
+            out.append(contract_metrics_markdown(stage))
         contract = world_premises(ctx.graph)
         if contract:
             calendar, technology = contract["calendar"], contract["technology"]

@@ -95,16 +95,56 @@ def deterministic_result(graph, candidate, brief):
         deductions_for=lambda k: results[k].deductions)
 
 
+def contract_item(contract, prompt):
+    """Extract precisely the requested slot from a synthetic contract fixture."""
+    import re
+    item = re.search(r"^ITEM: (.+)$", prompt, re.M).group(1)
+    slot = re.search(r"^SLOT: (.+)$", prompt, re.M).group(1)
+    slot = int(slot) if slot != "None" else None
+    paths = {
+        "calendar_name": ("calendar", "name", "name"),
+        "calendar_origin": ("calendar", "origin", "origin"),
+        "calendar_marker": ("calendar", "markers", "marker"),
+        "technology_description": ("technology", "description", "description"),
+        "capability": ("technology", "capabilities", "capability"),
+        "unit": ("technology", "units", None),
+        "society_description": ("society", "description", "description"),
+        "institution": ("society", "institutions", None),
+    }
+    section, field, key = paths[item]
+    value = contract.get(section, {}).get(field)
+    if slot is not None:
+        value = value[slot] if isinstance(value, list) and slot < len(value) else None
+    return {key: value} if key else value or {}
+
+
+def configure_contract(monkeypatch, tmp_path, contract, max_item_attempts=4):
+    """Exercise configured counts with existing small/empty-list fixtures."""
+    import yaml
+    from src.world import contract as module
+    config = {"max_item_attempts": max_item_attempts,
+              "n_markers": len(contract["calendar"]["markers"]),
+              "n_capabilities": len(contract["technology"]["capabilities"]),
+              "n_units": len(contract["technology"]["units"]),
+              "n_institutions": len(contract["society"]["institutions"])}
+    path = tmp_path / "contract.yaml"
+    path.write_text(yaml.safe_dump(config))
+    monkeypatch.setattr(module, "CONFIG_PATH", path)
+
+
 def contract_backend(responses):
-    """Keep existing contract fixtures and explicitly classify synthetic terms."""
+    """Generate one fixture item per call and classify only the supplied terms."""
     from src.llm.fake import FakeLLMBackend
-    inner = FakeLLMBackend(responses)
+    if callable(responses):
+        item_response = responses
+    else:
+        item_response = lambda prompt: contract_item(responses, prompt)
 
     def respond(prompt):
         if "STEP: real_world_check\n" in prompt:
             terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
             return {"items": [{"term": t, "category": "invented",
                                "reason": "Synthetic fixture term."} for t in terms]}
-        return inner.generate_schema(prompt, {}, constrained=True)
+        return item_response(prompt)
 
     return FakeLLMBackend(respond)

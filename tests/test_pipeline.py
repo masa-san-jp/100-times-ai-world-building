@@ -118,7 +118,9 @@ def test_structured_conversions_config_reaches_every_generation_stage(tmp_path, 
     config_path = write_config(tmp_path, engine={"structured": {"max_conversions": conversions}})
     pipeline = make(tmp_path, config_path=config_path, budget={"max_iterations": 1})
     pipeline.run(RAW)
-    assert set(observed) >= {"input_brief", "world_axes", "world_contract", "name", "fact", "review", "real_world_check"}
+    assert set(observed) >= {"input_brief", "world_axes", "contract/calendar_name", "contract/calendar_origin", "contract/calendar_marker",
+                             "contract/technology_description", "contract/capability", "contract/unit",
+                             "contract/society_description", "contract/institution", "name", "fact", "review", "real_world_check"}
     assert set(observed.values()) == {conversions}
     manifest = json.loads((pipeline.package_dir / "run_manifest.json").read_text())
     assert manifest["engine_config"]["structured"]["max_conversions"] == conversions

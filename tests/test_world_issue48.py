@@ -7,7 +7,7 @@ import pytest
 
 from tests.helpers_world import candidate_output, deterministic_candidate, deterministic_result
 from src.llm.fake import FakeLLMBackend
-from tests.helpers_world import contract_backend
+from tests.helpers_world import contract_backend, configure_contract
 from src.world.graph import GraphStore, local_context, make_entity, new_graph, validate_graph
 from src.world.operators import OPERATORS, validate_candidate
 from src.world.premises import unit_symbols, world_premises
@@ -126,12 +126,13 @@ def test_compound_and_symbolic_units_with_unregistered_factors_need_registration
 
 
 
-def test_contract_stage_records_world_specific_decisions_without_changing_input(tmp_path):
+def test_contract_stage_records_world_specific_decisions_without_changing_input(tmp_path, monkeypatch):
     from src.world.contract import establish_contract
     from src.world.premises import CONTRACT_ID
     g = new_graph("ja")
     brief_before = copy.deepcopy(BRIEF)
     contract = {**CONTRACT, "technology": {**CONTRACT["technology"], "units": CONTRACT["technology"]["units"][:4]}, "society": {"description": "札で共有の使用順を決める。", "institutions": []}}
+    configure_contract(monkeypatch, tmp_path, contract)
     stage = establish_contract(contract_backend(contract), g, BRIEF, [])
     assert BRIEF == brief_before and not g["entities"]
     assert stage["status"] == "success" and world_premises(g)["source_entity"] == CONTRACT_ID

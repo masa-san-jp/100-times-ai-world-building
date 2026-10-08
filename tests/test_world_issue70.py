@@ -15,6 +15,7 @@ from src.world.quantities import outside_units
 from src.world.schemas import step_schema
 from src.world.structured import StructuredFailure
 from tests.test_world_builder import backend_with, build, graph
+from tests.helpers_world import contract_item
 from tests.test_world_explore import AXES, BRIEF, RAW, SYNTHETIC_PREMISES, cfg, make_backend
 
 
@@ -188,7 +189,7 @@ def test_contract_accepts_general_words_absent_from_original_input():
     def respond(prompt):
         if prompt.startswith("WORLD CONTRACT"):
             contract_calls.append(prompt)
-            return SYNTHETIC_PREMISES
+            return contract_item(SYNTHETIC_PREMISES, prompt)
         terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
         judgments.extend(terms)
         return {"items": [{"term": t,
@@ -198,7 +199,7 @@ def test_contract_accepts_general_words_absent_from_original_input():
     backend = FakeLLMBackend(respond)
     g = new_graph("en")
     stage = establish_contract(backend, g, BRIEF, AXES, max_attempts=2, raw_input=RAW)
-    assert stage["status"] == "success" and stage["attempts"] == len(contract_calls) == 1
+    assert stage["status"] == "success" and stage["attempts"] == len(contract_calls) == 16
     assert g["world_contract"]["world_premises"] == SYNTHETIC_PREMISES
     assert general_words <= set(judgments)
     assert all(t not in RAW for t in general_words)
@@ -229,20 +230,20 @@ def test_contract_real_world_terms_regenerate_unless_in_original_input(field, al
     if field == "calendar":
         bad["calendar"]["name"] = term
     elif field == "marker":
-        bad["calendar"]["markers"] = [term]
+        bad["calendar"]["markers"][0] = term
     elif field == "unit":
         bad["technology"]["units"][0]["symbol"] = term
     elif field == "institution":
-        bad["society"]["institutions"] = [{"name": term, "description": "Shared records."}]
+        bad["society"]["institutions"][0]["name"] = term
     else:
-        bad["technology"]["capabilities"] = [term]
+        bad["technology"]["capabilities"][0] = term
     contracts = []
     def respond(prompt):
         if prompt.startswith("WORLD CONTRACT"):
             contracts.append(prompt)
-            if len(contracts) > 1:
-                assert term in prompt and "Real system fixture." in prompt
-            return bad if len(contracts) == 1 else SYNTHETIC_PREMISES
+            if "PREVIOUS OUTPUT" in prompt:
+                assert term in prompt and "Real system fixture." in prompt and "real_unit" in prompt
+            return contract_item(SYNTHETIC_PREMISES if "PREVIOUS OUTPUT" in prompt else bad, prompt)
         terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
         return {"items": [{"term": t, "category": "real_unit" if t == term else "invented",
                            "reason": "Real system fixture."} for t in terms]}
@@ -250,9 +251,9 @@ def test_contract_real_world_terms_regenerate_unless_in_original_input(field, al
     g = new_graph("en")
     stage = establish_contract(backend, g, BRIEF, AXES, max_attempts=2,
                               raw_input="prefix ＺＥＬ ＶＲＡ suffix" if allowed else "")
-    assert stage["attempts"] == len(contracts) == (1 if allowed else 2)
+    assert stage["attempts"] == len(contracts) == (16 if allowed else 17)
     assert g["world_contract"]["world_premises"] == (bad if allowed else SYNTHETIC_PREMISES)
-    assert backend._structured_metrics["world_contract"]["conversions"]["tried"] == 0
+    assert all(entry["conversions"]["tried"] == 0 for task, entry in backend._structured_metrics.items() if task.startswith("contract/"))
 
 
 def test_contract_real_world_exhaustion_is_failed_and_resumable():
@@ -264,7 +265,7 @@ def test_contract_real_world_exhaustion_is_failed_and_resumable():
     g = new_graph("en")
     with pytest.raises(StructuredFailure):
         establish_contract(backend, g, BRIEF, AXES, max_attempts=2)
-    assert g["contract_stage"]["status"] == "failed" and g["contract_stage"]["attempts"] == 2
+    assert g["contract_stage"]["status"] == "failed" and g["contract_stage"]["attempts"] == 4
     assert "world_contract" not in g
     count = len(backend.schema_calls)
     with pytest.raises(StructuredFailure):
@@ -363,7 +364,7 @@ def test_contract_term_collection_uses_names_and_symbols_without_descriptions():
     contract = copy.deepcopy(SYNTHETIC_PREMISES)
     contract["society"]["institutions"] = [{"name": "Zelvra", "description": "Tavren"}]
     terms = contract_terms(contract)
-    assert set(terms) == {"VelaCount", "term", "quota", "seal", "ledger", "Zelvra"}
+    assert set(terms) == {"VelaCount", "VelaRise", "VelaRest", "term", "quota", "vel", "seal", "ledger", "tally", "Zelvra"}
     assert len(terms) == len(set(terms))
 
 
