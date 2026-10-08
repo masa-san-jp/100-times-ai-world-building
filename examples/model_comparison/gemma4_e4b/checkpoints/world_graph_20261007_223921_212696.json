@@ -1,0 +1,90 @@
+{
+  "contract_stage": {
+    "attempts": 2,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ]
+      },
+      {
+        "attempt": 2,
+        "errors": []
+      }
+    ],
+    "status": "success"
+  },
+  "entities": [],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "乾期初月",
+          "水汲期",
+          "盛塩期",
+          "結塩時"
+        ],
+        "name": "潮時暦",
+        "origin": "水の循環と塩の採掘サイクルに基づく計測。"
+      },
+      "society": {
+        "description": "塩の採掘と水資源の配分を巡る二大共同体の構造。",
+        "institutions": [
+          {
+            "description": "塩の採掘権を基盤とする労働者集団。経済活動の主体。",
+            "name": "採掘組合"
+          },
+          {
+            "description": "古来より導水路の管理と水の配給を担う家系。水資源の管理者。",
+            "name": "水番家系"
+          },
+          {
+            "description": "水と塩の利用に関する一時的な合議体。対立構造を緩和する場。",
+            "name": "資源分配評議会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "塩の採掘と選別",
+          "地下水路の維持・管理",
+          "重い資材の運搬",
+          "水の貯蔵と分配"
+        ],
+        "description": "塩の採掘と水の輸送に特化した技術体系。",
+        "units": [
+          {
+            "quantity": "塩の重量。最大積載単位。",
+            "symbol": "kg"
+          },
+          {
+            "quantity": "水の体積。導水路からの汲み上げ量。",
+            "symbol": "lit"
+          },
+          {
+            "quantity": "距離の単位。移動や採掘範囲の計測。",
+            "symbol": "尺"
+          }
+        ]
+      }
+    }
+  }
+}

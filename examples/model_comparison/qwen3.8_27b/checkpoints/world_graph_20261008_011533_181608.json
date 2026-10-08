@@ -1,0 +1,154 @@
+{
+  "contract_stage": {
+    "attempts": 2,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ]
+      },
+      {
+        "attempt": 2,
+        "errors": []
+      }
+    ],
+    "status": "success"
+  },
+  "entities": [
+    {
+      "id": "e1",
+      "type": "place",
+      "name": "塩盆地",
+      "axes": [
+        "geography_climate",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "scale": "world",
+      "parent": null,
+      "relations": [],
+      "summary": "塩盆地は、降水量が極めて少ない内陸の盆地であり、地域の生存基盤となる水は地下の古い導水路から供給されている。この環境下では、塩の採掘が経済の中心となり、採掘組合と水番家系の間で導水路の管理権を巡る長期的な対立が生じている。紛争審議会が規範に基づく裁きを担い、伝承会が技術と知識を次世代に継承する。塩暦の採掘期や水枯期など、計測体系が季節的変動を規定し、塩量、水量、導程といった単位が資源の管理と分配の基準として機能している。",
+      "facts": [
+        {
+          "kind": "number",
+          "text": "塩盆地における地下導水路の総延長距離は、現在管理されている区間の合計で12導程である。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [],
+            "reason": "簡潔な記述s1, s2, s3から、雨の少ない内陸盆地という地理的・気候的条件と、その下で機能する地下導水路というインフラが、世界の基礎的な物理的・環境的制約として定義されることを示すため。"
+          },
+          "subject": "地下導水路の総延長距離",
+          "value": 12,
+          "unit": "導程"
+        },
+        {
+          "kind": "proper_noun",
+          "text": "塩盆地の地下導水路は、水番家系が管理権を世襲する区間と採掘組合が利用する区間から構成されている。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [],
+            "reason": "簡潔な記述s1, s2, s3から、雨の少ない内陸盆地という地理的・気候的条件と、その下で機能する地下導水路というインフラが、世界の基礎的な物理的・環境的制約として定義されることを示すため。"
+          }
+        }
+      ],
+      "provenance": {
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "derived_from": [],
+        "reason": "簡潔な記述s1, s2, s3から、雨の少ない内陸盆地という地理的・気候的条件と、その下で機能する地下導水路というインフラが、世界の基礎的な物理的・環境的制約として定義されることを示すため。"
+      },
+      "scores": {
+        "reward": 1.0
+      },
+      "origin_operator": "premise"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "採掘期",
+          "水枯期",
+          "管理期",
+          "対立期"
+        ],
+        "name": "塩暦",
+        "origin": "塩の採掘サイクルと地下水の枯渇期に基づき、盆地の乾燥気候に合わせて設計された計測体系である。"
+      },
+      "society": {
+        "description": "塩の採掘組合と水番の家系が対立する中、資源管理と紛争解決のための制度が形成されている。",
+        "institutions": [
+          {
+            "description": "塩の採掘と販売を統括し、経済的利益を追求する集団である。",
+            "name": "採掘組合"
+          },
+          {
+            "description": "地下導水路の管理権を世襲し、水の分配を支配する家系組織。",
+            "name": "水番家系"
+          },
+          {
+            "description": "資源管理権の対立を仲裁し、規範に基づく裁きを行う機関。",
+            "name": "紛争審議会"
+          },
+          {
+            "description": "採掘技術と導水路管理の知識を次世代に伝える教育組織。",
+            "name": "伝承会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "地下導水路の流量制御",
+          "塩分濃度の測定",
+          "乾燥環境での水保存",
+          "採掘坑道の維持"
+        ],
+        "description": "雨が少ない盆地環境に対応するため、地下の古い導水路を活用した水管理と塩の採掘技術が中心である。",
+        "units": [
+          {
+            "quantity": "塩の採掘量を測る単位で、経済活動の基準となる。",
+            "symbol": "塩量"
+          },
+          {
+            "quantity": "導水路からの水の流出量を測る単位である。",
+            "symbol": "水量"
+          },
+          {
+            "quantity": "地下導水路の長さや管理区間を示す単位。",
+            "symbol": "導程"
+          }
+        ]
+      }
+    }
+  }
+}

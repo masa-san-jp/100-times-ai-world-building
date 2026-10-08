@@ -1,0 +1,205 @@
+{
+  "axes": [
+    {
+      "id": "geography_climate",
+      "name": "地理と気候",
+      "meaning": "内陸盆地で雨がほとんど降らず、塩採掘が主な経済活動である環境を指す。",
+      "weight": 0.8,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s2"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "ecology",
+      "name": "生態",
+      "meaning": "降雨がほとんどなく、地下の古い導水路が水源となっている特殊な生態系を示す。",
+      "weight": 0.6,
+      "grounds": {
+        "statement_ids": [
+          "s2"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "laws_of_nature",
+      "name": "自然の法則と法則外の理",
+      "meaning": "何が可能で何が不可能か、それがどう振る舞うか。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "technology_tools",
+      "name": "技術と道具",
+      "meaning": "古い導水路という水供給技術が地域の生活・産業に不可欠である。",
+      "weight": 0.6,
+      "grounds": {
+        "statement_ids": [
+          "s3"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "resources_economy",
+      "name": "資源と経済",
+      "meaning": "塩の採掘と導水路の管理権争いが経済活動と資源配分に大きく影響している。",
+      "weight": 0.9,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "politics_power",
+      "name": "政治と権力",
+      "meaning": "採掘組合と水番の家系の長期的対立が権力構造を形成している。",
+      "weight": 0.8,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "law_norms",
+      "name": "法と規範",
+      "meaning": "導水路の管理権をめぐる争いは法的規範や権利主張を伴う。",
+      "weight": 0.8,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "belief_thought",
+      "name": "信仰と思想",
+      "meaning": "世界観、儀礼、物事のあり方についての説明。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "language_writing",
+      "name": "言語と文字",
+      "meaning": "話し言葉、文字、命名、記録、呼びかけの形式。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "kinship_community",
+      "name": "血縁と共同体",
+      "meaning": "水番の家系という血縁構造が対立の核となっている。",
+      "weight": 0.7,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "daily_life",
+      "name": "日々の暮らし",
+      "meaning": "雨が少なく水は地下の導水路から得られるため、住民の生活はそれに依存している。",
+      "weight": 0.7,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "occupations_labor",
+      "name": "職業と労働",
+      "meaning": "採掘組合と水番の家系がそれぞれ主要な職業集団となっている。",
+      "weight": 0.7,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "education_knowledge",
+      "name": "教育と知識",
+      "meaning": "知識がどう保たれ、教えられ、確かめられ、失われるか。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "arts_media",
+      "name": "芸術・娯楽・メディア",
+      "meaning": "表現、遊び、情報の流通。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "history",
+      "name": "歴史",
+      "meaning": "導水路管理権を巡る長期的対立は歴史的背景を有する。",
+      "weight": 0.5,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "external_relations",
+      "name": "外部との関係",
+      "meaning": "外部の者との接触、交易、対立、境界。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    }
+  ]
+}

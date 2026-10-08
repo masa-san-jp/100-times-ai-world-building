@@ -1,0 +1,195 @@
+{
+  "axes": [
+    {
+      "id": "geography_climate",
+      "name": "地理と気候",
+      "meaning": "内陸の盆地であり、雨がほとんど降らない乾燥した環境である。",
+      "weight": 0.9,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s2"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "ecology",
+      "name": "生態",
+      "meaning": "生き物、生息環境、食物連鎖、環境との関わり。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "laws_of_nature",
+      "name": "自然の法則と法則外の理",
+      "meaning": "雨がほとんど降らないという気候的制約があり、水の供給源が地下の導水路に依存している。",
+      "weight": 0.8,
+      "grounds": {
+        "statement_ids": [
+          "s2"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "technology_tools",
+      "name": "技術と道具",
+      "meaning": "作る、運ぶ、蓄える、伝えるための手段。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "resources_economy",
+      "name": "資源と経済",
+      "meaning": "塩の採掘が経済の基盤となっており、導水路の水が重要な資源となっている。",
+      "weight": 1.0,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "politics_power",
+      "name": "政治と権力",
+      "meaning": "採掘組合と水番の家系の間で、導水路の管理権をめぐる対立という権力闘争が存在する。",
+      "weight": 1.0,
+      "grounds": {
+        "statement_ids": [
+          "s3"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "law_norms",
+      "name": "法と規範",
+      "meaning": "明文化された規則と暗黙の規則、制裁、手続き。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "belief_thought",
+      "name": "信仰と思想",
+      "meaning": "世界観、儀礼、物事のあり方についての説明。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "language_writing",
+      "name": "言語と文字",
+      "meaning": "話し言葉、文字、命名、記録、呼びかけの形式。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "kinship_community",
+      "name": "血縁と共同体",
+      "meaning": "採掘組合と水番の家系という、血縁に基づいた対立する共同体が存在する。",
+      "weight": 0.9,
+      "grounds": {
+        "statement_ids": [
+          "s3"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "daily_life",
+      "name": "日々の暮らし",
+      "meaning": "食、衣、住、時間の使い方、日課。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "occupations_labor",
+      "name": "職業と労働",
+      "meaning": "塩の採掘という主要な労働活動が存在する。",
+      "weight": 0.9,
+      "grounds": {
+        "statement_ids": [
+          "s1"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "education_knowledge",
+      "name": "教育と知識",
+      "meaning": "知識がどう保たれ、教えられ、確かめられ、失われるか。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "arts_media",
+      "name": "芸術・娯楽・メディア",
+      "meaning": "表現、遊び、情報の流通。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "history",
+      "name": "歴史",
+      "meaning": "以前の出来事とその層、それがどう記憶されているか。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "external_relations",
+      "name": "外部との関係",
+      "meaning": "外部の者との接触、交易、対立、境界。",
+      "weight": 0.05,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域"
+      },
+      "origin": "catalog"
+    }
+  ]
+}

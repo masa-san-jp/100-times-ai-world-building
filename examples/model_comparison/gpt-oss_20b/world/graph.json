@@ -1,0 +1,471 @@
+{
+  "contract_stage": {
+    "attempts": 1,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": []
+      }
+    ],
+    "status": "success"
+  },
+  "entities": [
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [],
+            "reason": "s1とs2から地理と気候の特徴が導出される。",
+            "statement_ids": [
+              "s1",
+              "s2"
+            ]
+          },
+          "subject": "塩生産量",
+          "text": "塩原盆地の塩生産量は 50000 kg である。",
+          "unit": "kg",
+          "value": 50000
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [],
+            "reason": "s1とs2から地理と気候の特徴が導出される。",
+            "statement_ids": [
+              "s1",
+              "s2"
+            ]
+          },
+          "text": "採掘組合は塩原盆地の塩生産量を管理し、毎採掘週に報告する"
+        }
+      ],
+      "id": "e1",
+      "name": "塩原盆地",
+      "origin_operator": "premise",
+      "parent": null,
+      "provenance": {
+        "derived_from": [],
+        "reason": "s1とs2から地理と気候の特徴が導出される。",
+        "statement_ids": [
+          "s1",
+          "s2"
+        ]
+      },
+      "relations": [],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "塩原盆地は内陸の盆地で、雨季はほとんど降らず、主に地下の古い導水路から水を得ている。この盆地では塩採掘が主要産業であり、採掘週ごとに採掘組合が生産量を管理し、共管委員会が資源配分を調整する。水番家系は導水路の保守を担当し、日々の水消費はm3dで測定される。乾季には水祭が行われ、自治議会が住民の意見を代表して政策を調整する。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "belief_thought",
+        "law_norms"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩原盆地の採掘組合と水番家系の長期対立により設立された",
+            "statement_ids": [
+              "s1",
+              "s4"
+            ]
+          },
+          "subject": "年間塩生産量",
+          "text": "水源監督会は盆地暦の採掘週に年間塩生産量を測定し、52000 kgを報告した。",
+          "unit": "kg",
+          "value": 52000
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩原盆地の採掘組合と水番家系の長期対立により設立された",
+            "statement_ids": [
+              "s1",
+              "s4"
+            ]
+          },
+          "text": "水源監督会は採掘組合と水番家系の対立を調整するために設立された"
+        }
+      ],
+      "id": "e2",
+      "name": "水源監督会",
+      "origin_operator": "expand",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "塩原盆地の採掘組合と水番家系の長期対立により設立された",
+        "statement_ids": [
+          "s1",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "part_of"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.8269230769230769
+      },
+      "summary": "水源監督会は盆地暦の採掘週ごとに古い導水路から抽出される水量をm3dで測定し、結果を共管委員会へ報告する。乾季の水祭時に水質を検査し、雨季の降水がほぼ無い状況下で資源配分を監視する。水源監督会は採掘組合と水番家系の対立を調整し、平均塩生産量52000 kgを統計する。自治議会と協働し住民の意見を政策に反映する。",
+      "type": "institution"
+    },
+    {
+      "axes": [
+        "daily_life",
+        "occupations_labor",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩採掘労働者は盆地の産業に直接関与している",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "平均塩生産量",
+          "text": "塩原労働団体は盆地暦の採掘週ごとに平均 5000 kg の塩を生産する",
+          "unit": "kg",
+          "value": 5000
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩採掘労働者は盆地の産業に直接関与している",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "共管委員会は塩原労働団体の採掘週ごとの塩生産量（kg）を監査し、自治議会に報告する。"
+        }
+      ],
+      "id": "e3",
+      "name": "塩原労働団体",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "塩採掘労働者は盆地の産業に直接関与している",
+        "statement_ids": [
+          "s1",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "affects"
+        },
+        {
+          "target": "e1",
+          "type": "located_in"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        },
+        {
+          "target": "e2",
+          "type": "uses"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.9807692307692307
+      },
+      "summary": "塩原労働団体は塩採掘労働者の組織で、盆地暦の採掘週に毎週の塩生産量（kg）を管理し、共管委員会に報告する。水番家系が保守する古い導水路からの水消費量（m3d）を調整し、乾季の水祭で水質検査結果を共有する。採掘組合との資源配分協議に参加し、自治議会の政策調整に影響を与える。",
+      "type": "group"
+    },
+    {
+      "axes": [
+        "history",
+        "law_norms",
+        "politics_power"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "古い導水路の建設が水番家系と採掘組合の権利対立を生じさせた",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "争議期間中の塩生産量",
+          "text": "古導水路争議期間中、採掘組合は合計120000 kgの塩を生産した。",
+          "unit": "kg",
+          "value": 120000
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "古い導水路の建設が水番家系と採掘組合の権利対立を生じさせた",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "共管委員会は古導水路争議の決議に基づき設立され、導水路管理権と塩採掘権の調整を担っている。"
+        }
+      ],
+      "id": "e4",
+      "name": "古導水路争議",
+      "origin_operator": "history",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "古い導水路の建設が水番家系と採掘組合の権利対立を生じさせた",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "affects"
+        },
+        {
+          "target": "e1",
+          "type": "causes"
+        },
+        {
+          "target": "e2",
+          "type": "causes"
+        },
+        {
+          "target": "e3",
+          "type": "causes"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "古導水路争議は紀元前3世紀に建設された導水路の管理権を巡る争いであり、採掘組合と水番家系の間で権益が分断された。これが現在の塩原盆地における水供給管理と塩採掘の対立の根源で、共管委員会や自治議会の設立へとつながった。",
+      "type": "event"
+    },
+    {
+      "axes": [
+        "kinship_community",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e2",
+              "e3",
+              "e4"
+            ],
+            "reason": "s1-s4 provide context for a new group experiencing the basin.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "水道管理協議会の水処理重量",
+          "text": "水道管理協議会は水処理重量 800 kg を管理している",
+          "unit": "kg",
+          "value": 800
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e2",
+              "e3",
+              "e4"
+            ],
+            "reason": "s1-s4 provide context for a new group experiencing the basin.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "水道管理協議会は水番家系に属する血縁集団が中心である"
+        }
+      ],
+      "id": "e5",
+      "name": "水道管理協議会",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1",
+          "e2",
+          "e3",
+          "e4"
+        ],
+        "reason": "s1-s4 provide context for a new group experiencing the basin.",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "affects"
+        },
+        {
+          "target": "e4",
+          "type": "derived_from"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        },
+        {
+          "target": "e2",
+          "type": "related_to"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "水道管理協議会は、盆地暦の採掘週・水祭・乾季・雨季に沿って、古導水路から抽出される水をm3dで測定し、採掘組合と水番家系の間で水資源の配分を協議する。協議会は水番家系に属する血縁集団が中心で、共管委員会の下位委員会として機能し、水質検査結果を共有し、塩生産量（kg）と水消費量のバランスを調整する。",
+      "type": "group"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "採掘週",
+          "水祭",
+          "乾季",
+          "雨季"
+        ],
+        "name": "盆地暦",
+        "origin": "盆地の塩採掘と導水路管理に基づく"
+      },
+      "society": {
+        "description": "塩の採掘で成り立つ内陸盆地。雨ほぼ無、導水路から水を得る。採掘組合と水番家系の長期対立が社会構造を形作る。",
+        "institutions": [
+          {
+            "description": "採掘権管理と資源分配に責任",
+            "name": "採掘組合"
+          },
+          {
+            "description": "導水路管理権保持と保守担当",
+            "name": "水番家系"
+          },
+          {
+            "description": "争い解決と資源配分を協議",
+            "name": "共管委員会"
+          },
+          {
+            "description": "住民意見を代表し政策調整",
+            "name": "自治議会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "地下水抽出・導水路保守",
+          "塩結晶化プロセス制御",
+          "水質検査・監視"
+        ],
+        "description": "古い導水路と塩採掘機械の保守・運用。限界は老朽化と水質管理。",
+        "units": [
+          {
+            "quantity": "毎日消費水量",
+            "symbol": "m3d"
+          },
+          {
+            "quantity": "塩生産量",
+            "symbol": "kg"
+          }
+        ]
+      }
+    }
+  }
+}

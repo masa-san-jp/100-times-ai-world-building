@@ -1,0 +1,494 @@
+{
+  "contract_stage": {
+    "attempts": 2,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ]
+      },
+      {
+        "attempt": 2,
+        "errors": []
+      }
+    ],
+    "status": "success"
+  },
+  "entities": [
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [],
+            "reason": "提供された簡潔な記述s1, s2, s3は、それぞれが世界規模の独立した事実を定義しているため、外部の契約からの直接的な依存関係は設定しない。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "採掘組合の処理能力",
+          "text": "採掘組合の定員は、盛塩期において最大500 kgの塩を処理できる能力を持つ。",
+          "unit": "kg",
+          "value": 500
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [],
+            "reason": "提供された簡潔な記述s1, s2, s3は、それぞれが世界規模の独立した事実を定義しているため、外部の契約からの直接的な依存関係は設定しない。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩水路の地下導水路の管理は、水番家系が担う。これは、潮時暦の「水汲期」における水の安定供給に直結している。"
+        }
+      ],
+      "id": "e1",
+      "name": "塩水路",
+      "origin_operator": "premise",
+      "parent": null,
+      "provenance": {
+        "derived_from": [],
+        "reason": "提供された簡潔な記述s1, s2, s3は、それぞれが世界規模の独立した事実を定義しているため、外部の契約からの直接的な依存関係は設定しない。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "塩水路は、内陸の盆地に位置する地理的領域であり、気候的には雨がほとんど降らない乾燥地帯である。経済基盤は塩の採掘にあり、水資源は地下の古い導水路から供給される。この水と塩の利用権を巡り、採掘組合と水番家系という二つの共同体の間で、権力構造が存在する。技術的には、塩の採掘と地下水路の維持管理が中心的な活動を構成する。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の概要情報に基づき、関連する記述的ステートメントを関連付けたため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "水番家系の日々の水汲み作業量",
+          "text": "地下水路の維持管理において、1日の作業量は概ね300 litの水を汲み上げる計算に基づいている。",
+          "unit": "lit",
+          "value": 300
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の概要情報に基づき、関連する記述的ステートメントを関連付けたため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "採掘組合は、塩水路の塩採掘において、潮時暦の「盛塩期」に活動の重点を置く。"
+        }
+      ],
+      "id": "e2",
+      "name": "塩採集地帯",
+      "origin_operator": "zoom",
+      "parent": "e1",
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "e1の概要情報に基づき、関連する記述的ステートメントを関連付けたため。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "opposes"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        },
+        {
+          "target": "e1",
+          "type": "uses"
+        }
+      ],
+      "scale": "region",
+      "scores": {
+        "reward": 0.9807692307692307
+      },
+      "summary": "塩水路は、内陸の盆地に位置し、雨の降りにくい乾燥気候に属する地域である。経済活動は塩の採掘を基盤とし、水資源は地下の導水路に依存する。この水と塩の利用は、潮時暦の「水汲期」など特定の時期に重要となる。技術的には塩の採掘と地下水路の維持管理が中心であり、社会構造においては、塩の採掘権を持つ採掘組合と、水の管理を担う水番家系との間で、資源の分配を巡る権力関係が存在する。",
+      "type": "object"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "e2の定義情報から、s1, s2, s3に対応する記述を抽出し、エンティティe2に紐付けたため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "最低限の生活維持に必要な水",
+          "text": "塩採掘の初期段階では、最低限の生活維持のために、毎月100 litの水を地下水路から汲み上げることが必要とされる。",
+          "unit": "lit",
+          "value": 100
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "e2の定義情報から、s1, s2, s3に対応する記述を抽出し、エンティティe2に紐付けたため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "乾期集積所では、技術体系の「水の貯蔵と分配」機能が、水番家系が管理する地下導水路の水流と連携している。"
+        },
+        {
+          "kind": "object",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "e2の定義情報から、s1, s2, s3に対応する記述を抽出し、エンティティe2に紐付けたため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "乾期集積所は、技術体系の「水の貯蔵と分配」機能を用いて、導水路から汲み上げられた水（単位：lit）を、潮時暦の「水汲期」に備蓄する。"
+        }
+      ],
+      "id": "e3",
+      "name": "乾期集積所",
+      "origin_operator": "zoom",
+      "parent": "e2",
+      "provenance": {
+        "derived_from": [
+          "e2"
+        ],
+        "reason": "e2の定義情報から、s1, s2, s3に対応する記述を抽出し、エンティティe2に紐付けたため。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e2",
+          "type": "related_to"
+        },
+        {
+          "target": "e2",
+          "type": "uses"
+        }
+      ],
+      "scale": "settlement",
+      "scores": {
+        "reward": 0.9655172413793104
+      },
+      "summary": "塩採集地帯は、内陸の盆地に広がる乾燥地帯であり、生活と経済は塩の採掘に依存している。水は地下の古い導水路に依存し、その維持管理は水番家系が担う。技術的には、塩の採掘と地下水路の維持管理が中心であり、潮時暦の「水汲期」には特に水の確保が重要となる。この地域では、採掘組合と水番家系が、資源分配評議会という場で、塩と水の利用権を巡って権力関係を構築している。",
+      "type": "object"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "language_writing",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "e3は盆地の集積所であり、s1, s2, s3はe3の環境的および社会的な根幹を形成する事実記述であるため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "生活維持に必要な最低水量",
+          "text": "資源分配評議会における水の配分権の交渉において、採掘組合側は最低限の生活維持のために毎月100 litの水を確保することを主張している。",
+          "unit": "lit",
+          "value": 100
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "e3は盆地の集積所であり、s1, s2, s3はe3の環境的および社会的な根幹を形成する事実記述であるため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "乾期集積所中央広場では、資源分配評議会が開催され、水番家系が管理する地下導水路の水と、採掘組合が採掘した塩（単位：kg）の取り扱いが協議の対象となる。"
+        },
+        {
+          "kind": "object",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "e3は盆地の集積所であり、s1, s2, s3はe3の環境的および社会的な根幹を形成する事実記述であるため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "乾期集積所中央広場では、採掘組合が運搬した塩（単位：kg）が、水の貯蔵と分配機能を持つ備蓄施設に一時的に保管される。"
+        }
+      ],
+      "id": "e4",
+      "name": "乾期集積所中央広場",
+      "origin_operator": "zoom",
+      "parent": "e3",
+      "provenance": {
+        "derived_from": [
+          "e3"
+        ],
+        "reason": "e3は盆地の集積所であり、s1, s2, s3はe3の環境的および社会的な根幹を形成する事実記述であるため。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e2",
+          "type": "related_to"
+        },
+        {
+          "target": "e2",
+          "type": "uses"
+        }
+      ],
+      "scale": "district",
+      "scores": {
+        "reward": 0.9655172413793104
+      },
+      "summary": "乾期集積所は、内陸の盆地における塩の採掘活動を支える拠点であり、生活基盤は地下導水路からの水供給に強く依存している。水資源の管理は水番家系が担い、採掘組合と水番家系は、資源分配評議会を通じて塩の採掘と水の配分権を巡る構造的な関係を維持している。潮時暦に基づき、特に「水汲期」には、技術体系の「水の貯蔵と分配」機能が重要性を増し、最小限の生活維持のために一定量の水を備蓄する必要がある。",
+      "type": "object"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3",
+              "e2"
+            ],
+            "reason": "e4の定義に含まれる地理的・資源的な記述要素を、親および関連エンティティから補強し、周辺の状況を記述するため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "塩の重量（最大積載単位）",
+          "text": "塩水路管理署では、資源分配評議会における塩の取り扱いとして、最大積載単位1500kgの塩が記録・保管される。",
+          "unit": "kg",
+          "value": 1500
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3",
+              "e2"
+            ],
+            "reason": "e4の定義に含まれる地理的・資源的な記述要素を、親および関連エンティティから補強し、周辺の状況を記述するため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩水路管理署には、資源分配評議会が開催される際、採掘組合と水番家系双方の記録が保管され、特に「盛塩期」の塩の取り扱いに関する議事録が保存されている。"
+        },
+        {
+          "kind": "object",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3",
+              "e2"
+            ],
+            "reason": "e4の定義に含まれる地理的・資源的な記述要素を、親および関連エンティティから補強し、周辺の状況を記述するため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩水路管理署内には、資源分配評議会で用いられる記録用の帳簿が保管されており、そこには『潮時暦』の「結塩時」における塩の重量（単位：kg）の帳簿が綴じられている。"
+        }
+      ],
+      "id": "e5",
+      "name": "塩水路管理署",
+      "origin_operator": "expand",
+      "parent": "e3",
+      "provenance": {
+        "derived_from": [
+          "e4",
+          "e3",
+          "e2"
+        ],
+        "reason": "e4の定義に含まれる地理的・資源的な記述要素を、親および関連エンティティから補強し、周辺の状況を記述するため。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e2",
+          "type": "related_to"
+        }
+      ],
+      "scale": "district",
+      "scores": {
+        "reward": 0.9655172413793104
+      },
+      "summary": "塩水路管理署は、乾期集積所における塩の採掘と水資源の管理を統括する行政的機能を持つ施設である。この署は、採掘組合と水番家系が関わる資源分配評議会の活動を物理的に支え、特に「水汲期」における地下導水路からの水の配分や、採掘された塩（単位：kg）の記録・保管を管理する。地域全体の資源利用は、潮時暦に基づき、技術体系の「水の貯蔵と分配」能力に依存している。",
+      "type": "object"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "乾期初月",
+          "水汲期",
+          "盛塩期",
+          "結塩時"
+        ],
+        "name": "潮時暦",
+        "origin": "水の循環と塩の採掘サイクルに基づく計測。"
+      },
+      "society": {
+        "description": "塩の採掘と水資源の配分を巡る二大共同体の構造。",
+        "institutions": [
+          {
+            "description": "塩の採掘権を基盤とする労働者集団。経済活動の主体。",
+            "name": "採掘組合"
+          },
+          {
+            "description": "古来より導水路の管理と水の配給を担う家系。水資源の管理者。",
+            "name": "水番家系"
+          },
+          {
+            "description": "水と塩の利用に関する一時的な合議体。対立構造を緩和する場。",
+            "name": "資源分配評議会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "塩の採掘と選別",
+          "地下水路の維持・管理",
+          "重い資材の運搬",
+          "水の貯蔵と分配"
+        ],
+        "description": "塩の採掘と水の輸送に特化した技術体系。",
+        "units": [
+          {
+            "quantity": "塩の重量。最大積載単位。",
+            "symbol": "kg"
+          },
+          {
+            "quantity": "水の体積。導水路からの汲み上げ量。",
+            "symbol": "lit"
+          },
+          {
+            "quantity": "距離の単位。移動や採掘範囲の計測。",
+            "symbol": "尺"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,564 @@
+{
+  "schema_version": 2,
+  "layout_version": 3,
+  "artifact_type": "world_output",
+  "engine": "world",
+  "run_id": "final2_qwen3_8_27b",
+  "backend": "ollama",
+  "model": "qwen3.8:27b",
+  "models": {
+    "generation": "qwen3.8:27b",
+    "vision": "llava:latest"
+  },
+  "run_seed": 1,
+  "seed_source": "argument",
+  "config": {
+    "path": "<repo>/config/ollama_config.yaml",
+    "sha256": "3b8715cbf9dbc0fc38aebcc3d617e266f1d14edc6265b10db9d8f543bbf48abc"
+  },
+  "engine_config": {
+    "explore": {
+      "selection": {
+        "strategy": "ucb1",
+        "exploration": 0.6,
+        "epsilon": 0.05,
+        "prior_mean": 0.5,
+        "prior_strength": 1.0,
+        "item_prior_weight": 0.3,
+        "deficit_weight": 0.7,
+        "axis_weight": 0.3,
+        "depth_weight": 1.0,
+        "breadth_weight": 0.8,
+        "arm_by_axis": false,
+        "max_items_per_kind": 12
+      },
+      "build": {
+        "max_step_attempts": 4,
+        "review_rounds": 2
+      },
+      "operators": {
+        "empty": [
+          "premise"
+        ],
+        "unexpanded": [
+          "zoom",
+          "expand"
+        ],
+        "uncaused": [
+          "cause"
+        ],
+        "thin": [
+          "history",
+          "document",
+          "perspective"
+        ],
+        "axis_gap": [
+          "zoom",
+          "perspective",
+          "cause"
+        ],
+        "low_score": [
+          "expand",
+          "cause"
+        ]
+      },
+      "breadth": {
+        "enabled": true,
+        "operators": [
+          "expand",
+          "perspective",
+          "cause",
+          "history",
+          "document"
+        ],
+        "min_entities_per_operator": 1
+      },
+      "frontier": {
+        "min_facts": 3,
+        "low_score_threshold": 0.5,
+        "low_score_verifiers": [
+          "genericity",
+          "specificity"
+        ]
+      },
+      "budget": {
+        "max_iterations": 200,
+        "max_wall_seconds": null,
+        "max_generation_calls": null,
+        "max_consecutive_failures": 5
+      },
+      "coverage": {
+        "enabled": true,
+        "min_axis_entities": 1,
+        "depth": "detail",
+        "min_entities_per_scale": 2,
+        "target_mean_reward": 0.6
+      }
+    },
+    "operator": {},
+    "generation": {
+      "max_tokens": 8192,
+      "num_ctx": 32768,
+      "think": false,
+      "temperature": null
+    },
+    "structured": {
+      "max_attempts": 3,
+      "max_conversions": 2
+    }
+  },
+  "files": {
+    "config/prompts/input_brief.yaml": "25524633ff740891ca78ff279157a56b3eaed44548563a947308cb9bfc395b46",
+    "config/prompts/world/contract.yaml": "fa0591a488e76e52d60c45072ad0a5420b06816eadaacd1cd3acc7ba7b0b2161",
+    "config/prompts/world/operators.yaml": "9880c90a1ecf5a7cb2022f6db6ad941845f1e87ae2d258b7cec09322896cea80",
+    "config/prompts/world/steps.yaml": "024c7f0c23d8a5c2ddfb389ac575ae28f7c768dacbcb34fc80d79efad7b8f44e",
+    "config/prompts/world_axes.yaml": "e6a3443148d5f6ada97daa06aaec0e30f189a7a3e1ddc14657bfe4ad39211e55",
+    "config/schemas/image_description.json": "e7dfda4d5d92a41cfd3d3ea2059ef3267602109fb5fa864e44dcad3759dc0791",
+    "config/schemas/input_brief.json": "6740c1dbf9f064a5d7a0895f71793bc8ea78c117b51c3b8c30b6cad28af708b7",
+    "config/schemas/steps/axes.json": "3ec6eb61bf6c2741d1ee537d1d8868c46a91b625d7b38bfb6f9537ee7c655ca5",
+    "config/schemas/steps/fact.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
+    "config/schemas/steps/fact_check.json": "b3c18eb241c77cbcbd4d571f755231f3ed24fbb70b1fbf2b125f5360d2fdc546",
+    "config/schemas/steps/grounding.json": "8729109bd691a2db909ea05fe0481b4be8ec939d6b6bb7e2719e8b7a7d48a7eb",
+    "config/schemas/steps/name.json": "f10757aa050a745a5bcd8c4d7b3372eefd993b22f06587bd139a2e1c549264d2",
+    "config/schemas/steps/relations.json": "11df31f3d19573bf355cfaa27025de75ee1427f4c69ab838472a6f97d29708b7",
+    "config/schemas/steps/review.json": "4c8e7efe1e8fdcb82e19d501866d2a544a40b557d257bdf68d0ce20ce7e1c421",
+    "config/schemas/steps/summary.json": "587e86b0b9bb906b32a4551f8df8819bbd3e5e55a88c666ab8377d7f3f7c8df1",
+    "config/schemas/steps/type.json": "c32aaaf81bcc4523f392b3685937a902010b07f679b341003ca9c803da042489",
+    "config/schemas/world_axes.json": "d3908416634d7ee04f2a3bb0f51a660545bdc7cb1ec1a12cc4188364923030e1",
+    "config/schemas/world_contract.json": "35ecbb952de8509e768ded0b2868c8daafe73c6e30e125abaa67541868d9cb37",
+    "config/world/criteria.yaml": "13d806497517a59c649d083136854fb5e2120644f36999107329e7e456b4048a",
+    "config/world/domains.yaml": "b5650ae80af6b396e40b5ce22a782cc64a4e73e4afe17a2d2b0ddf576a4168eb",
+    "config/world/explore.yaml": "48e7f923938dcacf68e2169035645eb6120518745dcbb048b55757ded43c10ca",
+    "config/world/language_rules.yaml": "786784e1a320bf003476d608f5b3d4b2fdb9802ab02543aa2bb3e51e11fe200f",
+    "config/world/languages.yaml": "d13991e024990f241f4c6fe10262a76a243698812ff42e8c3299b1049bcda4f7",
+    "config/world/quality.yaml": "d7864814a22eeb9cc2096277d18934a85d3d4377453a6ea3c02cc4f880732e25",
+    "config/world/render_labels.yaml": "d4ca5f36b22dcd177457c261f6b90e0e6c185f9eff9f9565619f8a577fa8519c",
+    "config/world/reward.yaml": "fe92b86483c166a30e26c6ec346a9b634347d8bffd5c9be4d19b89d150625253"
+  },
+  "paths": {
+    "input": "input",
+    "world": "world",
+    "checkpoints": "checkpoints",
+    "final": "final"
+  },
+  "created_at": "2026-10-07T16:01:01+00:00",
+  "status": "completed",
+  "updated_at": "2026-10-07T17:56:47+00:00",
+  "budget": {
+    "requested": {
+      "max_iterations": 12,
+      "max_wall_seconds": 14400.0
+    },
+    "effective": {
+      "max_iterations": 12,
+      "max_wall_seconds": 14400.0,
+      "max_generation_calls": null
+    }
+  },
+  "input": {
+    "raw_file": "smoke_input.txt",
+    "sha256": "f6c1cdd703a64cbc624680af6a35b2010e986dc8f661b59bc3d3e2c0e16682a7",
+    "characters": 81,
+    "images": []
+  },
+  "started_at": "2026-10-07T16:01:01+00:00",
+  "pid": 7614,
+  "world_contract": {
+    "status": "success",
+    "attempts": 2,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ]
+      },
+      {
+        "attempt": 2,
+        "errors": []
+      }
+    ]
+  },
+  "phases": {
+    "world_explore": {
+      "status": "completed",
+      "started_at": "2026-10-07T16:10:35+00:00",
+      "finished_at": "2026-10-07T17:56:47+00:00"
+    }
+  },
+  "build": {
+    "steps": {
+      "type": {
+        "calls": 12,
+        "attempts": {
+          "1": 12
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "grounding": {
+        "calls": 12,
+        "attempts": {
+          "1": 12
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "name": {
+        "calls": 14,
+        "attempts": {
+          "1": 10,
+          "2": 2
+        },
+        "reasons": {
+          "distinct": {
+            "name must differ from existing names after normalization": 2
+          }
+        },
+        "failures": 0
+      },
+      "axes": {
+        "calls": 12,
+        "attempts": {
+          "1": 12
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "summary": {
+        "calls": 15,
+        "attempts": {
+          "1": 10,
+          "2": 1,
+          "3": 1
+        },
+        "reasons": {
+          "informative": {
+            "character 3-gram overlap must be <= 0.6": 3
+          }
+        },
+        "failures": 0
+      },
+      "fact": {
+        "calls": 58,
+        "attempts": {
+          "1": 19,
+          "2": 12,
+          "4": 3,
+          "3": 1
+        },
+        "reasons": {
+          "informative": {
+            "character 3-gram overlap must be <= 0.6": 23
+          },
+          "specific": {
+            "提出された文は、地下導水路の区間が紛争審議会の裁定対象であるという関係性を述べているが、「塩採掘集落」という固有名称（proper_noun）と特定の固有名称（例：特定の地名、人名、特定の施設名など）との直接的な結びつきを明示する具体的な固有名詞的事実（proper_noun fact）ではない。固有名称的事実とは、対象エンティティそのものの固有の名称や、それに関連する固有の識別子（例：特定の坑道名、特定の区画名など）を含む事実を指し、ここでは「塩採掘集落」が固有名詞として機能しているものの、それと結びつく別の固有名称（例えば「○○坑道」や「○○区間」のような固有の名称）が欠如しており、単なる制度的関係の記述にとどまっているため、条件を満たさない。": 1,
+            "対象の文は「給水栓」という物理的装置の存在と、それを用いた利用行為を記述しているが、文脈内の定義された技術能力（流量制御、塩分濃度測定、水保存、坑道維持）や関連エンティティ（e5: 分岐点流量制御閥）において、「給水栓」という独立した物理的装置は定義されていない。契約で定義された物理的装置は「分岐点流量制御閥」のみであり、未定義の物体に関する事実は契約に準拠しない。": 1,
+            "対象エンティティは「分岐点導水路埋設本体」であり、親エンティティは「分岐管理区間(e4)」、関連エンティティとして「塩採掘集落(e3)」が定義されている。提供されたファクトは「塩採掘集落(e3)の分岐点に埋設されている」と記述しているが、e5（分岐点流量制御閥）がe4内に位置し、e4がe3内に位置する構造から、正確な物理的埋設場所は「分岐管理区間(e4)の導水路分岐点」である。e3は集落全体のスケールであり、具体的にはe4内の区間が埋設場所として適切であるため、場所の記述が不正確である。": 1,
+            "対象の事実記述は、規範が「物理的拘束条件として機能する」と述べており、これは規範の実効性や作用機序に関する記述である。一方、指示は「物理的項目（物）について、このエンティティ（規範）の使用、所有、位置、または取り扱いに関する1つの事実」を求めている。記述には、規範が具体的どの物理的項目を所有・使用・位置づけるか、あるいはどのように取り扱うかという直接的な関係が明確に示されていないため、条件に合致しない。": 1,
+            "対象の文は、分岐点流量制御閥(e5)の弁が水番家系により操作され、最大5水量の流出が維持されるという実行プロセスや状態を記述しており、単一の物理的事物(e5)自体の静的属性(使用、所有、位置、取り扱い)を直接的に規定するobject factとしては形式が不一致である。": 1
+          }
+        },
+        "failures": 3
+      },
+      "fact_check": {
+        "calls": 40,
+        "attempts": {
+          "1": 40
+        },
+        "reasons": {
+          "specific": {
+            "提出された文は、地下導水路の区間が紛争審議会の裁定対象であるという関係性を述べているが、「塩採掘集落」という固有名称（proper_noun）と特定の固有名称（例：特定の地名、人名、特定の施設名など）との直接的な結びつきを明示する具体的な固有名詞的事実（proper_noun fact）ではない。固有名称的事実とは、対象エンティティそのものの固有の名称や、それに関連する固有の識別子（例：特定の坑道名、特定の区画名など）を含む事実を指し、ここでは「塩採掘集落」が固有名詞として機能しているものの、それと結びつく別の固有名称（例えば「○○坑道」や「○○区間」のような固有の名称）が欠如しており、単なる制度的関係の記述にとどまっているため、条件を満たさない。": 1,
+            "対象の文は「給水栓」という物理的装置の存在と、それを用いた利用行為を記述しているが、文脈内の定義された技術能力（流量制御、塩分濃度測定、水保存、坑道維持）や関連エンティティ（e5: 分岐点流量制御閥）において、「給水栓」という独立した物理的装置は定義されていない。契約で定義された物理的装置は「分岐点流量制御閥」のみであり、未定義の物体に関する事実は契約に準拠しない。": 1,
+            "対象エンティティは「分岐点導水路埋設本体」であり、親エンティティは「分岐管理区間(e4)」、関連エンティティとして「塩採掘集落(e3)」が定義されている。提供されたファクトは「塩採掘集落(e3)の分岐点に埋設されている」と記述しているが、e5（分岐点流量制御閥）がe4内に位置し、e4がe3内に位置する構造から、正確な物理的埋設場所は「分岐管理区間(e4)の導水路分岐点」である。e3は集落全体のスケールであり、具体的にはe4内の区間が埋設場所として適切であるため、場所の記述が不正確である。": 1,
+            "対象の事実記述は、規範が「物理的拘束条件として機能する」と述べており、これは規範の実効性や作用機序に関する記述である。一方、指示は「物理的項目（物）について、このエンティティ（規範）の使用、所有、位置、または取り扱いに関する1つの事実」を求めている。記述には、規範が具体的どの物理的項目を所有・使用・位置づけるか、あるいはどのように取り扱うかという直接的な関係が明確に示されていないため、条件に合致しない。": 1,
+            "対象の文は、分岐点流量制御閥(e5)の弁が水番家系により操作され、最大5水量の流出が維持されるという実行プロセスや状態を記述しており、単一の物理的事物(e5)自体の静的属性(使用、所有、位置、取り扱い)を直接的に規定するobject factとしては形式が不一致である。": 1
+          }
+        },
+        "failures": 5
+      },
+      "review": {
+        "calls": 9,
+        "attempts": {
+          "1": 9
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "relations": {
+        "calls": 8,
+        "attempts": {
+          "1": 8
+        },
+        "reasons": {},
+        "failures": 0
+      }
+    },
+    "accepted": 9,
+    "failed": 3,
+    "failures_by_step": {
+      "fact": 3
+    }
+  },
+  "world_explore": {
+    "iteration": 12,
+    "counters": {
+      "generation_calls": 180,
+      "accepted": 9,
+      "rejected": 3,
+      "no_candidates": 0,
+      "rewrites": 28,
+      "errors": 0
+    },
+    "stop_reason": "max_iterations",
+    "elapsed_seconds": 6371.62
+  },
+  "structured": {
+    "input_brief": {
+      "calls": 1,
+      "attempts": {
+        "1": 1
+      },
+      "failures": 0,
+      "elapsed": 66.8860754580237,
+      "modes": {
+        "constrained": 1
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "world_axes": {
+      "calls": 1,
+      "attempts": {
+        "1": 1
+      },
+      "failures": 0,
+      "elapsed": 372.9298991248943,
+      "modes": {
+        "constrained": 1
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "world_contract": {
+      "calls": 1,
+      "attempts": {
+        "2": 1
+      },
+      "failures": 0,
+      "elapsed": 134.80246262485161,
+      "modes": {
+        "constrained": 1,
+        "unconstrained": 1
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "type": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 500.5978204146959,
+      "modes": {
+        "unconstrained": 12
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "grounding": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 532.285062040668,
+      "modes": {
+        "unconstrained": 12
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "name": {
+      "calls": 14,
+      "attempts": {
+        "1": 14
+      },
+      "failures": 0,
+      "elapsed": 273.9585307096131,
+      "modes": {
+        "unconstrained": 14
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "axes": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 274.1752412500791,
+      "modes": {
+        "unconstrained": 12
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "summary": {
+      "calls": 15,
+      "attempts": {
+        "1": 15
+      },
+      "failures": 0,
+      "elapsed": 803.0530319996178,
+      "modes": {
+        "unconstrained": 15
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "fact": {
+      "calls": 58,
+      "attempts": {
+        "1": 58
+      },
+      "failures": 0,
+      "elapsed": 1682.489233918488,
+      "modes": {
+        "unconstrained": 58
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "fact_check": {
+      "calls": 40,
+      "attempts": {
+        "1": 40
+      },
+      "failures": 0,
+      "elapsed": 1835.6356427925639,
+      "modes": {
+        "unconstrained": 40
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "review": {
+      "calls": 9,
+      "attempts": {
+        "1": 9
+      },
+      "failures": 0,
+      "elapsed": 241.53763970639557,
+      "modes": {
+        "unconstrained": 9
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "relations": {
+      "calls": 8,
+      "attempts": {
+        "1": 8
+      },
+      "failures": 0,
+      "elapsed": 225.90683358395472,
+      "modes": {
+        "unconstrained": 8
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    }
+  },
+  "finished_at": "2026-10-07T17:56:47+00:00",
+  "stop_reason": "max_iterations",
+  "iterations": 12,
+  "counters": {
+    "generation_calls": 180,
+    "accepted": 9,
+    "rejected": 3,
+    "no_candidates": 0,
+    "rewrites": 28,
+    "errors": 0
+  },
+  "quality_report": {
+    "json": "quality_report.json",
+    "markdown": "quality_report.md"
+  }
+}

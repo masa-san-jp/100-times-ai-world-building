@@ -94,17 +94,22 @@ MECHANISM_PATHS = [
 
 def _example_packages():
     root = PROJECT_ROOT / "examples"
-    return [p for p in root.iterdir() if p.is_dir()] if root.is_dir() else []
+    return sorted(p.parent for p in root.rglob("run_manifest.json") if p.is_file())
 
 
 def _example_input_phrases():
-    """Distinctive quoted values from example inputs (e.g. a theme string)."""
+    """Sentence fragments and quoted values from the original example inputs."""
     phrases = set()
     for package in _example_packages():
-        for source in package.joinpath("input").glob("*"):
-            if not source.is_file():
+        for source in package.joinpath("input").rglob("*"):
+            if not source.is_file() or source.suffix == ".json":
                 continue
             text = source.read_text(encoding="utf-8", errors="ignore")
+            # Fragments of at least 8 characters; bare "key:" lines of a
+            # structured input are field names, not example content.
+            phrases.update(fragment for part in re.split(r"[。．.！!？?、,\r\n]", text)
+                           if len(fragment := part.strip()) >= 8
+                           and not re.fullmatch(r"[\w-]+\s*:", fragment))
             for value in re.findall(r'"([^"\n]{6,})"', text):
                 phrases.add(value)
     return phrases
@@ -114,9 +119,62 @@ def _example_input_phrases():
 def test_mechanism_does_not_reference_examples(path):
     text = path.read_text(encoding="utf-8", errors="ignore")
     for package in _example_packages():
-        assert f"examples/{package.name}" not in text, f"{path} references examples/{package.name}"
+        reference = package.relative_to(PROJECT_ROOT).as_posix()
+        assert reference not in text, f"{path} references {reference}"
     for phrase in _example_input_phrases():
         assert phrase not in text, f"{path} embeds example input: {phrase!r}"
+
+
+def test_example_packages_are_found_recursively_by_manifest(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "PROJECT_ROOT", tmp_path)
+    root = tmp_path / "examples"
+    packages = [root / "first", root / "comparison" / "second"]
+    for package in packages:
+        package.mkdir(parents=True)
+        (package / "run_manifest.json").write_text("{}", encoding="utf-8")
+    (root / "gallery_only").mkdir()
+    assert _example_packages() == sorted(packages)
+
+
+@pytest.mark.parametrize("separator", list("。．.！!？?、,") + ["\n", "\r\n"])
+def test_example_input_fragments_cover_punctuation_and_newlines(
+        tmp_path, monkeypatch, separator):
+    monkeypatch.setattr(sys.modules[__name__], "PROJECT_ROOT", tmp_path)
+    package = tmp_path / "examples" / "comparison" / "synthetic"
+    source = package / "input" / "nested" / "original.txt"
+    source.parent.mkdir(parents=True)
+    (package / "run_manifest.json").write_text("{}", encoding="utf-8")
+    source.write_text(separator.join(["  abcdefgh  ", " xyz ", " short7c ", " ijklmnopqr ", "fieldkey:"]),
+                      encoding="utf-8")
+    # Fragments shorter than 8 characters and bare "key:" lines are not example content.
+    assert _example_input_phrases() == {"abcdefgh", "ijklmnopqr"}
+
+
+def test_example_input_keeps_quoted_values_and_excludes_json(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "PROJECT_ROOT", tmp_path)
+    package = tmp_path / "examples" / "synthetic"
+    inputs = package / "input"
+    inputs.mkdir(parents=True)
+    (package / "run_manifest.json").write_text("{}", encoding="utf-8")
+    (inputs / "original.yaml").write_text('label: "abc.def"\n', encoding="utf-8")
+    (inputs / "input_brief.json").write_text('{"value": "json-only-value"}', encoding="utf-8")
+    assert "abc.def" in _example_input_phrases()
+    assert not any("json-only-value" in phrase for phrase in _example_input_phrases())
+
+
+@pytest.mark.parametrize("content", ["prefix abcdefgh suffix", "examples/comparison/synthetic"])
+def test_mechanism_guard_rejects_nested_package_input_and_references(
+        tmp_path, monkeypatch, content):
+    monkeypatch.setattr(sys.modules[__name__], "PROJECT_ROOT", tmp_path)
+    package = tmp_path / "examples" / "comparison" / "synthetic"
+    inputs = package / "input"
+    inputs.mkdir(parents=True)
+    (package / "run_manifest.json").write_text("{}", encoding="utf-8")
+    (inputs / "original.txt").write_text("abcdefgh。", encoding="utf-8")
+    mechanism = tmp_path / "mechanism.py"
+    mechanism.write_text(content, encoding="utf-8")
+    with pytest.raises(AssertionError):
+        test_mechanism_does_not_reference_examples(mechanism)
 
 
 # ---------------------------------------------------------------------------
