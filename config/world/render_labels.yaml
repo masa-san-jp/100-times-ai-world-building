@@ -78,6 +78,21 @@ en:
   accepted: Accepted
   rejected: Discarded
   coverage: Coverage
+  purpose_achievement: Purpose achievement
+  criteria_columns: [Criterion / metric, Value, Provisional threshold, Achievement]
+  world_criteria:
+    faithful: faithful / input statement use
+    breadth.axes: breadth / sufficient axes
+    breadth.perspective: breadth / perspective entities
+    depth.relations: depth / causal or historical relations
+    depth.history: depth / history entities
+    scale.world: scale / world entities
+    scale.region: scale / region entities
+    scale.settlement: scale / settlement entities
+    scale.district: scale / district entities
+    scale.site: scale / site entities
+    scale.detail: scale / detail entities
+    scale.chain: scale / uninterrupted world-to-detail chain
   coverage_axes: Axis coverage against weight
   coverage_columns: [Axis, Weight, Budget share, Entities, Entity share]
   coverage_state: Coverage state
@@ -132,7 +147,7 @@ en:
     governs: governs
     related_to: related to
   stop_reasons:
-    coverage_met: coverage criteria met
+    coverage_met: world criteria met
     max_iterations: iteration budget reached
     max_wall_seconds: time budget reached
     max_generation_calls: generation-call budget reached
@@ -214,6 +229,21 @@ ja:
   accepted: 採用
   rejected: 破棄
   coverage: 被覆
+  purpose_achievement: 目的の達成状況
+  criteria_columns: [基準・指標, 値, 仮の達成条件, 達成の有無]
+  world_criteria:
+    faithful: faithful / 入力記述の使用割合
+    breadth.axes: breadth / 必要件数を満たす軸の割合
+    breadth.perspective: breadth / perspective のエンティティ数
+    depth.relations: depth / 因果・歴史の関係を持つ割合
+    depth.history: depth / history のエンティティ数
+    scale.world: scale / 世界のエンティティ数
+    scale.region: scale / 地域のエンティティ数
+    scale.settlement: scale / 集落のエンティティ数
+    scale.district: scale / 地区のエンティティ数
+    scale.site: scale / 施設のエンティティ数
+    scale.detail: scale / 細部のエンティティ数
+    scale.chain: scale / 世界から細部までの連鎖
   coverage_axes: 軸ごとの被覆と重みの比較
   coverage_columns: [軸, 重み, 配分比率, エンティティ数, エンティティ比率]
   coverage_state: 被覆の状態
@@ -268,7 +298,7 @@ ja:
     governs: 統べる
     related_to: 関連
   stop_reasons:
-    coverage_met: 被覆の基準を満たした
+    coverage_met: 世界の基準を満たした
     max_iterations: 反復の上限に達した
     max_wall_seconds: 時間の上限に達した
     max_generation_calls: 生成呼び出しの上限に達した

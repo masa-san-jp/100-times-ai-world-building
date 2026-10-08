@@ -12,10 +12,11 @@ import pytest
 from src.llm.fake import FakeLLMBackend
 from src.world.explore import (
     Bandit, ExplorationLoop, STOP_REASONS, arm_key, candidate_pairs,
-    coverage_status, evaluate_frontier, extract_preference_pairs,
+    evaluate_frontier, extract_preference_pairs,
     load_explore_config, read_preference_log, run_world_engine,
 )
 from src.world.graph import make_entity, new_graph, validate_graph
+from src.world.world_criteria import load_world_criteria_config, world_status
 
 CONFIG = Path(__file__).resolve().parent.parent / "config"
 
@@ -219,10 +220,12 @@ def test_cause_link_removes_uncaused_item():
     assert "e2" not in unc and "e4" not in unc
 
 
-def test_coverage_status_requires_axes_scales_and_reward():
-    c = load_explore_config()
-    st = coverage_status(small_graph(), AXES, c)
-    assert not st["met"] and not st["axes_ok"] and not st["scales_ok"]
+def test_world_status_requires_axes_scales_and_world_metrics():
+    st = world_status(small_graph(), AXES, BRIEF, None, load_world_criteria_config())
+    assert not st["met"]
+    assert not st["criteria"]["breadth.axes"]["met"]
+    assert not st["criteria"]["scale.settlement"]["met"]
+    assert not st["criteria"]["faithful"]["met"]
 
 
 # ------------------------------------------------------------------- bandit
@@ -269,12 +272,17 @@ def test_loop_runs_without_human_input_to_coverage(tmp_path, monkeypatch):
     monkeypatch.setattr(builtins, "input", no_input)
     c = load_explore_config()
     c["budget"]["max_iterations"] = 80
-    c["coverage"].update({"depth": "settlement", "min_entities_per_scale": 2,
-                          "target_mean_reward": 0.6})
-    result = loop(tmp_path, config=c).run()
+    lp = loop(tmp_path, config=c)
+    # Match the engine's contract stage, which records both brief statements.
+    from src.world.contract import establish_contract
+    initial = lp.store.load_or_create("en")
+    establish_contract(lp.backend, initial, BRIEF, AXES, raw_input=RAW)
+    lp.store.save(initial)
+    result = lp.run()
     assert result.stop_reason == "coverage_met", result.stop_reason
     assert result.stop_reason in STOP_REASONS
     assert result.coverage["met"]
+    assert all(row["met"] for row in result.coverage["criteria"].values())
     graph = json.loads((tmp_path / "world" / "graph.json").read_text("utf-8"))
     assert validate_graph(graph, AXES, BRIEF) == []
     # Persistence sorts ids lexically; e10 can precede the first accepted e3.
