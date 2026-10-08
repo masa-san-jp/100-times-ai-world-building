@@ -10,7 +10,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 from src.llm.fake import FakeLLMBackend
-from src.world.builder import ALLOWED_TYPES, EntityBuilder, fact_plan, overlap
+from src.world.builder import ALLOWED_TYPES, EntityBuilder, fact_plan
 from src.world.explore import ExplorationLoop, extract_preference_pairs, read_preference_log, run_world_engine
 from src.world.graph import GraphStore, SCALES, make_entity, new_graph, validate_graph
 from src.world.schemas import load_schema, step_schema
@@ -65,12 +65,13 @@ def test_each_call_generates_exactly_one_item_in_the_planned_order():
     builder, result = build(backend)
     assert result.entity and result.failure is None
     assert [s.step for s in result.steps] == ["type", "grounding", "name", "axes", "summary", "fact", "fact", "review"]
-    expected = [{"type"}, {"statement_ids", "derived_from", "reason"}, {"name"}, {"axes"},
-                {"summary"}, {"subject", "value", "unit", "fact"}, {"fact"}, {"matches", "reason"}, {"verdicts", "issues"}]
+    expected = [{"type"}, {"statement_ids", "derived_from", "reason"}, {"name"}, {"items"}, {"axes"},
+                {"summary"}, {"subject", "value", "unit", "fact"}, {"fact", "name"}, {"items"}, {"verdicts", "issues"}]
     assert [set(c["schema"]["properties"]) for c in backend.schema_calls] == expected
-    assert result.calls == len(backend.schema_calls) == 9
+    assert result.calls == len(backend.schema_calls) == 10
     assert all(s.accepted and s.attempt == 1 for s in result.steps)
-    assert all(c["system_prompt"] == builder.prompts["common"]["system"] for c in backend.schema_calls)
+    assert all(c["system_prompt"] == builder.prompts["common"]["system"] for c in backend.schema_calls
+               if "STEP: real_world_check\n" not in c["prompt"])
     assert result.entity["id"] == "e1" and result.entity["scale"] == "world"
 
 
@@ -80,7 +81,7 @@ def test_duplicate_name_is_corrected_without_regenerating_other_steps():
         if step == "name" and attempt == 1:
             return {"name": " ＥＸＩＳＴＩＮＧ 1! "}
         if step == "name" and attempt == 2:
-            assert "PREVIOUS OUTPUT" in prompt and "distinct" in prompt
+            assert "PREVIOUS OUTPUT" in prompt and "new_information" in prompt
         return good
     backend = backend_with(change)
     _, result = build(backend, g)
@@ -88,7 +89,9 @@ def test_duplicate_name_is_corrected_without_regenerating_other_steps():
     rows = [s for s in result.steps if s.step == "name"]
     assert [r.accepted for r in rows] == [False, True]
     assert [r.attempt for r in rows] == [1, 2]
-    assert all(n == (2 if key == ("name", None) else 1) for key, n in backend.attempts.items())
+    assert backend.attempts[("real_world_check", None)] == 3
+    assert all(n == (2 if key == ("name", None) else 1) for key, n in backend.attempts.items()
+               if key[0] != "real_world_check")
     assert len(g["entities"]) == 1
 
 
@@ -100,7 +103,7 @@ def test_low_capability_backend_recovers_both_duplicate_name_and_wrong_fact_kind
         if step == "fact" and slot == 0 and attempt == 1:
             return {**good, "value": 50, "fact": "50 members"}
         if step == "fact" and slot == 0 and attempt == 2:
-            assert "specific" in prompt and "50 members" in prompt
+            assert "detail" in prompt and "50 members" in prompt
         return good
     backend = backend_with(change)
     _, result = build(backend, g)
@@ -127,25 +130,26 @@ def test_fact_plan_cycles_and_uses_existing_configured_minimum():
         "number", "proper_noun", "object", "procedure", "period", "object", "procedure", "period", "object"]
 
 
-def test_fact_confirmation_is_a_small_task_for_each_semantic_kind():
+def test_kind_specific_fields_are_recorded_and_real_names_are_judged():
     g = graph("site")
     backend = make_backend()
     _, result = build(backend, g, "zoom", "e5", SYNTHETIC_PREMISES)
     assert result.entity, result.failure
     assert [f["kind"] for f in result.entity["facts"]] == ["number", "proper_noun", "object", "procedure", "period"]
-    calls = [c for c in backend.schema_calls if "STEP: fact_check\n" in c["prompt"]]
-    assert len(calls) == 3
-    for call, kind in zip(calls, ("proper_noun", "object", "procedure")):
-        assert f"is a {kind} fact about {result.entity['name']}" in call["prompt"]
-        assert set(call["schema"]["properties"]) == {"matches", "reason"}
+    for slot, fields in [(1, ["name"]), (2, ["object"]), (3, ["actor", "action"])]:
+        fact = result.entity["facts"][slot]
+        assert all(fact[field] in fact["text"] for field in fields)
+    calls = [c for c in backend.schema_calls if "STEP: real_world_check\n" in c["prompt"]]
+    assert len(calls) == 2
+    assert all(set(c["schema"]["properties"]) == {"items"} for c in calls)
 
 
-def test_wrong_semantic_kind_regenerates_only_that_fact():
+def test_missing_proper_name_in_text_regenerates_only_that_fact():
     def change(step, slot, attempt, prompt, good):
-        if step == "fact_check" and slot == 1 and attempt == 1:
-            return {"matches": False, "reason": "No proper name is present."}
+        if step == "fact" and slot == 1 and attempt == 1:
+            return {**good, "fact": "The records are stored in a separate box."}
         if step == "fact" and slot == 1 and attempt == 2:
-            assert "No proper name is present." in prompt
+            assert "fact text must contain name" in prompt
         return good
     backend = backend_with(change)
     _, result = build(backend)
@@ -161,7 +165,7 @@ def test_number_rejects_counts_and_time_only_units(value, unit, text):
     backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": value, "unit": unit, "fact": text} if step == "fact" and slot == 0 else good)
     _, result = build(backend, config={"build": {"max_step_attempts": 2}})
     assert not result.entity and result.failure["step"] == "fact" and result.failure["slot"] == 0
-    assert all(any(c["criterion"] == "specific" and not c["ok"] for c in r.checks) for r in result.steps if r.step == "fact")
+    assert all(any(c["criterion"] == "detail" and not c["ok"] for c in r.checks) for r in result.steps if r.step == "fact")
 
 
 @pytest.mark.parametrize("unit", ["qx", "quota/qx"])
@@ -188,7 +192,7 @@ def test_period_requires_the_contract_marker(text):
     backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "fact": text} if step == "fact" and slot == 4 else good)
     _, result = build(backend, g, "zoom", "e5", SYNTHETIC_PREMISES)
     assert result.entity is None and result.failure["slot"] == 4
-    assert "specific" in result.failure["reason"] or "fits_world" in result.failure["reason"]
+    assert "detail" in result.failure["reason"] or "no_outside_premises" in result.failure["reason"]
 
 
 def test_fullwidth_number_and_defined_calendar_are_recognized():
@@ -206,8 +210,8 @@ def test_fullwidth_number_and_defined_calendar_are_recognized():
 @pytest.mark.parametrize("kind,fields", [
     ("number", {"subject", "value", "unit", "fact"}),
     ("period", {"marker", "value", "fact"}),
-    ("proper_noun", {"fact"}), ("object", {"fact"}),
-    ("procedure", {"fact"}), ("other", {"fact"}),
+    ("proper_noun", {"name", "fact"}), ("object", {"object", "fact"}),
+    ("procedure", {"actor", "action", "fact"}), ("other", {"fact"}),
 ])
 def test_fact_schema_has_only_the_required_fields_for_its_kind(kind, fields):
     schema = step_schema("fact", kind=kind, contract=SYNTHETIC_PREMISES)
@@ -286,7 +290,7 @@ def test_number_requires_its_declared_value_and_unit_in_the_text(text):
         {**good, "value": 12, "fact": text} if step == "fact" and slot == 0 else good)
     _, result = build(backend, contract=SYNTHETIC_PREMISES, config={"build": {"max_step_attempts": 2}})
     assert result.entity is None and result.failure["slot"] == 0
-    assert all(any(c["criterion"] == "specific" and not c["ok"] for c in r.checks)
+    assert all(any(c["criterion"] == "detail" and not c["ok"] for c in r.checks)
                for r in result.steps if r.step == "fact")
 
 
@@ -295,7 +299,7 @@ def test_non_time_check_uses_declared_unit_even_when_text_has_another_measuremen
         {**good, "value": 12, "unit": "hours", "fact": "Capacity is 12 quota over 12 hours."}
         if step == "fact" and slot == 0 else good)
     _, result = build(backend, config={"build": {"max_step_attempts": 1}})
-    assert result.entity is None and "specific" in result.failure["reason"]
+    assert result.entity is None and "detail" in result.failure["reason"]
 
 
 @pytest.mark.parametrize("value,spelling", [
@@ -324,20 +328,21 @@ def test_period_requires_its_declared_marker_and_value_in_the_text(text):
     _, result = build(backend, graph("site"), "zoom", "e5", SYNTHETIC_PREMISES,
                       config={"build": {"max_step_attempts": 1}})
     assert result.entity is None and result.failure["slot"] == 4
-    assert "specific" in result.failure["reason"]
+    assert "detail" in result.failure["reason"]
 
 
 def test_structured_fact_fields_survive_graph_validation_and_roundtrip(tmp_path):
     g = graph("site")
     _, result = build(g=g, operator="zoom", target="e5", contract=SYNTHETIC_PREMISES)
     assert result.entity, result.failure
-    for slot, fields in [(0, {"subject", "value", "unit"}), (4, {"marker", "value"})]:
+    for slot, fields in [(0, {"subject", "value", "unit"}), (1, {"name"}),
+                         (2, {"object"}), (3, {"actor", "action"}), (4, {"marker", "value"})]:
         output = next(r.output for r in result.steps if r.step == "fact" and r.slot == slot)
         fact = result.entity["facts"][slot]
         assert fact["text"] == output["fact"]
         assert {field: fact[field] for field in fields} == {field: output[field] for field in fields}
         assert fact["provenance"] == result.entity["provenance"]
-    assert set(result.entity["facts"][1]) == {"kind", "text", "provenance"}
+    assert set(result.entity["facts"][1]) == {"kind", "name", "text", "provenance"}
     g["entities"].append(result.entity)
     assert validate_graph(g, AXES, BRIEF) == []
     store = GraphStore(tmp_path, axes=AXES, brief=BRIEF)
@@ -351,24 +356,12 @@ def test_number_conflict_is_detected_against_other_facts():
         if step == "fact" and slot == 0:
             return {**good, "value": 3, "fact": "Capacity measured 3 quota."}
         if step == "fact" and slot == 2:
-            return {"fact": "Capacity measured 4 quota with physical containers."}
+            return {"object": "containers", "fact": "Capacity measured 4 quota with physical containers."}
         return good
     _, result = build(backend_with(change), g, "expand", "e3", SYNTHETIC_PREMISES)
     assert not result.entity and "consistent" in result.failure["reason"]
 
 
-def test_informative_rejects_copied_summary_and_fact():
-    original = "The records define paired checks after each exchange and retain the discarded tokens in separate boxes."
-    g = graph()
-    g["entities"][0]["summary"] = original
-    backend = backend_with(lambda step, slot, attempt, prompt, good: {"summary": original} if step == "summary" else good)
-    _, result = build(backend, g, "expand", "e1")
-    assert not result.entity and result.failure["step"] == "summary"
-    assert "informative" in result.failure["reason"]
-    g["entities"][0]["facts"] = [{"kind": "number", "text": "Capacity is 18 quota.", "provenance": PROV}]
-    backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": 18, "fact": "Capacity is 18 quota."} if step == "fact" and slot == 0 else good)
-    _, result = build(backend, g, "expand", "e1")
-    assert not result.entity and "informative" in result.failure["reason"]
 
 
 def test_fact_duplicates_are_rejected_after_normalization():
@@ -377,19 +370,19 @@ def test_fact_duplicates_are_rejected_after_normalization():
         if step == "fact" and slot == 0:
             saved["fact"] = good["fact"]
         if step == "fact" and slot == 1:
-            return {"fact": saved["fact"].upper() + "!"}
+            return {"name": saved["fact"].split()[0], "fact": saved["fact"].upper() + "!"}
         return good
     _, result = build(backend_with(change))
     assert not result.entity
-    assert any(c["criterion"] == "distinct" and not c["ok"] for r in result.steps if r.step == "fact" and r.slot == 1 for c in r.checks)
+    assert any(c["criterion"] == "new_information" and not c["ok"] for r in result.steps if r.step == "fact" and r.slot == 1 for c in r.checks)
 
 
 @pytest.mark.parametrize("field", ["name", "summary", "facts[0]", "facts[1]"])
 def test_review_rewrites_only_the_named_field_then_reviews_again(field):
     def change(step, slot, attempt, prompt, good):
         if step == "review" and attempt == 1:
-            good["verdicts"]["fits_world"] = False
-            good["issues"] = [{"field": field, "criterion": "fits_world", "reason": "Clarify the connection to the supplied world."}]
+            good["verdicts"]["no_outside_premises"] = False
+            good["issues"] = [{"field": field, "criterion": "no_outside_premises", "reason": "Clarify the connection to the supplied world."}]
         if (step == field or (step == "fact" and field == f"facts[{slot}]")) and attempt == 2:
             assert "REVIEW ISSUES" in prompt and "Clarify the connection" in prompt
         return good
@@ -398,14 +391,17 @@ def test_review_rewrites_only_the_named_field_then_reviews_again(field):
     assert result.entity, result.failure
     assert backend.attempts[("review", None)] == 2
     for key, n in backend.attempts.items():
-        extra = key == (field, None) or (key[0] in {"fact", "fact_check"} and field == f"facts[{key[1]}]")
-        assert n == (2 if extra or key == ("review", None) else 1)
+        extra = key == (field, None) or (key[0] == "fact" and field == f"facts[{key[1]}]")
+        if key[0] == "real_world_check":
+            assert n == (3 if field in {"name", "facts[1]"} else 2)
+        else:
+            assert n == (2 if extra or key == ("review", None) else 1)
 
 
 def test_review_groups_multiple_issues_for_one_field_into_one_repair():
     def change(step, slot, attempt, prompt, good):
         if step == "review" and attempt == 1:
-            for criterion in ("consistent", "fits_world"):
+            for criterion in ("consistent", "no_outside_premises"):
                 good["verdicts"][criterion] = False
                 good["issues"].append({"field": "summary", "criterion": criterion, "reason": criterion + " explanation"})
         return good
@@ -473,7 +469,7 @@ def test_schema_repair_does_not_regenerate_accepted_fields():
     assert result.entity and result.entity["id"] == "e1"
     assert backend.attempts[("type", None)] == backend.attempts[("grounding", None)] == 1
     assert len([s for s in result.steps if s.step == "name"]) == 1
-    assert result.calls == len(backend.schema_calls) == 12
+    assert result.calls == len(backend.schema_calls) == 13
     assert backend._structured_metrics["name"]["conversions"]["tried"] == 2
 
 
@@ -483,7 +479,7 @@ def test_grounding_is_required_and_derivation_needs_ten_characters(grounding):
     backend = backend_with(lambda step, slot, attempt, prompt, good: grounding if step == "grounding" else good)
     _, result = build(backend, graph())
     assert not result.entity and result.failure["step"] == "grounding"
-    assert "grounded" in result.failure["reason"]
+    assert "faithful" in result.failure["reason"]
 
 
 @pytest.mark.parametrize("op", ["cause", "history", "perspective", "document"])
@@ -514,14 +510,17 @@ def test_existing_objectivity_and_narrative_rules_are_hard_checks(summary):
     backend = backend_with(lambda step, slot, attempt, prompt, good: {"summary": summary} if step == "summary" else good)
     _, result = build(backend)
     assert not result.entity and result.failure["step"] == "summary"
-    assert {c["criterion"] for c in result.steps[-1].checks if not c["ok"]} >= {"objective", "no_story"}
+    assert {c["criterion"] for c in result.steps[-1].checks if not c["ok"]} >= {"objective"}
 
 
 def test_all_checks_use_defined_criterion_ids_and_definitions_map_to_checks():
     backend = make_backend(generic_ops={"premise"})
     _, result = build(backend, graph())
     observed = {c["criterion"] for r in result.steps for c in r.checks}
-    assert observed == set(CRITERIA) == {"grounded", "consistent", "objective", "no_story", "specific", "informative", "distinct", "fits_world"}
+    assert observed == {"faithful", "consistent", "objective", "detail", "new_information", "no_outside_premises"}
+    assert set(CRITERIA) == observed | {"breadth", "depth", "scale"}
+    assert all(item["level"] in {"entity", "world", "both"} and
+               item["method"] in {"structure", "rule", "judge"} for item in CRITERIA.values())
     assert all(item["definition"] and item["checks"] for item in CRITERIA.values())
     for row in result.steps:
         assert set(asdict(row)) == {"step", "slot", "attempt", "output", "checks", "accepted"}
@@ -573,10 +572,10 @@ def test_metrics_calls_distributions_reasons_and_entity_counts_reach_both_report
     assert metrics["accepted"] == 1 and metrics["failed"] == 0
     assert metrics["steps"]["fact"]["calls"] == 3
     assert metrics["steps"]["fact"]["attempts"] == {"2": 1, "1": 1}
-    assert "specific" in metrics["steps"]["fact"]["reasons"]
+    assert "detail" in metrics["steps"]["fact"]["reasons"]
     assert sum(e["calls"] for e in metrics["steps"].values()) == manifest["world_explore"]["counters"]["generation_calls"]
     report = (tmp_path / "final/world_report.md").read_text()
-    assert "Entity building" in report and "Attempt distribution" in report and "specific" in report
+    assert "Entity building" in report and "Attempt distribution" in report and "detail" in report
     run_world_engine(RAW, package_dir=tmp_path, backend=make_backend(), config=cfg(), budget={"max_iterations": 2})
     again = json.loads((tmp_path / "run_manifest.json").read_text())["build"]
     assert again["accepted"] == 2
@@ -591,7 +590,7 @@ def test_runtime_enums_are_scoped_and_empty_context_is_valid_schema(step):
     Draft202012Validator.check_schema(empty)
     valid = {"type": {"type": "practice"}, "grounding": {"statement_ids": ["s1"], "derived_from": ["e1"], "reason": "derivation"},
         "axes": {"axes": ["a1"]}, "relations": {"relations": [{"type": "related_to", "target": "e1"}]},
-        "review": {"verdicts": {k: True for k in ("consistent", "objective", "no_story", "fits_world")}, "issues": []}}[step]
+        "review": {"verdicts": {k: True for k in ("consistent", "objective", "no_outside_premises")}, "issues": []}}[step]
     assert not list(Draft202012Validator(schema).iter_errors(valid))
     if step == "grounding":
         valid["derived_from"] = ["e999"]
@@ -616,7 +615,7 @@ def test_invalid_build_settings_are_rejected(setting, value):
 def test_pure_time_combinations_are_not_number_measurements(unit):
     backend = backend_with(lambda step, slot, attempt, prompt, good: {**good, "value": 3, "unit": unit, "fact": f"Capacity is 3 {unit}."} if step == "fact" and slot == 0 else good)
     _, result = build(backend)
-    assert result.entity is None and "specific" in result.failure["reason"]
+    assert result.entity is None and "detail" in result.failure["reason"]
 
 
 @pytest.mark.parametrize("language,name", [("ja", "照合番"), ("ko", "검사소"), ("zh", "核验处"), ("ru", "Проверка"), ("ar", "تدقيق")])
@@ -628,11 +627,11 @@ def test_name_scripts_supported_by_input_detection_are_allowed(language, name):
 
 
 @pytest.mark.parametrize("criterion,field,reason", [
-    ("fits_world", "summary", "The claimed authority does not follow from the supplied social rules."),
-    ("fits_world", "facts[0]", "This method assumes a capability absent from the contract."),
+    ("no_outside_premises", "summary", "The claimed authority does not follow from the supplied social rules."),
+    ("no_outside_premises", "facts[0]", "This method assumes a capability absent from the contract."),
     ("consistent", "facts[0]", "The quantity is incompatible with the described subject."),
     ("consistent", "facts[1]", "The stated object has no connection to this entity."),
-    ("no_story", "summary", "The explanation narrates a scene instead of describing reference material."),
+    ("objective", "summary", "The explanation narrates a scene instead of describing reference material."),
 ])
 def test_semantic_review_problems_remain_hard_failures(criterion, field, reason):
     def change(step, slot, attempt, prompt, good):

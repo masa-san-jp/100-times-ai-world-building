@@ -8,6 +8,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from src.llm.fake import FakeLLMBackend
+from tests.helpers_world import contract_backend
 from src.world.contract import establish_contract
 from src.world.explore import run_world_engine
 from src.world.graph import GraphStore, make_entity, new_graph
@@ -99,13 +100,13 @@ def test_placeholder_contract_rewrites_without_conversion():
 
     bad = placeholders(good)
     assert Draft202012Validator(load_schema("world_contract")).is_valid(bad)
-    backend = FakeLLMBackend([bad, good])
+    backend = contract_backend([bad, good])
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
     assert stage["status"] == "success" and stage["attempts"] == 2
     assert graph["world_contract"]["world_premises"] == good
-    assert len(backend.schema_calls) == 2
-    assert all(c["prompt"].startswith("WORLD CONTRACT") for c in backend.schema_calls)
+    assert len(backend.schema_calls) == 3
+    assert all(c["prompt"].startswith("WORLD CONTRACT") for c in backend.schema_calls[:2])
     entry = backend._structured_metrics["world_contract"]
     assert entry["placeholder_violations"] == 13
     assert entry["conversions"]["tried"] == 0
@@ -147,7 +148,7 @@ def test_entire_schema_echo_rewrites_contract(fenced):
     echo = load_schema("world_contract")
     if fenced:
         echo = "```json\n" + json.dumps(echo) + "\n```"
-    backend = FakeLLMBackend([echo, SYNTHETIC_PREMISES])
+    backend = contract_backend([echo, SYNTHETIC_PREMISES])
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
     assert stage["status"] == "success" and stage["attempts"] == 2
@@ -255,12 +256,12 @@ def test_legacy_bare_institution_names_remain_readable():
 def test_explanatory_notations_are_repaired_as_schema_violations(field, limit):
     bad = contract_with_notation(field, "短名：説明。")
     good = contract_with_notation(field, "短名")
-    backend = FakeLLMBackend([bad, bad, bad, good])
+    backend = contract_backend([bad, bad, bad, good])
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
     assert stage["status"] == "success" and stage["attempts"] == 2
     assert graph["world_contract"]["world_premises"] == good
-    assert len(backend.schema_calls) == 4
+    assert len(backend.schema_calls) == 5
     assert all("SOURCE OUTPUT:" in c["prompt"] for c in backend.schema_calls[1:3])
     repair = backend.json_prompts[3]
     errors = json.loads(repair.split("Fix EVERY violation below.\n", 1)[1]
@@ -275,7 +276,7 @@ def test_explanatory_notations_are_repaired_as_schema_violations(field, limit):
 def test_institution_definitions_survive_persistence_rendering_and_review(tmp_path):
     contract = contract_with_notation("institution_name", "QuotaBoard")
     graph = new_graph("en")
-    establish_contract(FakeLLMBackend(contract), graph, BRIEF, AXES)
+    establish_contract(contract_backend(contract), graph, BRIEF, AXES)
     root = make_entity("e1", "place", "Test world", "world",
                        provenance={"statement_ids": ["s1"], "derived_from": [], "reason": ""})
     root.update(origin_operator="premise", world_premises=copy.deepcopy(contract))
@@ -293,7 +294,9 @@ def test_institution_definitions_survive_persistence_rendering_and_review(tmp_pa
     backend = make_backend()
     _, result = build(backend, g=graph, contract=world_premises(graph))
     assert result.entity
-    for prompt in backend.json_prompts:
+    entity_prompts = [p for p in backend.json_prompts if "WORLD CONTRACT:\n" in p]
+    assert len(entity_prompts) == 9
+    for prompt in entity_prompts:
         passed = json.JSONDecoder().raw_decode(prompt.split("WORLD CONTRACT:\n", 1)[1])[0]
         context = json.JSONDecoder().raw_decode(prompt.split("LOCAL CONTEXT:\n", 1)[1])[0]
         assert passed["society"] == context["world_premises"]["society"] == contract["society"]

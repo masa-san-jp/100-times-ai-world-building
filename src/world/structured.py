@@ -156,7 +156,8 @@ def _fidelity_violations(data, schema, source):
 
 
 def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
-                        images=None, max_attempts, max_conversions=2):
+                        images=None, max_attempts, max_conversions=2, content_validator=None,
+                        allow_conversion=True):
     if isinstance(max_attempts, bool) or not isinstance(max_attempts, int) or max_attempts < 1:
         raise ValueError("structured.max_attempts must be a positive integer")
     if isinstance(max_conversions, bool) or not isinstance(max_conversions, int) or max_conversions < 0:
@@ -193,6 +194,16 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
             violations = _placeholder_violations(parsed, schema)
             content_counts["placeholder_violations"] += len(violations)
             content_invalid = bool(violations)
+        if not violations and task == "real_world_check":
+            term_schema = schema["properties"]["items"]["items"]["properties"]["term"]
+            expected = set(term_schema.get("enum", [])) if isinstance(term_schema, dict) else set()
+            actual = {item["term"] for item in parsed["items"]}
+            if actual != expected:
+                violations.append({"path": '$["items"]', "expected": sorted(expected),
+                    "actual": sorted(actual), "message": "term set must match the supplied terms exactly"})
+        if not violations and content_validator is not None:
+            violations = content_validator(parsed)
+            content_invalid = bool(violations)
         if not parseable and constrained and not forced:
             constrained = False
             client._structured_modes[key] = False
@@ -205,7 +216,7 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
         if not violations:
             data = parsed
             break
-        if (not content_invalid and isinstance(raw, str) and raw.strip()
+        if (allow_conversion and not content_invalid and isinstance(raw, str) and raw.strip()
                 and not _contains_boolean(schema) and max_conversions):
             prompts = yaml.safe_load(CONVERT_PROMPT_PATH.read_text(encoding="utf-8"))
             conversion_prompt = prompts["user"].format(

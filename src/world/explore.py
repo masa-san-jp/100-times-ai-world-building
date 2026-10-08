@@ -554,10 +554,14 @@ class ExplorationLoop:
         checkpoints: Any = None,
         manifest: Any = None,
         clock: Callable[[], float] = time.monotonic,
+        raw_input: Optional[str] = None,
         structured_max_attempts: int = 3,
         structured_max_conversions: int = 2,
     ) -> None:
         self.package_dir = Path(package_dir)
+        raw_path = self.package_dir / "input" / "user_input.txt"
+        self.raw_input = (raw_input if raw_input is not None else
+                          raw_path.read_text(encoding="utf-8") if raw_path.exists() else "")
         self.brief = brief
         self.axes = list(axes)
         self.seed = seed
@@ -793,7 +797,7 @@ class ExplorationLoop:
         return graph, True
 
     def _attempt(self, graph, operator, target, item):
-        return self.builder.build(graph, operator, target, brief=self.brief,
+        return self.builder.build(graph, operator, target, brief=self.brief, raw_input=self.raw_input,
                                   axes=self.axes, contract=world_premises(graph),
                                   frontier_axis=item["axis"] if item["kind"] == "axis_gap" else None)
 
@@ -895,7 +899,7 @@ def run_world_engine(
         raw_text = ""
         if resume and brief_path.exists():
             brief = json.loads(brief_path.read_text(encoding="utf-8"))
-            raw = root / "input" / "user_input.txt"
+            raw = root / "input" / (Path(source_name).name if source_name else "user_input.txt")
             raw_text = raw.read_text(encoding="utf-8") if raw.exists() else ""
         else:
             built = InputBriefBuilder(
@@ -916,7 +920,7 @@ def run_world_engine(
                 max_conversions=structured_max_conversions).build(brief).axes
         checkpoints = CheckpointManager(str(root / "checkpoints"))
         loop = ExplorationLoop(
-            backend, root, brief, axes, seed=seed, language=lang,
+            backend, root, brief, axes, seed=seed, language=lang, raw_input=raw_text,
             config=config, operator_config=operator_config,
             checkpoints=checkpoints, manifest=manifest,
             structured_max_attempts=structured_max_attempts,
@@ -924,7 +928,7 @@ def run_world_engine(
         from .contract import establish_contract
         graph = loop.store.load_or_create(lang)
         try:
-            stage = establish_contract(backend, graph, brief, axes,
+            stage = establish_contract(backend, graph, brief, axes, raw_input=raw_text,
                                        max_attempts=structured_max_attempts,
                                        max_conversions=structured_max_conversions)
         finally:

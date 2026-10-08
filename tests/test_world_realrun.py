@@ -11,6 +11,7 @@ import json
 import pytest
 
 from src.llm.fake import FakeLLMBackend
+from tests.helpers_world import contract_backend
 from src.world.axes import WorldAxesBuilder, load_catalog
 from src.world.explore import (
     ExplorationLoop, candidate_pairs, evaluate_frontier, load_explore_config,
@@ -270,7 +271,7 @@ def ja_backend():
         return {"axes": [{"name": "", "reason": "", "domain": "resources_economy",
                           "meaning": "塩と水の配分", "weight": 0.9,
                           "statement_ids": ["s1"]}]}
-    return FakeLLMBackend(respond)
+    return contract_backend(respond)
 
 
 def test_prompts_ask_for_the_input_language_and_keep_quotes_verbatim(tmp_path):

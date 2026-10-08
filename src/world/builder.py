@@ -15,11 +15,13 @@ from .graph import ENTITY_TYPES, get_entity, local_context, make_entity, next_en
 from .language import load_language_rules, rules_for
 from .operators import (OPERATORS, OperatorConfig, OperatorError, _TARGET_RELATION,
                         _clip, _world_context, load_prompts, placement)
-from .quantities import NUMBER, is_counter, registered_unit, unit_factors, units_in_text
+from .quantities import NUMBER, is_counter, outside_units, unit_factors
+from .premises import unit_symbols
+from .criteria import measurement_present, new_name, outside_terms, real_world_check
 from .schemas import step_schema
 from .structured import generate_structured
-from .textsim import ngrams_of, normalize_item
-from .verify import reference_text, verify_consistency, verify_objectivity
+from .textsim import normalize_item
+from .verify import verify_consistency, verify_objectivity
 
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 ALLOWED_TYPES = {
@@ -57,11 +59,6 @@ def fact_plan(scale, min_concrete_facts, contract):
     return ["number", "proper_noun", *(cycle[i % 3] for i in range(count - 2))]
 
 
-def overlap(text, reference):
-    mine = ngrams_of(text, 3)
-    return len(mine & ngrams_of(reference, 3)) / len(mine) if mine else 0.0
-
-
 def check(criterion, ok, reason):
     return {"criterion": criterion, "ok": bool(ok), "reason": reason}
 
@@ -94,7 +91,7 @@ class EntityBuilder:
         self.rules = rules if rules is not None else load_language_rules()
         self.metrics = {"steps": {}, "accepted": 0, "failed": 0, "failures_by_step": {}}
 
-    def build(self, graph, operator, target_id, *, brief, axes, contract, frontier_axis):
+    def build(self, graph, operator, target_id, *, brief, axes, contract, frontier_axis, raw_input=""):
         if operator not in OPERATORS:
             raise OperatorError(f"unknown operator: {operator}")
         target = get_entity(graph, target_id) if target_id else None
@@ -115,7 +112,6 @@ class EntityBuilder:
         place = placement(operator, graph, target)
         entity = {"id": next_entity_id(graph), **place, "origin_operator": operator, "facts": []}
         plan = fact_plan(place["scale"], cfg.min_concrete_facts, contract)
-        reference = reference_text(graph, target_id, brief, cfg.context_limits)
         language = graph["meta"]["language"]
         rl = rules_for(self.rules, language)
         records, attempts = [], {}
@@ -126,10 +122,9 @@ class EntityBuilder:
 
         def prompt(step, slot, correction=""):
             instruction = self.prompts["steps"][step]
-            if step in {"fact", "fact_check"}:
+            if step == "fact":
                 kind = plan[slot]
                 instruction = instruction.format(kind=kind, name=entity.get("name", ""),
-                    fact=entity["facts"][slot]["text"] if step == "fact_check" else "",
                     kind_instruction=self.prompts["fact_kinds"][kind])
             return self.prompts["common"]["user"].format(
                 language=language, operator=operator, task=self.tasks[operator].strip(),
@@ -164,7 +159,7 @@ class EntityBuilder:
                 entity["axes"] = values
             elif step == "fact":
                 fact = {"kind": plan[slot], "text": data["fact"], "provenance": copy.deepcopy(entity["provenance"])}
-                fact.update({key: data[key] for key in ("subject", "value", "unit", "marker") if key in data})
+                fact.update({key: data[key] for key in ("name", "object", "actor", "action", "subject", "value", "unit", "marker") if key in data})
                 if slot < len(entity["facts"]):
                     entity["facts"][slot] = fact
                 else:
@@ -175,31 +170,29 @@ class EntityBuilder:
         def content_checks(step, slot, data):
             if step == "grounding":
                 prov = entity["provenance"]
-                return [check("grounded", bool(prov["statement_ids"] or prov["derived_from"]), "at least one source is required"),
-                        check("grounded", not prov["derived_from"] or len(prov["reason"].strip()) >= 10,
+                return [check("faithful", bool(prov["statement_ids"] or prov["derived_from"]), "at least one source is required"),
+                        check("faithful", not prov["derived_from"] or len(prov["reason"].strip()) >= 10,
                               "derived_from requires a reason of at least 10 characters")]
             if step == "name":
                 name = entity["name"]
-                checks = [check("distinct", bool(normalize_item(name)) and all(normalize_item(name) != normalize_item(e["name"]) for e in graph["entities"]),
+                checks = [check("new_information", bool(normalize_item(name)) and all(normalize_item(name) != normalize_item(e["name"]) for e in graph["entities"]),
                                 "name must differ from existing names after normalization")]
                 script = rl.get("name_script")
                 if script:
                     letters = [c for c in name if c.isalpha()]
                     checks.append(check("objective", bool(letters) and all(re.fullmatch(script, c) for c in letters), "name must use the output language's script"))
+                checks.extend(term_checks(name))
                 return checks
             if step == "summary":
                 deductions = verify_objectivity({"entity": entity}, language, self.rules).deductions
-                narrative = [d for d in deductions if d.code in {"quotation", "first_person", "second_person"}]
                 return [check("objective", not deductions, "; ".join(d.message for d in deductions)),
-                        check("no_story", not narrative, "; ".join(d.message for d in narrative)),
-                        check("informative", overlap(entity["summary"], reference) <= 0.6, "character 3-gram overlap must be <= 0.6")]
+                        *premise_checks(entity["summary"], "summary")]
             if step == "relations":
                 return [check("consistent", all(r["target"] != entity["id"] for r in entity["relations"]), "self references are forbidden")]
             if step != "fact":
                 return []
             text, kind = data["fact"], plan[slot]
             others = [f["text"] for i, f in enumerate(entity["facts"]) if i != slot]
-            units = units_in_text(text, contract, rl)
             if kind == "number":
                 times = {normalize_item(v) for v in rl.get("time_basis_aliases", {})}
                 def non_time(unit):
@@ -213,27 +206,51 @@ class EntityBuilder:
                 specific = data["marker"] in text and value_in_text(data["value"], text)
                 specific_reason = "period requires its calendar marker and value in the fact text"
             else:
-                confirmed = generate("fact_check", slot)
-                entry = self.metrics["steps"]["fact_check"]
-                dist = entry["attempts"]
-                dist[str(confirmed.attempts)] = dist.get(str(confirmed.attempts), 0) + 1
-                specific = confirmed.data is not None and confirmed.data["matches"]
-                if not specific:
-                    entry["failures"] += 1
-                specific_reason = (confirmed.data["reason"] if confirmed.data else json.dumps(confirmed.violations[-1], ensure_ascii=False))
-                if not specific:
-                    reasons = entry["reasons"].setdefault("specific", {})
-                    reasons[specific_reason] = reasons.get(specific_reason, 0) + 1
+                fields = {"proper_noun": ("name",), "object": ("object",),
+                          "procedure": ("actor", "action")}[kind]
+                specific = all(data[field] in text for field in fields)
+                specific_reason = "fact text must contain " + " and ".join(fields)
+                if kind == "proper_noun":
+                    specific = specific and new_name(data["name"], raw_input, brief, views,
+                                                    graph["entities"], contract)
+                    specific_reason += "; name must be new in the input, context and contract"
             candidate = {"entity": entity, "operator": operator, "target": target_id}
             deductions = verify_consistency(candidate, graph, axes, brief).deductions
             conflicts = [d for d in deductions if d.code == "number_conflict"]
-            calendar_issues = [d for d in deductions if d.code == "undefined_calendar" and d.field == f"facts[{slot}]"]
-            return [check("specific", specific, specific_reason),
-                    check("informative", overlap(text, reference + "\n" + "\n".join(others)) <= 0.6, "character 3-gram overlap must be <= 0.6"),
-                    check("fits_world", not contract or (all(registered_unit(u, contract, rl) for u in units) and not calendar_issues),
-                          "units and calendar markers must belong to the contract"),
+            return [check("detail", specific, specific_reason),
+                    *(premise_checks(text, f"facts[{slot}]") if kind != "number" else
+                      [check("no_outside_premises", not contract or data["unit"] in unit_symbols(contract),
+                             "number unit must belong to the contract")]),
+                    *(term_checks(data["name"]) if kind == "proper_noun" else []),
                     check("consistent", not conflicts, "; ".join(d.message for d in conflicts)),
-                    check("distinct", normalize_item(text) not in {normalize_item(t) for t in others}, "facts in the entity must not duplicate one another")]
+                    check("new_information", normalize_item(text) not in {normalize_item(t) for t in others}, "facts in the entity must not duplicate one another")]
+
+        def premise_checks(text, field):
+            deductions = verify_consistency({"entity": entity, "operator": operator,
+                "target": target_id}, graph, axes, brief).deductions
+            calendar = [d for d in deductions if d.code == "undefined_calendar" and d.field == field]
+            return [check("no_outside_premises", not contract or (
+                not outside_units(text, contract, rl) and not calendar),
+                "units and calendar markers must belong to the contract")]
+
+        def term_checks(term):
+            nonlocal calls
+            result = real_world_check(self.backend, [term], language=language,
+                max_attempts=self.structured_attempts, max_conversions=self.structured_conversions)
+            calls += result.attempts + result.conversions
+            entry = self.metrics["steps"].setdefault("real_world_check",
+                {"calls": 0, "attempts": {}, "reasons": {}, "failures": 0})
+            entry["calls"] += result.attempts + result.conversions
+            entry["attempts"][str(result.attempts)] = entry["attempts"].get(str(result.attempts), 0) + 1
+            rejected = outside_terms(result.data, raw_input) if result.data else []
+            ok = result.data is not None and not rejected
+            reason = ("; ".join(i["term"] + ": " + i["reason"] for i in rejected)
+                      if result.data else "schema: " + json.dumps(result.violations[-1], ensure_ascii=False))
+            if not ok:
+                entry["failures"] += 1
+                reasons = entry["reasons"].setdefault("no_outside_premises", {})
+                reasons[reason] = reasons.get(reason, 0) + 1
+            return [check("no_outside_premises", ok, reason)]
 
         def record(step, slot, attempt, output, checks):
             accepted = all(c["ok"] for c in checks)
@@ -291,6 +308,27 @@ class EntityBuilder:
             self.metrics["steps"][step]["failures"] += 1
             return BuildResult(None, records, failure, calls)
 
+        def ensure_new_information():
+            def has_new_information():
+                return any((fact["kind"] == "proper_noun" and new_name(fact["name"], raw_input,
+                    brief, views, graph["entities"], contract)) or
+                    (fact["kind"] == "number" and not measurement_present(fact["value"],
+                        fact["unit"], brief, views, graph["entities"])) for fact in entity["facts"])
+            while not has_new_information():
+                slot = plan.index("number")
+                reason = "new_information: entity needs a new proper name or a new (value, unit) pair"
+                # Attribute this failure to the accepted number output before repairing it.
+                row = next(r for r in reversed(records) if r.step == "fact" and r.slot == slot)
+                if row.accepted:
+                    row.checks.append(check("new_information", False, reason))
+                    row.accepted = False
+                    reasons = self.metrics["steps"]["fact"]["reasons"].setdefault("new_information", {})
+                    reasons[reason] = reasons.get(reason, 0) + 1
+                if not run_step("fact", slot, "PREVIOUS OUTPUT:\n" +
+                    json.dumps(entity["facts"][slot], ensure_ascii=False) + "\nFAILED CHECKS:\n" + reason):
+                    return False
+            return True
+
         if len(ALLOWED_TYPES[operator]) == 1:
             entity["type"] = ALLOWED_TYPES[operator][0]
         elif not run_step("type"):
@@ -309,6 +347,8 @@ class EntityBuilder:
             if relation not in entity["relations"]:
                 entity["relations"].append(relation)
         for rnd in range(self.review_rounds + 1):
+            if not ensure_new_information():
+                return finish(False)
             result = generate("review", None)
             attempts[("review", None)] = rnd + 1
             data = result.data

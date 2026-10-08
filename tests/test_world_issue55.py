@@ -8,6 +8,7 @@ import pytest
 from loguru import logger
 
 from src.llm.fake import FakeLLMBackend
+from tests.helpers_world import contract_backend
 from src.world.contract import establish_contract
 from src.world.explore import ExplorationLoop, read_preference_log, run_world_engine
 from src.world.graph import GraphStore, local_context, new_graph, validate_graph
@@ -131,7 +132,7 @@ def test_invalid_contract_attempt_setting_is_rejected(value):
 
 
 def test_contract_context_is_bounded_and_interrupts_propagate():
-    backend = FakeLLMBackend(SYNTHETIC_PREMISES)
+    backend = contract_backend(SYNTHETIC_PREMISES)
     brief = {"statements": [{"id": f"s{i}", "text": "x" * 500} for i in range(40)]}
     axes = [{"name": "n" * 500, "meaning": "m" * 500} for _ in range(40)]
     establish_contract(backend, new_graph("en"), brief, axes)

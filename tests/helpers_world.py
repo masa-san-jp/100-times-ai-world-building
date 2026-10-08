@@ -93,3 +93,18 @@ def deterministic_result(graph, candidate, brief):
         deductions=[d for r in results.values() for d in r.deductions],
         failed=[k for k, v in results.items() if v.deductions],
         deductions_for=lambda k: results[k].deductions)
+
+
+def contract_backend(responses):
+    """Keep existing contract fixtures and explicitly classify synthetic terms."""
+    from src.llm.fake import FakeLLMBackend
+    inner = FakeLLMBackend(responses)
+
+    def respond(prompt):
+        if "STEP: real_world_check\n" in prompt:
+            terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
+            return {"items": [{"term": t, "category": "invented",
+                               "reason": "Synthetic fixture term."} for t in terms]}
+        return inner.generate_schema(prompt, {}, constrained=True)
+
+    return FakeLLMBackend(respond)

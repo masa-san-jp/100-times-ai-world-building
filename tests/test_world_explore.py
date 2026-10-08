@@ -96,6 +96,10 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
                 "weight": 0.9, "statement_ids": ["s1"], "name": "", "reason": ""}]}
         if prompt.startswith("WORLD CONTRACT"):
             return SYNTHETIC_PREMISES
+        if "STEP: real_world_check\n" in prompt:
+            terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
+            return {"items": [{"term": term, "category": "invented",
+                               "reason": "Invented synthetic term."} for term in terms]}
         schema = json.loads(prompt.split("OUTPUT SCHEMA:\n", 1)[1].split("\n\nREPAIR INSTRUCTIONS:", 1)[0])
         props = schema["properties"]
         step = re.search(r"^STEP: (.+)$", prompt, re.M).group(1)
@@ -126,13 +130,15 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
             if kind == "period":
                 return {"marker": "VelaCount", "value": 1,
                         "fact": " ".join(words[:4]) + " VelaCount 1."}
-            return {"fact": " ".join(w.title() for w in words[:6]) + "."}
-        if step == "fact_check":
-            return {"matches": True, "reason": "The synthetic fact matches the requested kind."}
+            text = " ".join(w.title() for w in words[:6]) + "."
+            fields = {"proper_noun": {"name": words[0].title()},
+                      "object": {"object": words[0].title()},
+                      "procedure": {"actor": words[0].title(), "action": words[1].title()}}
+            return {**fields[kind], "fact": text}
         if step == "relations":
             return {"relations": []}
         if step == "review":
-            return {"verdicts": {k: True for k in ("consistent", "objective", "no_story", "fits_world")}, "issues": []}
+            return {"verdicts": {k: True for k in ("consistent", "objective", "no_outside_premises")}, "issues": []}
         raise AssertionError(step)
     backend = FakeLLMBackend(respond)
     backend.calls = calls

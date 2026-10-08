@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+from .criteria import contract_terms, outside_terms, real_world_check
 from .schemas import load_schema
 from .structured import generate_structured, StructuredFailure, StructuredResult
 from .premises import CONTRACT_ID, normalize_premises, world_premises
@@ -14,7 +15,7 @@ from .premises import CONTRACT_ID, normalize_premises, world_premises
 PROMPT_PATH = Path(__file__).resolve().parents[2] / "config/prompts/world/contract.yaml"
 
 
-def establish_contract(backend, graph, brief, axes, *, max_attempts=3, max_conversions=2):
+def establish_contract(backend, graph, brief, axes, *, max_attempts=3, max_conversions=2, raw_input=""):
     """Mutate only the contract records; never create exploration entities.
 
     k is the total number of attempts, including the initial call. Completed
@@ -49,9 +50,19 @@ def establish_contract(backend, graph, brief, axes, *, max_attempts=3, max_conve
         language=graph["meta"]["language"],
         context=json.dumps(context, ensure_ascii=False, separators=(",", ":")),
         errors="(none)")
+    def validate_terms(data):
+        judged = real_world_check(backend, contract_terms(data), language=graph["meta"]["language"],
+            max_attempts=max_attempts, max_conversions=max_conversions)
+        if judged.data is None:
+            return [{"path": "$", "expected": "valid real_world_check", "actual": data,
+                     "message": "no_outside_premises: " + json.dumps(judged.violations[-1], ensure_ascii=False)}]
+        return [{"path": "$", "expected": "terms specified in original input", "actual": item["term"],
+                 "message": "no_outside_premises: " + item["term"] + ": " + item["reason"]}
+                for item in outside_terms(judged.data, raw_input)]
+
     result = generate_structured(backend, prompt, load_schema("world_contract"),
         task="world_contract", max_attempts=max_attempts, max_conversions=max_conversions,
-        system_prompt=prompts["system"])
+        system_prompt=prompts["system"], content_validator=validate_terms)
     success = result.data is not None
     graph["contract_stage"] = {"status": "success" if success else "failed",
         "attempts": result.attempts, "checks_enabled": success, "disabled_checks": [],
