@@ -68,8 +68,8 @@ def test_each_call_generates_only_one_item_in_order_with_decided_context():
     assert (BRIEF, AXES) == original
     assert not graph["entities"]
     assert Draft202012Validator(load_schema("world_contract")).is_valid(accepted)
-    assert step_schema("fact", kind="number", contract=accepted)["properties"]["unit"]["enum"] == ["term", "quota", "vel"]
-    assert step_schema("fact", kind="period", contract=accepted)["properties"]["marker"]["enum"] == ["VelaCount", "VelaCount", "VelaRise", "VelaRest"]
+    assert step_schema("fact_element", kind="number", contract=accepted)["properties"]["unit"]["enum"] == ["term", "quota", "vel"]
+    assert step_schema("fact_element", kind="period", contract=accepted)["properties"]["marker"]["enum"] == ["VelaCount", "VelaCount", "VelaRise", "VelaRest"]
     terms = [json.JSONDecoder().raw_decode(c["prompt"].split("TERMS:\n")[1])[0]
              for c in backend.schema_calls if "STEP: real_world_check\n" in c["prompt"]]
     assert len(terms) == 13 and all(len(values) == 1 for values in terms)

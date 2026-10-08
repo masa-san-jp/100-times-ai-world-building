@@ -148,3 +148,13 @@ def contract_backend(responses):
         return item_response(prompt)
 
     return FakeLLMBackend(respond)
+
+
+def split_fact_output(step, data):
+    """Select one phase from a combined synthetic fact fixture."""
+    if step == "fact_element":
+        return {key: value for key, value in data.items() if key != "fact"}
+    if step == "fact_text":
+        elements = {"subject", "value", "unit", "marker", "name", "object", "actor", "action"}
+        return {key: value for key, value in data.items() if key not in elements}
+    return data

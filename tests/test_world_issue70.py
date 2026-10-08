@@ -2,6 +2,7 @@
 
 import copy
 import json
+import re
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -15,7 +16,7 @@ from src.world.quantities import outside_units
 from src.world.schemas import step_schema
 from src.world.structured import StructuredFailure
 from tests.test_world_builder import backend_with, build, graph
-from tests.helpers_world import contract_item
+from tests.helpers_world import contract_item, split_fact_output
 from tests.test_world_explore import AXES, BRIEF, RAW, SYNTHETIC_PREMISES, cfg, make_backend
 
 
@@ -28,13 +29,18 @@ FACTS = {
 
 @pytest.mark.parametrize("kind", FACTS)
 def test_kind_schemas_require_all_fields_and_preserve_fact_bounds(kind):
-    validator = Draft202012Validator(step_schema("fact", kind=kind))
-    assert validator.is_valid(FACTS[kind])
-    for field in FACTS[kind]:
-        assert not validator.is_valid({k: v for k, v in FACTS[kind].items() if k != field})
+    element = split_fact_output("fact_element", FACTS[kind])
+    validator = Draft202012Validator(step_schema("fact_element", kind=kind))
+    assert validator.is_valid(element)
+    for field in element:
+        assert not validator.is_valid({k: v for k, v in element.items() if k != field})
         for value in [None, True, 3, ""]:
-            assert not validator.is_valid({**FACTS[kind], field: value})
-    assert not validator.is_valid({**FACTS[kind], "extra": "extra"})
+            assert not validator.is_valid({**element, field: value})
+    assert not validator.is_valid({**element, "extra": "extra"})
+    body = Draft202012Validator(step_schema("fact_text"))
+    assert body.is_valid(split_fact_output("fact_text", FACTS[kind]))
+    for value in [None, True, 3, "", "x" * 4, "x" * 201]:
+        assert not body.is_valid({"fact": value})
 
 
 @pytest.mark.parametrize("kind,field,minimum,maximum", [
@@ -42,24 +48,28 @@ def test_kind_schemas_require_all_fields_and_preserve_fact_bounds(kind):
     ("procedure", "actor", 1, 30), ("procedure", "action", 1, 60),
 ])
 def test_kind_schema_exact_field_bounds(kind, field, minimum, maximum):
-    validator = Draft202012Validator(step_schema("fact", kind=kind))
+    validator = Draft202012Validator(step_schema("fact_element", kind=kind))
+    element = split_fact_output("fact_element", FACTS[kind])
     for length in [minimum, maximum]:
-        assert validator.is_valid({**FACTS[kind], field: "x" * length})
+        assert validator.is_valid({**element, field: "x" * length})
     for length in [minimum - 1, maximum + 1]:
-        assert not validator.is_valid({**FACTS[kind], field: "x" * length})
+        assert not validator.is_valid({**element, field: "x" * length})
 
 
 @pytest.mark.parametrize("slot,field", [(1, "name"), (2, "object"), (3, "actor"), (3, "action")])
 def test_missing_field_in_body_is_detail_failure(slot, field):
     def change(step, current, attempt, prompt, good):
-        if step == "fact" and current == slot:
-            return {**good, field: "AbsentField"}
+        if step == "fact_text" and current == slot:
+            fields = {key: json.loads(value) for key, value in
+                      re.findall(r'^(name|object|actor|action): (.+)$', prompt, re.M)}
+            return {"fact": "Retained " + " ".join(value for key, value in fields.items()
+                                                     if key != field) + "."}
         return good
     _, result = build(backend_with(change), graph("site"), "zoom", "e5", SYNTHETIC_PREMISES,
                       config={"build": {"max_step_attempts": 2}})
     assert result.entity is None and result.failure["slot"] == slot
     assert "detail" in result.failure["reason"]
-    assert len([r for r in result.steps if r.step == "fact" and r.slot == slot]) == 2
+    assert len([r for r in result.steps if r.step == "fact_text" and r.slot == slot]) == 4
 
 
 @pytest.mark.parametrize("source", ["raw", "brief", "local_name", "local_fact", "all_names",
@@ -94,8 +104,8 @@ def test_new_name_normalizes_and_checks_every_source(source, embedded):
 
 def test_existing_proper_name_is_rejected_by_detail():
     def change(step, slot, attempt, prompt, good):
-        if step == "fact" and slot == 1:
-            return {"name": "alpha", "fact": "The alpha registry handles the records."}
+        if step in {"fact_element", "fact_text"} and slot == 1:
+            return split_fact_output(step, {"name": "alpha", "fact": "The alpha registry handles the records."})
         return good
     _, result = build(backend_with(change), config={"build": {"max_step_attempts": 2}})
     assert not result.entity and result.failure["slot"] == 1
@@ -119,10 +129,10 @@ def test_digit_bearing_unit_passes_entity_checks(field):
     def change(step, slot, attempt, prompt, good):
         if field == "summary" and step == "summary":
             return {"summary": "The retained containers have a measured capacity of 120 k2s."}
-        if field == "number" and step == "fact" and slot == 0:
-            return {**good, "value": 120, "unit": "k2s", "fact": "Capacity is 120 k2s."}
-        if field == "object" and step == "fact" and slot == 2:
-            return {"object": "containers", "fact": "The containers retain 120 k2s."}
+        if field == "number" and step in {"fact_element", "fact_text"} and slot == 0:
+            return split_fact_output(step, {**good, "value": 120, "unit": "k2s", "fact": "Capacity is 120 k2s."})
+        if field == "object" and step in {"fact_element", "fact_text"} and slot == 2:
+            return split_fact_output(step, {"object": "containers", "fact": "The containers retain 120 k2s."})
         return good
     _, result = build(backend_with(change), graph("settlement"), "expand", "e3", contract)
     assert result.entity, result.failure
@@ -133,19 +143,20 @@ def test_unregistered_body_units_fail_no_outside_premises(field):
     def change(step, slot, attempt, prompt, good):
         if field == "summary" and step == "summary":
             return {"summary": "The retained containers have a measured capacity of 120 uv."}
-        if field == "object" and step == "fact" and slot == 2:
-            return {"object": "containers", "fact": "The containers retain 120 uv."}
+        if field == "object" and step in {"fact_element", "fact_text"} and slot == 2:
+            return split_fact_output(step, {"object": "containers", "fact": "The containers retain 120 uv."})
         return good
     _, result = build(backend_with(change), graph("settlement"), "expand", "e3", SYNTHETIC_PREMISES)
     assert not result.entity and "no_outside_premises" in result.failure["reason"]
 
 
-def test_number_unit_is_checked_by_field_instead_of_body_extraction():
+def test_number_body_rejects_unregistered_units_after_element_acceptance():
     backend = backend_with(lambda step, slot, attempt, prompt, good:
-        {**good, "fact": good["fact"] + " Additional reading is 120 uv."}
-        if step == "fact" and slot == 0 else good)
+        split_fact_output(step, {**good, "fact": good["fact"] + " Additional reading is 120 uv."})
+        if step == "fact_text" and slot == 0 else good)
     _, result = build(backend, contract=SYNTHETIC_PREMISES)
-    assert result.entity, result.failure
+    assert result.entity is None and result.failure["step"] == "fact_text"
+    assert "no_outside_premises" in result.failure["reason"]
 
 
 TERMS = ["Zelvra", "Tavren"]
@@ -273,7 +284,7 @@ def test_contract_real_world_exhaustion_is_failed_and_resumable():
     assert len(backend.schema_calls) == count
 
 
-@pytest.mark.parametrize("step,slot", [("name", None), ("fact", 1)])
+@pytest.mark.parametrize("step,slot", [("name", None), ("fact_element", 1)])
 def test_real_name_rewrites_only_its_step_with_reason(step, slot):
     judged = 0
     def change(current, current_slot, attempt, prompt, good):
@@ -281,7 +292,7 @@ def test_real_name_rewrites_only_its_step_with_reason(step, slot):
         if current == step and current_slot == slot and attempt == 1:
             if step == "name":
                 return {"name": "Zelvra"}
-            return {"name": "Zelvra", "fact": "Zelvra records discarded tokens."}
+            return {"name": "Zelvra"}
         if current == "real_world_check":
             if good["items"][0]["term"] == "Zelvra":
                 judged += 1
@@ -339,23 +350,23 @@ def test_no_new_information_rebuilds_first_number_before_review(monkeypatch, rec
     g["entities"][0]["facts"] = [{"kind": "number", "value": 12, "unit": "quota",
                                   "text": "Measured capacity is 12 quota."}]
     def change(step, slot, attempt, prompt, good):
-        if step == "fact" and slot == 0:
+        if step == "fact_element" and slot == 0:
             if attempt > 1:
                 assert "new_information" in prompt and "new (value, unit) pair" in prompt
             value = 13 if attempt > 1 and recover else 12
-            return {**good, "value": value, "fact": f"Measured capacity is {value} quota."}
+            return split_fact_output(step, {**good, "value": value, "fact": f"Measured capacity is {value} quota."})
         return good
     backend = backend_with(change)
     builder, result = build(backend, g, config={"build": {"max_step_attempts": 2}})
-    assert backend.attempts[("fact", 0)] == 2
-    assert backend.attempts[("fact", 1)] == 1
-    assert not next(r for r in result.steps if r.step == "fact" and r.slot == 0).accepted
-    assert builder.metrics["steps"]["fact"]["reasons"]["new_information"]
+    assert backend.attempts[("fact_element", 0)] == 2
+    assert backend.attempts[("fact_element", 1)] == 1
+    assert not next(r for r in result.steps if r.step == "fact_element" and r.slot == 0).accepted
+    assert builder.metrics["steps"]["fact_element"]["reasons"]["new_information"]
     if recover:
         assert result.entity and result.entity["facts"][0]["value"] == 13
         assert backend.attempts[("review", None)] == 1
     else:
-        assert result.entity is None and result.failure["step"] == "fact" and result.failure["slot"] == 0
+        assert result.entity is None and result.failure["step"] == "fact_element" and result.failure["slot"] == 0
         assert "new_information" in result.failure["reason"]
         assert ("review", None) not in backend.attempts
 
