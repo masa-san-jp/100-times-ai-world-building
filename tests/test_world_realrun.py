@@ -267,7 +267,8 @@ def ja_backend():
                 "open_questions": ["管理権の帰属は未定"], "constraints": []}
         if prompt.startswith("WORLD CONTRACT"):
             from tests.test_world_explore import SYNTHETIC_PREMISES
-            return SYNTHETIC_PREMISES
+            from tests.helpers_world import contract_item
+            return contract_item(SYNTHETIC_PREMISES, prompt)
         return {"axes": [{"name": "", "reason": "", "domain": "resources_economy",
                           "meaning": "塩と水の配分", "weight": 0.9,
                           "statement_ids": ["s1"]}]}

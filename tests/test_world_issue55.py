@@ -28,7 +28,9 @@ def backend_without_candidate_contracts(contract_responses):
         if prompt.startswith("OUTPUT SCHEMA:\n"):
             return {}
         if prompt.startswith("WORLD CONTRACT"):
-            response = next(responses)
+            response = next(responses, None)
+            if response is None:
+                return json.loads(inner.generate_schema(prompt, {}, constrained=True))
             if isinstance(response, Exception):
                 raise response
             return response
@@ -40,10 +42,9 @@ def backend_without_candidate_contracts(contract_responses):
     return FakeLLMBackend(respond)
 
 
-@pytest.mark.parametrize("invalid", [{}, {"calendar": {}},
-    {k: v for k, v in SYNTHETIC_PREMISES.items() if k != "society"}])
-def test_contract_repairs_missing_sections_before_exploring_and_persists(tmp_path, invalid):
-    backend = backend_without_candidate_contracts([invalid, SYNTHETIC_PREMISES])
+@pytest.mark.parametrize("invalid", [{}, {"name": 1}, {"name": "VelaCount", "extra": "unexpected"}])
+def test_contract_repairs_invalid_item_before_exploring_and_persists(tmp_path, invalid):
+    backend = backend_without_candidate_contracts([invalid, {"name": "VelaCount"}])
     result = run_world_engine(RAW, package_dir=tmp_path, backend=backend,
                               budget={"max_iterations": 2}, config=cfg())
     assert result.counters["accepted"] >= 1
@@ -53,9 +54,9 @@ def test_contract_repairs_missing_sections_before_exploring_and_persists(tmp_pat
     assert world_premises(result.graph)["source_entity"] == CONTRACT_ID
     assert not validate_graph(result.graph, brief=BRIEF)
     stage = result.graph["contract_stage"]
-    assert stage["status"] == "success" and stage["attempts"] == 2
+    assert stage["status"] == "success" and stage["attempts"] == 17
     prompts = [p for p in backend.json_prompts if p.startswith("WORLD CONTRACT")]
-    assert len(prompts) == 2
+    assert len(prompts) == 17
     assert prompts[0] in backend.json_prompts[:3]
     assert backend.json_prompts.index(prompts[1]) < next(
         i for i, p in enumerate(backend.json_prompts) if "TASK: Propose" in p)
@@ -79,15 +80,15 @@ def test_contract_repairs_missing_sections_before_exploring_and_persists(tmp_pat
 @pytest.mark.parametrize("failure", [{}, {"calendar": {}}])
 def test_k_failed_contract_attempts_stop_execution_and_remain_failed_on_resume(tmp_path, failure):
     from src.world.structured import StructuredFailure
-    backend = backend_without_candidate_contracts([failure] * 2)
+    backend = backend_without_candidate_contracts([failure] * 12)
     with pytest.raises(StructuredFailure, match="world_contract"):
         run_world_engine(RAW, package_dir=tmp_path, backend=backend,
                          budget={"max_iterations": 3}, config=cfg(), structured_max_attempts=2)
     loaded = GraphStore(tmp_path).load()
     stage = loaded["contract_stage"]
-    assert stage["status"] == "failed" and stage["attempts"] == 2
+    assert stage["status"] == "failed" and stage["attempts"] == 4
     assert not loaded["entities"] and not world_premises(loaded)
-    assert len([p for p in backend.json_prompts if p.startswith("WORLD CONTRACT")]) == 2
+    assert len([p for p in backend.json_prompts if p.startswith("WORLD CONTRACT")]) == 4
     manifest = json.loads((tmp_path / "run_manifest.json").read_text())
     assert manifest["status"] == "failed" and manifest["world_contract"] == stage
     assert "world_contract" in (tmp_path / "final/world_report.md").read_text()
@@ -104,7 +105,7 @@ def test_failed_contract_never_enables_exploration_fallback():
     with pytest.raises(StructuredFailure):
         establish_contract(FakeLLMBackend({}), graph, BRIEF, AXES, max_attempts=1)
     assert graph["contract_stage"]["status"] == "failed"
-    assert graph["contract_stage"]["structured_failure"]["attempts"] == 1
+    assert graph["contract_stage"]["structured_failure"]["attempts"] == 4
     assert not graph["entities"]
 
 

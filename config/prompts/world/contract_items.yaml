@@ -1,0 +1,56 @@
+common:
+  system: |
+    Return only the requested JSON contract item. Describe definitions and
+    limits in a neutral reference register. No scenes, dialogue or narrative.
+  user: |
+    WORLD CONTRACT ITEM
+    OUTPUT LANGUAGE: {language}
+    INPUT BRIEF AND AXES:
+    {context}
+    CONTRACT ITEMS ALREADY DECIDED:
+    {contract}
+    ITEM: {item}
+    SLOT: {slot}
+    {instruction}
+
+    Preserve explicit input. Do not use real-world systems absent from the
+    original input; invent names for this world. Names written in the original
+    input may be used verbatim. Derive definitions from the brief and axes.
+    Assume no familiar era, technology or social framework. No entities or story.
+    Names, markers and capabilities are short notations to write verbatim in body text.
+    Put explanations in description, origin or quantity, rather than in names,
+    markers, capabilities or symbols. Do not repeat an already decided entry
+    in the same list.
+items:
+  calendar_name: |
+    Give only the calendar name in name (1..20 characters), without whitespace,
+    parentheses, colons, commas, semicolons or Japanese full stops, including
+    their fullwidth/Japanese forms.
+  calendar_origin: |
+    Give only origin (1..160 characters). Define the calendar's starting point
+    and its connection to the input and axes.
+  calendar_marker: |
+    Give only one marker (1..12 characters), without whitespace, parentheses,
+    colons, commas, semicolons or Japanese full stops, including their
+    fullwidth/Japanese forms. It must differ from already decided markers.
+  technology_description: |
+    Give only description (1..160 characters). Define both technological
+    capabilities and limits, connected to the input and axes.
+  capability: |
+    Give only one capability (1..30 characters), a short notation without
+    whitespace, parentheses, colons, commas, semicolons or Japanese full stops,
+    including their fullwidth/Japanese forms. It must differ from existing capabilities.
+  unit: |
+    Give only symbol and quantity for one unit. The symbol is a short notation
+    written immediately after a number (1..12 characters), without whitespace,
+    parentheses, colons, commas or semicolons, including fullwidth/Japanese forms.
+    It must differ from existing unit symbols.
+    In quantity, describe what the unit measures (1..60 characters).
+  society_description: |
+    Give only description (1..160 characters). Define how authority,
+    obligations and shared decisions work and are limited, connected to the input and axes.
+  institution: |
+    Give only name and description for one institution. Name (1..30 characters)
+    must have no whitespace, parentheses, colons, commas, semicolons or Japanese
+    full stops, including fullwidth/Japanese forms, and must differ from existing
+    institution names. Define its role and limits in description (1..80 characters).

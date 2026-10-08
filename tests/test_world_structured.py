@@ -166,8 +166,8 @@ def test_required_stage_failure_stops_engine_and_records_last_violations(tmp_pat
     assert caught.value.task == task
     manifest = json.loads((tmp_path / "run_manifest.json").read_text())
     assert manifest["status"] == "failed" and task in manifest["error"]
-    assert manifest["structured_failure"]["attempts"] == 2
-    assert manifest["structured"][task]["failures"] == 1
+    assert manifest["structured_failure"]["attempts"] == (4 if task == "world_contract" else 2)
+    assert manifest["structured"]["contract/calendar_name" if task == "world_contract" else task]["failures"] == 1
     assert "Structured output" in (tmp_path / "final/world_report.md").read_text()
     assert not any("TASK: Propose" in p for p in backend.json_prompts)
 
@@ -190,7 +190,9 @@ def test_image_description_failure_preserves_original_and_does_not_generate_brie
 def test_successful_run_metrics_are_in_manifest_and_report(tmp_path):
     run_world_engine(RAW, package_dir=tmp_path, backend=make_backend(), config=cfg(), budget={"max_iterations": 1})
     manifest = json.loads((tmp_path / "run_manifest.json").read_text())
-    for task in ("input_brief", "world_axes", "world_contract", "type", "grounding", "name", "axes", "summary", "fact", "real_world_check", "review"):
+    for task in ("input_brief", "world_axes", "contract/calendar_name", "contract/calendar_origin", "contract/calendar_marker",
+                 "contract/technology_description", "contract/capability", "contract/unit",
+                 "contract/society_description", "contract/institution", "type", "grounding", "name", "axes", "summary", "fact", "real_world_check", "review"):
         entry = manifest["structured"][task]
         assert entry["calls"] >= 1 and entry["attempts"]["1"] >= 1
         assert entry["failures"] == 0 and entry["elapsed"] >= 0
@@ -237,5 +239,5 @@ def test_metrics_include_repair_failure_modes_and_resume_cumulative_counts(tmp_p
     resumed = json.loads((tmp_path / "run_manifest.json").read_text())["structured"]
     assert resumed["input_brief"] == original["input_brief"]
     assert resumed["world_axes"] == original["world_axes"]
-    assert resumed["world_contract"] == original["world_contract"]
+    assert all(resumed[k] == original[k] for k in original if k.startswith("contract/"))
     assert resumed["fact"]["calls"] > original["fact"]["calls"]

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12,
+      "pattern": "^[^\\s()（）:：,、;；]+$"
+    },
+    "quantity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    }
+  },
+  "required": [
+    "symbol",
+    "quantity"
+  ],
+  "additionalProperties": false
+}

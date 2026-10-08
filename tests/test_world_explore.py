@@ -39,13 +39,16 @@ GENERIC_FACTS = [
     {"kind": "object", "text": "iron lamp"}]
 SYNTHETIC_PREMISES = {
     "calendar": {"name": "VelaCount", "origin": "first quota agreement",
-                 "markers": ["VelaCount"]},
+                 "markers": ["VelaCount", "VelaRise", "VelaRest"]},
     "technology": {"description": "Seals and hand-written ledgers; no automated records",
-                   "capabilities": ["seal", "ledger"],
+                   "capabilities": ["seal", "ledger", "tally"],
                    "units": [{"symbol": "term", "quantity": "Record cycle duration"},
-                             {"symbol": "quota", "quantity": "Measured capacity"}]},
+                             {"symbol": "quota", "quantity": "Measured capacity"},
+                             {"symbol": "vel", "quantity": "Measured span"}]},
     "society": {"description": "Quota agreements define shared record procedures",
-                "institutions": []}}
+                "institutions": [{"name": "QuotaBoard", "description": "Records shared allocations"},
+                                 {"name": "SealCircle", "description": "Checks seals"},
+                                 {"name": "TallyRing", "description": "Reviews counts"}]}}
 
 OPS = {"Propose": "premise", "Add sibling": "expand", "Add child": "zoom",
        "Explain why": "cause", "Describe how": "perspective",
@@ -96,7 +99,8 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
             return {"axes": [{"domain": "resources_economy", "meaning": "m",
                 "weight": 0.9, "statement_ids": ["s1"], "name": "", "reason": ""}]}
         if prompt.startswith("WORLD CONTRACT"):
-            return SYNTHETIC_PREMISES
+            from tests.helpers_world import contract_item
+            return contract_item(SYNTHETIC_PREMISES, prompt)
         if "STEP: real_world_check\n" in prompt:
             terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
             return {"items": [{"term": term, "category": "invented",

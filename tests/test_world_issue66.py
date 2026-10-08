@@ -8,7 +8,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from src.llm.fake import FakeLLMBackend
-from tests.helpers_world import contract_backend
+from tests.helpers_world import contract_backend, configure_contract, contract_item
 from src.world.contract import establish_contract
 from src.world.explore import run_world_engine
 from src.world.graph import GraphStore, make_entity, new_graph
@@ -88,28 +88,24 @@ def test_conversion_preserves_enum_values_that_match_placeholders():
 
 
 def test_placeholder_contract_rewrites_without_conversion():
-    good = copy.deepcopy(SYNTHETIC_PREMISES)
-    good["society"]["institutions"] = [{"name": "QuotaBoard", "description": "Records shared allocations"}]
-
-    def placeholders(value):
-        if isinstance(value, dict):
-            return {key: placeholders(child) for key, child in value.items()}
-        if isinstance(value, list):
-            return [placeholders(child) for child in value]
-        return "string"
-
-    bad = placeholders(good)
-    assert Draft202012Validator(load_schema("world_contract")).is_valid(bad)
-    backend = contract_backend([bad, good])
+    def respond(prompt):
+        good = contract_item(SYNTHETIC_PREMISES, prompt)
+        bad = {key: "string" for key in good}
+        item = prompt.split("ITEM: ", 1)[1].split("\n", 1)[0]
+        assert Draft202012Validator(load_schema("contract/" + item)).is_valid(bad)
+        return bad if "PREVIOUS OUTPUT" not in prompt else good
+    backend = contract_backend(respond)
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
-    assert stage["status"] == "success" and stage["attempts"] == 2
-    assert graph["world_contract"]["world_premises"] == good
-    assert len(backend.schema_calls) == 3
-    assert all(c["prompt"].startswith("WORLD CONTRACT") for c in backend.schema_calls[:2])
-    entry = backend._structured_metrics["world_contract"]
-    assert entry["placeholder_violations"] == 13
-    assert entry["conversions"]["tried"] == 0
+    assert stage["status"] == "success" and stage["attempts"] == 32
+    assert graph["world_contract"]["world_premises"] == SYNTHETIC_PREMISES
+    assert len(backend.schema_calls) == 45
+    for item in stage["metrics"]["steps"]:
+        entry = backend._structured_metrics["contract/" + item]
+        assert entry["placeholder_violations"] >= 1
+        assert entry["conversions"]["tried"] == 0
+    assert sum(e["placeholder_violations"] for k,e in backend._structured_metrics.items()
+               if k.startswith("contract/")) == 22
 
 
 def test_placeholder_candidate_name_rewrites_and_entity_is_built():
@@ -145,16 +141,18 @@ def test_two_schema_keywords_are_rejected_before_schema_validation(keys):
 
 @pytest.mark.parametrize("fenced", [False, True])
 def test_entire_schema_echo_rewrites_contract(fenced):
-    echo = load_schema("world_contract")
-    if fenced:
-        echo = "```json\n" + json.dumps(echo) + "\n```"
-    backend = contract_backend([echo, SYNTHETIC_PREMISES])
+    def respond(prompt):
+        if "ITEM: calendar_name\n" in prompt and "PREVIOUS OUTPUT" not in prompt:
+            echo = load_schema("contract/calendar_name")
+            return "```json\n" + json.dumps(echo) + "\n```" if fenced else echo
+        return contract_item(SYNTHETIC_PREMISES, prompt)
+    backend = contract_backend(respond)
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
-    assert stage["status"] == "success" and stage["attempts"] == 2
+    assert stage["status"] == "success" and stage["attempts"] == 17
     assert graph["world_contract"]["world_premises"] == SYNTHETIC_PREMISES
-    assert backend._structured_metrics["world_contract"]["schema_echo"] == 1
-    assert backend._structured_metrics["world_contract"]["conversions"]["tried"] == 0
+    assert backend._structured_metrics["contract/calendar_name"]["schema_echo"] == 1
+    assert backend._structured_metrics["contract/calendar_name"]["conversions"]["tried"] == 0
 
 
 @pytest.mark.parametrize("data", [{"type": "record"}, {"nested": {"type": "record", "properties": {}}}])
@@ -253,29 +251,44 @@ def test_legacy_bare_institution_names_remain_readable():
 
 
 @pytest.mark.parametrize("field,limit", NOTATIONS)
-def test_explanatory_notations_are_repaired_as_schema_violations(field, limit):
+def test_explanatory_notations_are_repaired_as_schema_violations(field, limit, tmp_path, monkeypatch):
     bad = contract_with_notation(field, "短名：説明。")
     good = contract_with_notation(field, "短名")
-    backend = contract_backend([bad, bad, bad, good])
+    configure_contract(monkeypatch, tmp_path, good)
+    item = {"calendar_name": "calendar_name", "calendar_marker": "calendar_marker",
+            "institution_name": "institution"}[field]
+    calls = 0
+    last = [""]
+    def respond(prompt):
+        nonlocal calls
+        if f"ITEM: {item}\n" in prompt:
+            last[0] = prompt
+        if f"ITEM: {item}\n" in prompt or "SOURCE OUTPUT:" in prompt:
+            calls += 1
+            return contract_item(bad if calls <= 3 else good, last[0])
+        return contract_item(good, prompt)
+    backend = contract_backend(respond)
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
-    assert stage["status"] == "success" and stage["attempts"] == 2
+    assert stage["status"] == "success" and stage["attempts"] == len(stage["steps"]) + 1
     assert graph["world_contract"]["world_premises"] == good
-    assert len(backend.schema_calls) == 5
-    assert all("SOURCE OUTPUT:" in c["prompt"] for c in backend.schema_calls[1:3])
-    repair = backend.json_prompts[3]
+    selected = [c for c in backend.schema_calls if f"ITEM: {item}\n" in c["prompt"]
+                or "SOURCE OUTPUT:" in c["prompt"]]
+    assert len(selected) == 4
+    assert all("SOURCE OUTPUT:" in c["prompt"] for c in selected[1:3])
+    repair = selected[3]["prompt"]
     errors = json.loads(repair.split("Fix EVERY violation below.\n", 1)[1]
                         .split("\nPREVIOUS OUTPUT:", 1)[0])
     assert all(v["actual"] == "短名：説明。" and "pattern" in v["expected"] for v in errors)
     assert [v["message"] for v in errors] == stage["errors"][0]["errors"]
-    prompt = backend.json_prompts[0]
-    assert "short notations to write verbatim in body text" in prompt
-    assert "Put explanations in description," in prompt
+    assert "short notations to write verbatim in body text" in selected[0]["prompt"]
+    assert "Put explanations in description," in selected[0]["prompt"]
 
 
-def test_institution_definitions_survive_persistence_rendering_and_review(tmp_path):
+def test_institution_definitions_survive_persistence_rendering_and_review(tmp_path, monkeypatch):
     contract = contract_with_notation("institution_name", "QuotaBoard")
     graph = new_graph("en")
+    configure_contract(monkeypatch, tmp_path, contract)
     establish_contract(contract_backend(contract), graph, BRIEF, AXES)
     root = make_entity("e1", "place", "Test world", "world",
                        provenance={"statement_ids": ["s1"], "derived_from": [], "reason": ""})
@@ -302,7 +315,7 @@ def test_institution_definitions_survive_persistence_rendering_and_review(tmp_pa
         assert passed["society"] == context["world_premises"]["society"] == contract["society"]
         assert "society.institutions[].name verbatim" in prompt
     period = step_schema("fact", kind="period", contract=contract)
-    assert period["properties"]["marker"]["enum"] == ["VelaCount", "VelaCount"]
+    assert period["properties"]["marker"]["enum"] == ["VelaCount", *contract["calendar"]["markers"]]
 
 
 def test_content_metrics_accumulate_persist_and_resume_with_legacy_defaults(tmp_path):
@@ -312,10 +325,10 @@ def test_content_metrics_accumulate_persist_and_resume_with_legacy_defaults(tmp_
 
     def respond(prompt):
         nonlocal contract_calls, name_calls
-        if prompt.startswith("WORLD CONTRACT"):
+        if "ITEM: calendar_name\n" in prompt:
             contract_calls += 1
             if contract_calls == 1:
-                return load_schema("world_contract")
+                return load_schema("contract/calendar_name")
         if "STEP: name\n" in prompt:
             name_calls += 1
             if name_calls <= 2:
@@ -327,7 +340,7 @@ def test_content_metrics_accumulate_persist_and_resume_with_legacy_defaults(tmp_
                               config=cfg(), budget={"max_iterations": 1})
     assert result.counters["accepted"] == 1
     manifest = json.loads((tmp_path / "run_manifest.json").read_text())
-    assert manifest["structured"]["world_contract"]["schema_echo"] == 1
+    assert manifest["structured"]["contract/calendar_name"]["schema_echo"] == 1
     assert manifest["structured"]["name"]["placeholder_violations"] == 2
     assert manifest["structured"]["name"]["conversions"]["tried"] == 0
     report = (tmp_path / "final/world_report.md").read_text()
@@ -335,7 +348,7 @@ def test_content_metrics_accumulate_persist_and_resume_with_legacy_defaults(tmp_
     run_world_engine(RAW, package_dir=tmp_path, backend=make_backend(),
                      config=cfg(), budget={"max_iterations": 2})
     resumed = json.loads((tmp_path / "run_manifest.json").read_text())["structured"]
-    assert resumed["world_contract"]["schema_echo"] == 1
+    assert resumed["contract/calendar_name"]["schema_echo"] == 1
     assert resumed["name"]["placeholder_violations"] == 2
     assert resumed["name"]["calls"] > manifest["structured"]["name"]["calls"]
 

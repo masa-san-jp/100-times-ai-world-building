@@ -7,7 +7,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from src.llm.fake import FakeLLMBackend
-from tests.helpers_world import contract_backend
+from tests.helpers_world import contract_backend, configure_contract, contract_item
 from src.world.contract import establish_contract
 from src.world.graph import GraphStore, make_entity, new_graph
 from src.world.language import load_language_rules, rules_for
@@ -51,29 +51,40 @@ def test_contract_accepts_bounded_arbitrary_symbols_and_descriptions(symbol, qua
 
 
 @pytest.mark.parametrize("description", ["length measurement", "長さ（比較用）", "長さ：比較値"])
-def test_description_used_as_symbol_enters_contract_schema_repair_loop(description):
+def test_description_used_as_symbol_enters_contract_schema_repair_loop(description, tmp_path, monkeypatch):
     invalid = contract_with_units({"symbol": description, "quantity": "Measured length"})
     valid = contract_with_units({"symbol": "qx", "quantity": "Measured length"})
-    backend = contract_backend([invalid, invalid, invalid, valid])
+    configure_contract(monkeypatch, tmp_path, valid)
+    calls = 0
+    last = [""]
+    def respond(prompt):
+        nonlocal calls
+        if "ITEM: unit\n" in prompt:
+            last[0] = prompt
+        if "ITEM: unit\n" in prompt or "SOURCE OUTPUT:" in prompt:
+            calls += 1
+            return contract_item(invalid if calls <= 3 else valid, last[0])
+        return contract_item(valid, prompt)
+    backend = contract_backend(respond)
     graph = new_graph("en")
     stage = establish_contract(backend, graph, BRIEF, AXES, max_attempts=2)
-    assert stage["status"] == "success" and stage["attempts"] == 2
+    assert stage["status"] == "success" and stage["attempts"] == len(stage["steps"]) + 1
     assert not graph["entities"]
     assert graph["world_contract"]["world_premises"] == valid
-    assert len(backend.schema_calls) == 5
-    assert all("SOURCE OUTPUT:" in c["prompt"] for c in backend.schema_calls[1:3])
-    repaired_prompt = backend.schema_calls[3]["prompt"]
+    selected = [c for c in backend.schema_calls if "ITEM: unit\n" in c["prompt"]
+                or "SOURCE OUTPUT:" in c["prompt"]]
+    assert len(selected) == 4
+    assert all("SOURCE OUTPUT:" in c["prompt"] for c in selected[1:3])
+    repaired_prompt = selected[3]["prompt"]
     assert '"symbol"' in repaired_prompt and "REPAIR INSTRUCTIONS" in repaired_prompt
     repair_errors = json.loads(repaired_prompt.split("Fix EVERY violation below.\n", 1)[1]
                                .split("\nPREVIOUS OUTPUT:", 1)[0])
     assert [error["message"] for error in repair_errors] == stage["errors"][0]["errors"]
-    assert all(error["path"] == '$["technology"]["units"][0]["symbol"]'
-               and error["actual"] == description for error in repair_errors)
+    assert all(error["path"] == '$["symbol"]' and error["actual"] == description
+               for error in repair_errors)
     assert any("pattern" in error["expected"] for error in repair_errors)
-    prompt = backend.schema_calls[0]["prompt"]
-    assert "immediately after a number" in prompt
-    assert "In quantity, describe what the unit measures" in prompt
-
+    assert "immediately after a number" in selected[0]["prompt"]
+    assert "In quantity, describe what the unit measures" in selected[0]["prompt"]
 
 def test_number_enum_contains_only_symbols_and_rejects_descriptions():
     contract = contract_with_units(
@@ -104,9 +115,10 @@ def test_unit_extraction_and_registration_use_symbols_without_registering_descri
     assert units_in_text("測定値は3別量。", contract, rules) == []
 
 
-def test_unit_descriptions_survive_persistence_and_both_renderers(tmp_path):
+def test_unit_descriptions_survive_persistence_and_both_renderers(tmp_path, monkeypatch):
     contract = contract_with_units({"symbol": "qx", "quantity": "Measured container volume"})
     graph = new_graph("en")
+    configure_contract(monkeypatch, tmp_path, contract)
     establish_contract(contract_backend(contract), graph, BRIEF, AXES)
     provenance = {"statement_ids": ["s1"], "derived_from": [], "reason": ""}
     root = make_entity("e1", "place", "Test world", "world", provenance=provenance)
