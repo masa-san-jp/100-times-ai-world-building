@@ -1,0 +1,13 @@
+# Provisional achievement conditions; calibrate using actual runs.
+faithful:
+  threshold: 1.0
+breadth:
+  per_weight: 3
+  axes: 1.0
+  perspective: 1
+depth:
+  relations: 0.3
+  history: 1
+scale:
+  min_entities: 1
+  chain: true

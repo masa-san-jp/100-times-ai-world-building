@@ -202,7 +202,7 @@ def test_zoom_outranks_other_operators_while_lower_scales_are_empty():
     cfg = load_explore_config()
     g = world_only_graph()
     needs = scale_needs(g, cfg)
-    assert needs["region"] == 1.0 and needs["world"] == 0.5
+    assert needs["region"] == 1.0 and needs["world"] == 0.0
     items = evaluate_frontier(g, AXES, cfg)
     pairs = candidate_pairs(items, cfg)
     priors = {(i["kind"], op): pair_prior(i, op, cfg) for i, op in pairs}

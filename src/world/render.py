@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import yaml
 from .premises import premise_extensions, world_premises
+from .world_criteria import axis_counts, load_world_criteria_config, world_status
 
 from .graph import (
     SCALES, SCALE_RANK, canonical, validate_graph,
@@ -521,13 +522,18 @@ def _report(ctx: _Ctx, limit: int) -> str:
             out.append("")
 
     cov = ctx.coverage
-    out += [f"## {L('coverage')}", "",
+    out += [f"## {L('purpose_achievement')}", "",
             f"- {L('coverage_state')}: "
-            + (L("met") if cov.get("met") else L("not_met")), "",
-            f"### {L('coverage_axes')}", ""]
+            + (L("met") if cov.get("met") else L("not_met")), ""]
+    out += _table(L("criteria_columns"), [
+        [ctx.sub("world_criteria", metric),
+         row["value"] if row["value"] is not None else L("none"),
+         row["threshold"], L("met") if row["met"] else L("not_met")]
+        for metric, row in cov["criteria"].items()]) + [""]
+    out += [f"### {L('coverage_axes')}", ""]
     weights = {a["id"]: float(a.get("weight") or 0) for a in ctx.axes}
     total_w = sum(weights.values())
-    used = cov.get("axis_entities") or {}
+    used = axis_counts(ctx.graph, ctx.axes)
     total_used = sum(used.values())
     rows = []
     for a in sorted(ctx.axes, key=lambda a: str(a["id"])):
@@ -635,8 +641,6 @@ def render_world_package(
     summary, unless ``run_summary`` is given) ``run_manifest.json``.  The same
     inputs always produce byte-identical files.
     """
-    from .explore import coverage_status, load_explore_config
-
     root = Path(package_dir)
     graph = _read_json(root / "world" / "graph.json", None)
     if graph is None:
@@ -663,9 +667,8 @@ def render_world_package(
            "counters": {k: int(v) for k, v in sorted(
                (run_summary.get("counters") or {}).items())}}
 
-    cfg = dict(explore_config) if explore_config is not None \
-        else load_explore_config()
-    coverage = coverage_status(graph, axes, cfg)
+    coverage = world_status(graph, axes, brief, world_premises(graph),
+                            load_world_criteria_config())
     labels = load_labels(graph["meta"]["language"], labels_path)
     ctx = _Ctx(graph, axes, brief, labels, run, coverage, prefs)
 

@@ -23,6 +23,10 @@ from .structured import StructuredFailure, client_instance, metrics_markdown
 from .operators import OperatorConfig
 from .builder import EntityBuilder
 from .premises import world_premises
+from .world_criteria import (
+    axis_counts, axis_requirements, causal_entities, load_world_criteria_config,
+    scale_chain, world_status,
+)
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 DEFAULT_EXPLORE_PATH = CONFIG_DIR / "world" / "explore.yaml"
@@ -100,19 +104,16 @@ def axis_consumption(
 def scale_needs(
     graph: Mapping[str, Any], cfg: Mapping[str, Any],
 ) -> Dict[str, float]:
-    """Shortage per scale in [0, 1]: how far below ``min_entities_per_scale``.
+    """Shortage per scale in [0, 1] against the world scale criterion.
 
-    Only scales down to ``coverage.depth`` count; deeper ones need nothing.
+    All scales from world through detail are measured.
     """
-    c = cfg.get("coverage", {})
-    depth = SCALE_RANK[c.get("depth", "district")]
-    want = max(1, int(c.get("min_entities_per_scale", 1)))
+    want = load_world_criteria_config()["scale"]["min_entities"]
     counts = {s: 0 for s in SCALES}
     for e in graph.get("entities", []):
         if e.get("scale") in counts:
             counts[e["scale"]] += 1
-    return {s: (max(0, want - counts[s]) / want if SCALE_RANK[s] <= depth
-                else 0.0) for s in SCALES}
+    return {s: max(0, want - counts[s]) / want for s in SCALES}
 
 
 def _axis_target(
@@ -212,7 +213,7 @@ def evaluate_frontier(
     ``zoom`` while lower scales are empty.  Output order is deterministic.
     """
     fcfg = cfg.get("frontier", {})
-    ccfg = cfg.get("coverage", {})
+    criteria_cfg = load_world_criteria_config()
     entities = sorted(graph.get("entities", []), key=lambda e: e["id"])
     if not entities:
         return [{"kind": "empty", "target": None, "axis": None,
@@ -269,11 +270,10 @@ def evaluate_frontier(
         if lows and low_thr > 0:
             add("low_score", e["id"], max(lows) / low_thr, None, sh)
 
-    used = axis_consumption(graph, axes)
-    min_axis = int(ccfg.get("min_axis_entities", 1))
-    n = len(entities)
+    used = axis_counts(graph, axes)
+    required = axis_requirements(axes, criteria_cfg)
     for axis_id in sorted(used):
-        expected = max(float(min_axis), shares.get(axis_id, 0.0) * n)
+        expected = required[axis_id]
         if used[axis_id] < expected:
             target = _axis_target(graph, axis_id, needs)
             if target is not None:
@@ -302,6 +302,35 @@ def evaluate_frontier(
             by_kind["breadth_gap"][-1]["breadth_need"] = round(
                 min(1.0, missing / minimum), 6)
 
+    # The purpose-derived gaps expose exactly the operation in the design.
+    # Existing frontier kinds and their allowed operations remain available.
+    status = world_status(graph, axes, {}, graph.get("world_contract"), criteria_cfg)
+
+    def add_world_gap(metric, operator, target):
+        row = status["criteria"][metric]
+        if row["met"] or target is None:
+            return
+        add("world_gap", target, 1 - row["value"] / row["threshold"],
+            share=share_of(by_id[target].get("axes", [])))
+        by_kind["world_gap"][-1].update(operator=operator, criterion=metric)
+
+    weights = {a["id"]: float(a.get("weight") or 0) for a in axes or []}
+    target = min(entities, key=lambda e: (
+        -max((weights[a] for a in e.get("axes", []) if a in weights), default=0.0),
+        int(e["id"][1:])))
+    add_world_gap("breadth.perspective", "perspective", target["id"])
+
+    connected = causal_entities(graph)
+    unconnected = [e for e in entities if e["id"] not in connected]
+    if unconnected:
+        target = min(unconnected, key=lambda e: (SCALE_RANK[e["scale"]], e["id"]))
+        add_world_gap("depth.relations", "cause", target["id"])
+        add_world_gap("depth.history", "history", target["id"])
+
+    chain = scale_chain(graph)
+    if chain and len(chain) < len(SCALES):
+        add_world_gap("scale.chain", "zoom", chain[-1])
+
     items: List[Dict[str, Any]] = []
     for kind in sorted(by_kind):
         ranked = sorted(by_kind[kind], key=lambda i: (
@@ -316,7 +345,7 @@ def candidate_pairs(
     ops = cfg.get("operators", {})
     pairs = []
     for item in items:
-        allowed = ([item.get("operator")] if item.get("kind") == "breadth_gap"
+        allowed = ([item.get("operator")] if item.get("operator")
                    else ops.get(item["kind"], []))
         for op in allowed:
             if op and not (op == "zoom" and item.get("target_scale") == "detail"):
@@ -452,38 +481,6 @@ def pair_prior(
     return (base * w + wd * depth) / (w + wd)
 
 
-# ---------------------------------------------------------------- coverage
-
-def mean_reward(graph: Mapping[str, Any]) -> Optional[float]:
-    vals = [e["scores"]["reward"] for e in graph.get("entities", [])
-            if isinstance((e.get("scores") or {}).get("reward"), (int, float))]
-    return sum(vals) / len(vals) if vals else None
-
-
-def coverage_status(
-    graph: Mapping[str, Any],
-    axes: Optional[Sequence[Mapping[str, Any]]],
-    cfg: Mapping[str, Any],
-) -> Dict[str, Any]:
-    c = cfg.get("coverage", {})
-    used = axis_consumption(graph, axes)
-    axes_ok = all(v >= int(c.get("min_axis_entities", 1)) for v in used.values())
-    depth = SCALE_RANK[c.get("depth", "district")]
-    per_scale = {s: 0 for s in SCALES[: depth + 1]}
-    for e in graph.get("entities", []):
-        if e.get("scale") in per_scale:
-            per_scale[e["scale"]] += 1
-    scales_ok = all(v >= int(c.get("min_entities_per_scale", 1))
-                    for v in per_scale.values())
-    mr = mean_reward(graph)
-    reward_ok = mr is not None and mr >= float(c.get("target_mean_reward", 0.0))
-    return {"met": bool(axes_ok and scales_ok and reward_ok
-                        and graph.get("entities")),
-            "axes_ok": axes_ok, "scales_ok": scales_ok,
-            "reward_ok": reward_ok, "mean_reward": mr,
-            "axis_entities": used, "scale_entities": per_scale}
-
-
 # ----------------------------------------------------------------- the loop
 
 class _CountingBackend:
@@ -566,6 +563,7 @@ class ExplorationLoop:
         self.axes = list(axes)
         self.seed = seed
         self.cfg = dict(config) if config is not None else load_explore_config()
+        self.criteria_cfg = load_world_criteria_config()
         self.language = language
         if checkpoints is None:
             from ..checkpoint_manager import CheckpointManager
@@ -616,6 +614,7 @@ class ExplorationLoop:
             self.manifest.update(build=copy.deepcopy(self.builder.metrics), world_explore={
                 "iteration": s["iteration"], "counters": dict(s["counters"]),
                 "stop_reason": s["stop_reason"],
+                "world_status": copy.deepcopy(s["world_status"]),
                 "elapsed_seconds": round(s["elapsed_seconds"], 3)})
 
     def _log_lines(self) -> List[str]:
@@ -648,7 +647,7 @@ class ExplorationLoop:
     def _stop_reason(self, graph, budget) -> Optional[str]:
         s = self.state
         if self.cfg.get("coverage", {}).get("enabled", True) \
-                and coverage_status(graph, self.axes, self.cfg)["met"]:
+                and self._world_status(graph)["met"]:
             return "coverage_met"
         mi = budget.get("max_iterations")
         if mi is not None and s["iteration"] >= int(mi):
@@ -664,6 +663,10 @@ class ExplorationLoop:
                 and s.get("consecutive_failures", 0) >= int(mf):
             return "too_many_failures"
         return None
+
+    def _world_status(self, graph):
+        return world_status(graph, self.axes, self.brief,
+                            world_premises(graph), self.criteria_cfg)
 
     # -- the loop
     def run(
@@ -701,6 +704,7 @@ class ExplorationLoop:
         self._set_phase("running")
 
         while True:
+            self.state["world_status"] = self._world_status(graph)
             reason = self._stop_reason(graph, budget)
             if reason is None:
                 started = self.clock()
@@ -724,7 +728,7 @@ class ExplorationLoop:
             return ExplorationResult(
                 stop_reason=reason, iterations=self.state["iteration"],
                 graph=graph, counters=dict(self.state["counters"]),
-                coverage=coverage_status(graph, self.axes, self.cfg),
+                coverage=self._world_status(graph),
                 preferences_path=self.log_path, state=copy.deepcopy(self.state))
 
     def _set_phase(self, status: str) -> None:
@@ -790,7 +794,9 @@ class ExplorationLoop:
             "accepted_id": result.entity["id"] if accepted else None,
             "arm_reward": round(reward, 4),
             "failure": result.failure if result else None,
+            "world_status": self._world_status(graph),
             **({"error": error} if error else {})})
+        self.state["world_status"] = records[-1]["world_status"]
         self.bandit.update(arm, reward)
         self._append_log(records)
         self.state["max_entity_n"] = _max_entity_n(graph)
@@ -969,8 +975,8 @@ def run_world_engine(
 __all__ = [
     "Bandit", "BudgetExhausted", "ExplorationLoop", "ExplorationResult",
     "BREADTH_OPERATORS", "PREFERENCES_RELATIVE_PATH", "STOP_REASONS", "arm_key", "axis_consumption",
-    "axis_shares", "candidate_pairs", "coverage_status", "evaluate_frontier",
+    "axis_shares", "candidate_pairs", "evaluate_frontier",
     "extract_preference_pairs", "item_prior", "load_explore_config",
-    "mean_reward", "operator_consumption", "pair_prior", "scale_needs",
+    "operator_consumption", "pair_prior", "scale_needs",
     "read_preference_log", "run_world_engine",
 ]
