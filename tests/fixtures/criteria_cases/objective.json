@@ -1,0 +1,86 @@
+[
+  {
+    "id": "objective-reference",
+    "criterion": "objective",
+    "check": "summary.objectivity",
+    "input": {
+      "outputs": {
+        "summary": {
+          "summary": "The records retain measured capacity alongside their identifiers."
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Explanations use objective reference wording without personal narration or exclamations."
+  },
+  {
+    "id": "objective-procedure",
+    "criterion": "objective",
+    "check": "summary.objectivity",
+    "input": {
+      "outputs": {
+        "summary": {
+          "summary": "The recorder checks the stored identifiers before each transfer."
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Explanations use objective reference wording without personal narration or exclamations."
+  },
+  {
+    "id": "objective-condition",
+    "criterion": "objective",
+    "check": "summary.objectivity",
+    "input": {
+      "outputs": {
+        "summary": {
+          "summary": "A record remains in its container until its identifier is checked."
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Explanations use objective reference wording without personal narration or exclamations."
+  },
+  {
+    "id": "objective-first-person",
+    "criterion": "objective",
+    "check": "summary.objectivity",
+    "input": {
+      "outputs": {
+        "summary": {
+          "summary": "We retain the measured records alongside their recorded identifiers."
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "Explanations use objective reference wording without personal narration or exclamations."
+  },
+  {
+    "id": "objective-second-person",
+    "criterion": "objective",
+    "check": "summary.objectivity",
+    "input": {
+      "outputs": {
+        "summary": {
+          "summary": "You retain the measured records alongside their recorded identifiers."
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "Explanations use objective reference wording without personal narration or exclamations."
+  },
+  {
+    "id": "objective-exclamation",
+    "criterion": "objective",
+    "check": "summary.objectivity",
+    "input": {
+      "outputs": {
+        "summary": {
+          "summary": "The records retain measured capacity alongside their identifiers!"
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "Explanations use objective reference wording without personal narration or exclamations."
+  }
+]

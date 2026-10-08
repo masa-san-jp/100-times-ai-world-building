@@ -1,0 +1,660 @@
+[
+  {
+    "id": "detail-new-name",
+    "criterion": "detail",
+    "check": "fact.proper_noun",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "raw_input": "SourceTerm is retained.",
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "A new proper name occurs in the fact text."
+  },
+  {
+    "id": "detail-new-name-role",
+    "criterion": "detail",
+    "check": "fact.proper_noun",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "raw_input": "SourceTerm is retained.",
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Zunvrel",
+          "fact": "The recorder is named Zunvrel."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "A role fact supplies a new name in addition to the role."
+  },
+  {
+    "id": "detail-name-with-description",
+    "criterion": "detail",
+    "check": "fact.proper_noun",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "raw_input": "SourceTerm is retained.",
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Qevran",
+          "fact": "Qevran identifies the record holder."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "An invented name with an explanation is concrete."
+  },
+  {
+    "id": "detail-role-only",
+    "criterion": "detail",
+    "check": "fact.proper_noun",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "raw_input": "SourceTerm is retained.",
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "The recorder checks and retains the records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "A proper_noun fact stating only a role contains no supplied new name."
+  },
+  {
+    "id": "detail-existing-name",
+    "criterion": "detail",
+    "check": "fact.proper_noun",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "raw_input": "SourceTerm is retained.",
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Existing",
+          "fact": "Existing identifies retained records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "An existing entity name cannot count as a new proper name."
+  },
+  {
+    "id": "detail-input-name",
+    "criterion": "detail",
+    "check": "fact.proper_noun",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "raw_input": "SourceTerm is retained.",
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "SourceTerm",
+          "fact": "SourceTerm identifies retained records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "A name already present in original input is not new detail."
+  },
+  {
+    "id": "detail-number",
+    "criterion": "detail",
+    "check": "fact.number",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "The value and non-time unit both occur in the fact text."
+  },
+  {
+    "id": "detail-number-grouped",
+    "criterion": "detail",
+    "check": "fact.number",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 1200,
+          "unit": "q2v",
+          "fact": "Capacity is 1,200 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Digit grouping preserves the numeric value."
+  },
+  {
+    "id": "detail-number-width",
+    "criterion": "detail",
+    "check": "fact.number",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is １２ q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Full-width numerals preserve the numeric value."
+  },
+  {
+    "id": "detail-number-missing-value",
+    "criterion": "detail",
+    "check": "fact.number",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is measured in q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "A unit alone is not a measurement."
+  },
+  {
+    "id": "detail-number-token",
+    "criterion": "detail",
+    "check": "fact.number",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 120 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "The number 12 must not match part of 120."
+  },
+  {
+    "id": "detail-number-time",
+    "criterion": "detail",
+    "check": "fact.number",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "hours",
+          "fact": "Capacity is 12 hours."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "A time-only quantity is not a number detail fact."
+  },
+  {
+    "id": "detail-object-pass",
+    "criterion": "detail",
+    "check": "fact.object",
+    "input": {
+      "fact_kinds": [
+        "number",
+        "object"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "object": "container",
+          "fact": "The container retains the record."
+        }
+      ],
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        },
+        "calendar": {
+          "name": "ZevCycle",
+          "markers": [
+            "ZevCycle"
+          ]
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Kind-specific fields must appear in the text as complete values."
+  },
+  {
+    "id": "detail-object-fail",
+    "criterion": "detail",
+    "check": "fact.object",
+    "input": {
+      "fact_kinds": [
+        "number",
+        "object"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "object": "container",
+          "fact": "The holder retains the record."
+        }
+      ],
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        },
+        "calendar": {
+          "name": "ZevCycle",
+          "markers": [
+            "ZevCycle"
+          ]
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "Kind-specific fields must appear in the text as complete values."
+  },
+  {
+    "id": "detail-procedure-pass",
+    "criterion": "detail",
+    "check": "fact.procedure",
+    "input": {
+      "fact_kinds": [
+        "number",
+        "procedure"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "actor": "recorder",
+          "action": "checks seals",
+          "fact": "The recorder checks seals before retention."
+        }
+      ],
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        },
+        "calendar": {
+          "name": "ZevCycle",
+          "markers": [
+            "ZevCycle"
+          ]
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Kind-specific fields must appear in the text as complete values."
+  },
+  {
+    "id": "detail-procedure-fail",
+    "criterion": "detail",
+    "check": "fact.procedure",
+    "input": {
+      "fact_kinds": [
+        "number",
+        "procedure"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "actor": "recorder",
+          "action": "checks seals",
+          "fact": "The recorder retains the record."
+        }
+      ],
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        },
+        "calendar": {
+          "name": "ZevCycle",
+          "markers": [
+            "ZevCycle"
+          ]
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "Kind-specific fields must appear in the text as complete values."
+  },
+  {
+    "id": "detail-period-pass",
+    "criterion": "detail",
+    "check": "fact.period",
+    "input": {
+      "fact_kinds": [
+        "number",
+        "period"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "marker": "ZevCycle",
+          "value": 7,
+          "fact": "The record starts at ZevCycle 7."
+        }
+      ],
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        },
+        "calendar": {
+          "name": "ZevCycle",
+          "markers": [
+            "ZevCycle"
+          ]
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Kind-specific fields must appear in the text as complete values."
+  },
+  {
+    "id": "detail-period-fail",
+    "criterion": "detail",
+    "check": "fact.period",
+    "input": {
+      "fact_kinds": [
+        "number",
+        "period"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "marker": "ZevCycle",
+          "value": 7,
+          "fact": "The record starts at ZevCycle 70."
+        }
+      ],
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        },
+        "calendar": {
+          "name": "ZevCycle",
+          "markers": [
+            "ZevCycle"
+          ]
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "Kind-specific fields must appear in the text as complete values."
+  }
+]
