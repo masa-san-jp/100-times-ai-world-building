@@ -36,7 +36,7 @@ def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(),
         props["derived_from"]["items"] = choices(entity_ids)
     elif step == "axes":
         props["axes"]["items"] = choices(axis_ids)
-    elif step == "fact" and kind in {"number", "period"}:
+    elif step == "fact_element" and kind in {"number", "period"}:
         contract = contract or {}
         props["value"] = {"type": "number"}
         if kind == "number":
@@ -50,7 +50,7 @@ def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(),
                 *([calendar["name"]] if "name" in calendar else []),
                 *calendar.get("markers", [])])
         schema["required"] = list(props)
-    elif step == "fact" and kind in {"proper_noun", "object", "procedure"}:
+    elif step == "fact_element" and kind in {"proper_noun", "object", "procedure"}:
         fields = {"proper_noun": {"name": (2, 30)}, "object": {"object": (1, 30)},
                   "procedure": {"actor": (1, 30), "action": (1, 60)}}[kind]
         for field, (minimum, maximum) in fields.items():

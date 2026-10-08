@@ -37,7 +37,7 @@ def test_every_task_calls_only_structured_harness():
     world_axes_schema(load_catalog()),
     *(step_schema(step, types=["place"], statement_ids=["s1"], entity_ids=["e1"],
                   axis_ids=["a1"], fact_count=3) for step in
-      ("type", "grounding", "name", "axes", "summary", "fact", "relations", "review", "real_world_check"))])
+      ("type", "grounding", "name", "axes", "summary", "fact_element", "fact_text", "relations", "review", "real_world_check"))])
 def test_all_assembled_schemas_are_valid_and_every_object_is_closed(schema):
     Draft202012Validator.check_schema(schema)
     def check(node):
@@ -192,7 +192,7 @@ def test_successful_run_metrics_are_in_manifest_and_report(tmp_path):
     manifest = json.loads((tmp_path / "run_manifest.json").read_text())
     for task in ("input_brief", "world_axes", "contract/calendar_name", "contract/calendar_origin", "contract/calendar_marker",
                  "contract/technology_description", "contract/capability", "contract/unit",
-                 "contract/society_description", "contract/institution", "type", "grounding", "name", "axes", "summary", "fact", "real_world_check", "review"):
+                 "contract/society_description", "contract/institution", "type", "grounding", "name", "axes", "summary", "fact_element", "fact_text", "real_world_check", "review"):
         entry = manifest["structured"][task]
         assert entry["calls"] >= 1 and entry["attempts"]["1"] >= 1
         assert entry["failures"] == 0 and entry["elapsed"] >= 0
@@ -240,4 +240,5 @@ def test_metrics_include_repair_failure_modes_and_resume_cumulative_counts(tmp_p
     assert resumed["input_brief"] == original["input_brief"]
     assert resumed["world_axes"] == original["world_axes"]
     assert all(resumed[k] == original[k] for k in original if k.startswith("contract/"))
-    assert resumed["fact"]["calls"] > original["fact"]["calls"]
+    for step in ("fact_element", "fact_text"):
+        assert resumed[step]["calls"] > original[step]["calls"]

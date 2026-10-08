@@ -308,13 +308,13 @@ def test_institution_definitions_survive_persistence_rendering_and_review(tmp_pa
     _, result = build(backend, g=graph, contract=world_premises(graph))
     assert result.entity
     entity_prompts = [p for p in backend.json_prompts if "WORLD CONTRACT:\n" in p]
-    assert len(entity_prompts) == 9
+    assert len(entity_prompts) == 11
     for prompt in entity_prompts:
         passed = json.JSONDecoder().raw_decode(prompt.split("WORLD CONTRACT:\n", 1)[1])[0]
         context = json.JSONDecoder().raw_decode(prompt.split("LOCAL CONTEXT:\n", 1)[1])[0]
         assert passed["society"] == context["world_premises"]["society"] == contract["society"]
         assert "society.institutions[].name verbatim" in prompt
-    period = step_schema("fact", kind="period", contract=contract)
+    period = step_schema("fact_element", kind="period", contract=contract)
     assert period["properties"]["marker"]["enum"] == ["VelaCount", *contract["calendar"]["markers"]]
 
 

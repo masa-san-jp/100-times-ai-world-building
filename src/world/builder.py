@@ -114,7 +114,9 @@ class EntityBuilder:
         plan = fact_plan(place["scale"], cfg.min_concrete_facts, contract)
         language = graph["meta"]["language"]
         rl = rules_for(self.rules, language)
-        records, attempts = [], {}
+        records, attempts, attempt_limits = [], {}, {}
+        elements = {}
+        restarted_slots = set()
         calls = 0
         failure = None
         schema_args = dict(types=ALLOWED_TYPES[operator], statement_ids=[s["id"] for s in brief.get("statements", []) if s.get("id")],
@@ -122,10 +124,12 @@ class EntityBuilder:
 
         def prompt(step, slot, correction=""):
             instruction = self.prompts["steps"][step]
-            if step == "fact":
-                kind = plan[slot]
-                instruction = instruction.format(kind=kind, name=entity.get("name", ""),
-                    kind_instruction=self.prompts["fact_kinds"][kind])
+            if step == "fact_element":
+                instruction = instruction[plan[slot]].format(name=entity.get("name", ""))
+            elif step == "fact_text":
+                instruction = instruction.format(kind=plan[slot], name=entity.get("name", ""),
+                    elements="\n".join(f"{key}: {json.dumps(value, ensure_ascii=False)}"
+                                       for key, value in elements[slot].items()))
             return self.prompts["common"]["user"].format(
                 language=language, operator=operator, task=self.tasks[operator].strip(),
                 target=target_id, statements="\n".join(f"{s['id']}: {_clip(s.get('text'), cfg.max_text_chars)}" for s in statements),
@@ -138,7 +142,7 @@ class EntityBuilder:
             nonlocal calls
             result = generate_structured(self.backend, prompt(step, slot, correction),
                 step_schema(step, **schema_args,
-                            kind=plan[slot] if step == "fact" else None, contract=contract), task=step,
+                            kind=plan[slot] if step == "fact_element" else None, contract=contract), task=step,
                 system_prompt=self.prompts["common"]["system"], max_attempts=self.structured_attempts,
                 max_conversions=self.structured_conversions)
             calls += result.attempts + result.conversions
@@ -157,7 +161,10 @@ class EntityBuilder:
                 if frontier_axis and frontier_axis not in values:
                     values = [frontier_axis, *values[:2]]
                 entity["axes"] = values
-            elif step == "fact":
+            elif step == "fact_element":
+                elements[slot] = copy.deepcopy(data)
+            elif step == "fact_text":
+                data = {**elements[slot], **data}
                 fact = {"kind": plan[slot], "text": data["fact"], "provenance": copy.deepcopy(entity["provenance"])}
                 fact.update({key: data[key] for key in ("name", "object", "actor", "action", "subject", "value", "unit", "marker") if key in data})
                 if slot < len(entity["facts"]):
@@ -189,18 +196,29 @@ class EntityBuilder:
                         *premise_checks(entity["summary"], "summary")]
             if step == "relations":
                 return [check("consistent", all(r["target"] != entity["id"] for r in entity["relations"]), "self references are forbidden")]
-            if step != "fact":
+            if step == "fact_element":
+                kind = plan[slot]
+                if kind == "proper_noun":
+                    return [check("detail", new_name(data["name"], raw_input, brief, views,
+                        graph["entities"], contract), "name must be new in the input, context and contract"),
+                        *term_checks(data["name"])]
+                if kind == "number":
+                    times = {normalize_item(v) for v in rl.get("time_basis_aliases", {})}
+                    factors = unit_factors(data["unit"])
+                    non_time = normalize_item(data["unit"]) not in times and (
+                        factors is None or any(normalize_item(factor) not in times for factor in factors))
+                    return [check("detail", not is_counter(data["unit"], rl) and non_time,
+                                  "number requires a non-time measurement unit"),
+                            check("no_outside_premises", not contract or data["unit"] in unit_symbols(contract),
+                                  "number unit must belong to the contract")]
                 return []
+            if step != "fact_text":
+                return []
+            data = {**elements[slot], **data}
             text, kind = data["fact"], plan[slot]
             others = [f["text"] for i, f in enumerate(entity["facts"]) if i != slot]
             if kind == "number":
-                times = {normalize_item(v) for v in rl.get("time_basis_aliases", {})}
-                def non_time(unit):
-                    factors = unit_factors(unit)
-                    return normalize_item(unit) not in times and (
-                        factors is None or any(normalize_item(factor) not in times for factor in factors))
-                specific = (value_in_text(data["value"], text) and data["unit"] in text
-                            and not is_counter(data["unit"], rl) and non_time(data["unit"]))
+                specific = value_in_text(data["value"], text) and data["unit"] in text
                 specific_reason = "number requires its value and non-time measurement unit in the fact text"
             elif kind == "period":
                 specific = data["marker"] in text and value_in_text(data["value"], text)
@@ -210,18 +228,11 @@ class EntityBuilder:
                           "procedure": ("actor", "action")}[kind]
                 specific = all(data[field] in text for field in fields)
                 specific_reason = "fact text must contain " + " and ".join(fields)
-                if kind == "proper_noun":
-                    specific = specific and new_name(data["name"], raw_input, brief, views,
-                                                    graph["entities"], contract)
-                    specific_reason += "; name must be new in the input, context and contract"
             candidate = {"entity": entity, "operator": operator, "target": target_id}
             deductions = verify_consistency(candidate, graph, axes, brief).deductions
             conflicts = [d for d in deductions if d.code == "number_conflict"]
             return [check("detail", specific, specific_reason),
-                    *(premise_checks(text, f"facts[{slot}]") if kind != "number" else
-                      [check("no_outside_premises", not contract or data["unit"] in unit_symbols(contract),
-                             "number unit must belong to the contract")]),
-                    *(term_checks(data["name"]) if kind == "proper_noun" else []),
+                    *premise_checks(text, f"facts[{slot}]"),
                     check("consistent", not conflicts, "; ".join(d.message for d in conflicts)),
                     check("new_information", normalize_item(text) not in {normalize_item(t) for t in others}, "facts in the entity must not duplicate one another")]
 
@@ -265,9 +276,10 @@ class EntityBuilder:
         def run_step(step, slot=None, correction=""):
             nonlocal failure
             key = (step, slot)
-            while attempts.get(key, 0) < self.max_step_attempts:
+            while attempts.get(key, 0) < attempt_limits.get(key, self.max_step_attempts):
                 attempts[key] = attempts.get(key, 0) + 1
                 previous = copy.deepcopy(entity)
+                previous_elements = copy.deepcopy(elements)
                 result = generate(step, slot, correction)
                 data = result.data
                 if data is None:
@@ -279,11 +291,31 @@ class EntityBuilder:
                     return True
                 entity.clear()
                 entity.update(previous)
+                elements.clear()
+                elements.update(previous_elements)
                 reasons = [c for c in checks if not c["ok"]]
                 failure = {"step": step, "slot": slot, "reason": "; ".join(c["criterion"] + ": " + c["reason"] for c in reasons)}
                 correction = "PREVIOUS OUTPUT:\n" + json.dumps(data, ensure_ascii=False) + "\nFAILED CHECKS:\n" + json.dumps(reasons, ensure_ascii=False)
             if failure is None or failure["step"] != step or failure["slot"] != slot:
                 failure = {"step": step, "slot": slot, "reason": correction}
+            return False
+
+        def run_fact(slot, correction=""):
+            # Only exhaustion of the text stage grants one fresh element/text cycle.
+            for restart in range(2):
+                if restart:
+                    if slot in restarted_slots:
+                        return False
+                    restarted_slots.add(slot)
+                    for step in ("fact_element", "fact_text"):
+                        key = (step, slot)
+                        attempt_limits[key] = attempts.get(key, 0) + self.max_step_attempts
+                if not run_step("fact_element", slot, correction):
+                    return False
+                if run_step("fact_text", slot, correction):
+                    return True
+                correction = "PREVIOUS OUTPUT:\n" + json.dumps(elements[slot], ensure_ascii=False) + \
+                    "\nFAILED CHECKS:\n" + failure["reason"]
             return False
 
         def finish(success):
@@ -318,13 +350,13 @@ class EntityBuilder:
                 slot = plan.index("number")
                 reason = "new_information: entity needs a new proper name or a new (value, unit) pair"
                 # Attribute this failure to the accepted number output before repairing it.
-                row = next(r for r in reversed(records) if r.step == "fact" and r.slot == slot)
+                row = next(r for r in reversed(records) if r.step == "fact_element" and r.slot == slot)
                 if row.accepted:
                     row.checks.append(check("new_information", False, reason))
                     row.accepted = False
-                    reasons = self.metrics["steps"]["fact"]["reasons"].setdefault("new_information", {})
+                    reasons = self.metrics["steps"]["fact_element"]["reasons"].setdefault("new_information", {})
                     reasons[reason] = reasons.get(reason, 0) + 1
-                if not run_step("fact", slot, "PREVIOUS OUTPUT:\n" +
+                if not run_fact(slot, "PREVIOUS OUTPUT:\n" +
                     json.dumps(entity["facts"][slot], ensure_ascii=False) + "\nFAILED CHECKS:\n" + reason):
                     return False
             return True
@@ -337,7 +369,7 @@ class EntityBuilder:
             if not run_step(step):
                 return finish(False)
         for slot in range(len(plan)):
-            if not run_step("fact", slot):
+            if not run_fact(slot):
                 return finish(False)
         if ids and not run_step("relations"):
             return finish(False)
@@ -376,7 +408,8 @@ class EntityBuilder:
                 step = "fact" if field.startswith("facts[") else field
                 slot = int(field[6:-1]) if step == "fact" else None
                 correction = "PREVIOUS OUTPUT:\n" + json.dumps(entity["facts"][slot] if step == "fact" else {step: entity[step]}, ensure_ascii=False) + "\nREVIEW ISSUES:\n" + json.dumps(issues, ensure_ascii=False)
-                if not run_step(step, slot, correction):
+                repaired = run_fact(slot, correction) if step == "fact" else run_step(step, slot, correction)
+                if not repaired:
                     return finish(False)
         return finish(False)
 

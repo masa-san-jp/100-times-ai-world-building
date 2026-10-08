@@ -124,22 +124,28 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
             return {"axes": props["axes"]["items"]["enum"][:1]}
         if step == "summary":
             return {"summary": " ".join(words[:15]) + "."}
-        if step == "fact":
-            kind = re.search(r"Give exactly one (\w+) fact", prompt).group(1)
+        if step == "fact_element":
+            if "subject" in props:
+                return {"subject": "Capacity", "value": rng.randint(2, 90), "unit": "quota"}
+            if "marker" in props:
+                return {"marker": "VelaCount", "value": 1}
+            return {field: words[i].title() for i, field in enumerate(props)}
+        if step == "fact_text":
+            lines = prompt.split("FACT ELEMENTS:\n", 1)[1].split("\n    Generate", 1)[0]
+            elements = {}
+            for line in lines.splitlines():
+                if ": " not in line:
+                    break
+                key, value = line.split(": ", 1)
+                if key not in {"subject", "value", "unit", "marker", "name", "object", "actor", "action"}:
+                    break
+                elements[key] = json.loads(value)
             op = re.search(r"^OPERATION: (.+)$", prompt, re.M).group(1)
             bad = always_generic or (op in generic_ops and "PREVIOUS OUTPUT" not in prompt)
-            if kind == "number":
-                value = 50 if bad else rng.randint(2, 90)
-                return {"subject": "Capacity", "value": value, "unit": "quota",
-                        "fact": "50 members" if bad else " ".join(words[:3]) + f" {value} quota."}
-            if kind == "period":
-                return {"marker": "VelaCount", "value": 1,
-                        "fact": " ".join(words[:4]) + " VelaCount 1."}
-            text = " ".join(w.title() for w in words[:6]) + "."
-            fields = {"proper_noun": {"name": words[0].title()},
-                      "object": {"object": words[0].title()},
-                      "procedure": {"actor": words[0].title(), "action": words[1].title()}}
-            return {**fields[kind], "fact": text}
+            if "unit" in elements and bad:
+                return {"fact": "50 members"}
+            return {"fact": " ".join(str(v) for k, v in elements.items() if k != "subject") +
+                    " " + " ".join(words[:3]) + "."}
         if step == "relations":
             return {"relations": []}
         if step == "review":

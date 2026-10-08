@@ -89,15 +89,15 @@ def test_description_used_as_symbol_enters_contract_schema_repair_loop(descripti
 def test_number_enum_contains_only_symbols_and_rejects_descriptions():
     contract = contract_with_units(
         {"symbol": "qx", "quantity": "uv"}, {"symbol": "槽", "quantity": "Container volume"})
-    schema = step_schema("fact", kind="number", contract=contract)
+    schema = step_schema("fact_element", kind="number", contract=contract)
     assert schema["properties"]["unit"] == {"enum": ["qx", "槽"]}
     validator = Draft202012Validator(schema)
     for symbol in unit_symbols(contract):
         assert validator.is_valid({"subject": "Capacity", "value": 3,
-                                   "unit": symbol, "fact": f"Capacity is 3{symbol}."})
+                                   "unit": symbol})
     for quantity in ("uv", "Container volume"):
         errors = list(validator.iter_errors({"subject": "Capacity", "value": 3,
-            "unit": quantity, "fact": f"Capacity is 3{quantity}."}))
+            "unit": quantity}))
         assert any(error.validator == "enum" and list(error.path) == ["unit"]
                    for error in errors)
 
