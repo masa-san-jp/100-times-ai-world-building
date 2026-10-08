@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "language": "ja"
+  },
+  "entities": [],
+  "contract_stage": {
+    "status": "success",
+    "attempts": 2,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ]
+      },
+      {
+        "attempt": 2,
+        "errors": []
+      }
+    ]
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "name": "塩暦",
+        "origin": "塩の採掘サイクルと地下水の枯渇期に基づき、盆地の乾燥気候に合わせて設計された計測体系である。",
+        "markers": [
+          "採掘期",
+          "水枯期",
+          "管理期",
+          "対立期"
+        ]
+      },
+      "technology": {
+        "description": "雨が少ない盆地環境に対応するため、地下の古い導水路を活用した水管理と塩の採掘技術が中心である。",
+        "capabilities": [
+          "地下導水路の流量制御",
+          "塩分濃度の測定",
+          "乾燥環境での水保存",
+          "採掘坑道の維持"
+        ],
+        "units": [
+          {
+            "symbol": "塩量",
+            "quantity": "塩の採掘量を測る単位で、経済活動の基準となる。"
+          },
+          {
+            "symbol": "水量",
+            "quantity": "導水路からの水の流出量を測る単位である。"
+          },
+          {
+            "symbol": "導程",
+            "quantity": "地下導水路の長さや管理区間を示す単位。"
+          }
+        ]
+      },
+      "society": {
+        "description": "塩の採掘組合と水番の家系が対立する中、資源管理と紛争解決のための制度が形成されている。",
+        "institutions": [
+          {
+            "name": "採掘組合",
+            "description": "塩の採掘と販売を統括し、経済的利益を追求する集団である。"
+          },
+          {
+            "name": "水番家系",
+            "description": "地下導水路の管理権を世襲し、水の分配を支配する家系組織。"
+          },
+          {
+            "name": "紛争審議会",
+            "description": "資源管理権の対立を仲裁し、規範に基づく裁きを行う機関。"
+          },
+          {
+            "name": "伝承会",
+            "description": "採掘技術と導水路管理の知識を次世代に伝える教育組織。"
+          }
+        ]
+      }
+    },
+    "provenance": {
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes"
+    }
+  }
+}

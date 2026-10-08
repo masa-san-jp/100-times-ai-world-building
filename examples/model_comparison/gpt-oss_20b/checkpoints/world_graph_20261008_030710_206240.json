@@ -1,0 +1,140 @@
+{
+  "contract_stage": {
+    "attempts": 1,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": []
+      }
+    ],
+    "status": "success"
+  },
+  "entities": [
+    {
+      "id": "e1",
+      "type": "place",
+      "name": "塩原盆地",
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "scale": "world",
+      "parent": null,
+      "relations": [],
+      "summary": "塩原盆地は内陸の盆地で、雨季はほとんど降らず、主に地下の古い導水路から水を得ている。この盆地では塩採掘が主要産業であり、採掘週ごとに採掘組合が生産量を管理し、共管委員会が資源配分を調整する。水番家系は導水路の保守を担当し、日々の水消費はm3dで測定される。乾季には水祭が行われ、自治議会が住民の意見を代表して政策を調整する。",
+      "facts": [
+        {
+          "kind": "number",
+          "text": "塩原盆地の塩生産量は 50000 kg である。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2"
+            ],
+            "derived_from": [],
+            "reason": "s1とs2から地理と気候の特徴が導出される。"
+          },
+          "subject": "塩生産量",
+          "value": 50000,
+          "unit": "kg"
+        },
+        {
+          "kind": "proper_noun",
+          "text": "採掘組合は塩原盆地の塩生産量を管理し、毎採掘週に報告する",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2"
+            ],
+            "derived_from": [],
+            "reason": "s1とs2から地理と気候の特徴が導出される。"
+          }
+        }
+      ],
+      "provenance": {
+        "statement_ids": [
+          "s1",
+          "s2"
+        ],
+        "derived_from": [],
+        "reason": "s1とs2から地理と気候の特徴が導出される。"
+      },
+      "scores": {
+        "reward": 1.0
+      },
+      "origin_operator": "premise"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "採掘週",
+          "水祭",
+          "乾季",
+          "雨季"
+        ],
+        "name": "盆地暦",
+        "origin": "盆地の塩採掘と導水路管理に基づく"
+      },
+      "society": {
+        "description": "塩の採掘で成り立つ内陸盆地。雨ほぼ無、導水路から水を得る。採掘組合と水番家系の長期対立が社会構造を形作る。",
+        "institutions": [
+          {
+            "description": "採掘権管理と資源分配に責任",
+            "name": "採掘組合"
+          },
+          {
+            "description": "導水路管理権保持と保守担当",
+            "name": "水番家系"
+          },
+          {
+            "description": "争い解決と資源配分を協議",
+            "name": "共管委員会"
+          },
+          {
+            "description": "住民意見を代表し政策調整",
+            "name": "自治議会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "地下水抽出・導水路保守",
+          "塩結晶化プロセス制御",
+          "水質検査・監視"
+        ],
+        "description": "古い導水路と塩採掘機械の保守・運用。限界は老朽化と水質管理。",
+        "units": [
+          {
+            "quantity": "毎日消費水量",
+            "symbol": "m3d"
+          },
+          {
+            "quantity": "塩生産量",
+            "symbol": "kg"
+          }
+        ]
+      }
+    }
+  }
+}

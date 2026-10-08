@@ -1,0 +1,84 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "language": "ja"
+  },
+  "entities": [],
+  "contract_stage": {
+    "status": "success",
+    "attempts": 1,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": []
+      }
+    ]
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "name": "盆地暦",
+        "origin": "盆地の塩採掘と導水路管理に基づく",
+        "markers": [
+          "採掘週",
+          "水祭",
+          "乾季",
+          "雨季"
+        ]
+      },
+      "technology": {
+        "description": "古い導水路と塩採掘機械の保守・運用。限界は老朽化と水質管理。",
+        "capabilities": [
+          "地下水抽出・導水路保守",
+          "塩結晶化プロセス制御",
+          "水質検査・監視"
+        ],
+        "units": [
+          {
+            "symbol": "m3d",
+            "quantity": "毎日消費水量"
+          },
+          {
+            "symbol": "kg",
+            "quantity": "塩生産量"
+          }
+        ]
+      },
+      "society": {
+        "description": "塩の採掘で成り立つ内陸盆地。雨ほぼ無、導水路から水を得る。採掘組合と水番家系の長期対立が社会構造を形作る。",
+        "institutions": [
+          {
+            "name": "採掘組合",
+            "description": "採掘権管理と資源分配に責任"
+          },
+          {
+            "name": "水番家系",
+            "description": "導水路管理権保持と保守担当"
+          },
+          {
+            "name": "共管委員会",
+            "description": "争い解決と資源配分を協議"
+          },
+          {
+            "name": "自治議会",
+            "description": "住民意見を代表し政策調整"
+          }
+        ]
+      }
+    },
+    "provenance": {
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes"
+    }
+  }
+}

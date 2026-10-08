@@ -1,0 +1,257 @@
+{
+  "world_dir": ".",
+  "status": "warn",
+  "overall_status": "warn",
+  "config": {
+    "near_duplicate_threshold": 0.8,
+    "min_axis_entities": 1,
+    "min_depth_scale": "detail",
+    "min_entities_per_scale": 1,
+    "min_reward": 0.6,
+    "low_reward_threshold": 0.5,
+    "max_low_reward_share": 0.3,
+    "genericity_threshold": 0.5,
+    "max_generic_share": 0.2,
+    "max_unscored_share": 0.0,
+    "cross_world_overlap_warn": 0.5
+  },
+  "checks": {
+    "graph": {
+      "status": "pass",
+      "entity_count": 9,
+      "errors": [],
+      "error_count": 0
+    },
+    "axis_coverage": {
+      "status": "warn",
+      "axis_count": 16,
+      "min_axis_entities": 1,
+      "uncovered_axes": [
+        "ecology",
+        "belief_thought",
+        "language_writing",
+        "occupations_labor",
+        "education_knowledge",
+        "arts_media",
+        "external_relations"
+      ],
+      "axes": [
+        {
+          "id": "geography_climate",
+          "name": "地理と気候",
+          "weight": 0.9,
+          "weight_share": 0.1452,
+          "entities": 3,
+          "entity_share": 0.1111
+        },
+        {
+          "id": "ecology",
+          "name": "生態",
+          "weight": 0.2,
+          "weight_share": 0.0323,
+          "entities": 0,
+          "entity_share": 0.0
+        },
+        {
+          "id": "laws_of_nature",
+          "name": "自然の法則と法則外の理",
+          "weight": 0.1,
+          "weight_share": 0.0161,
+          "entities": 1,
+          "entity_share": 0.037
+        },
+        {
+          "id": "technology_tools",
+          "name": "技術と道具",
+          "weight": 0.6,
+          "weight_share": 0.0968,
+          "entities": 7,
+          "entity_share": 0.2593
+        },
+        {
+          "id": "resources_economy",
+          "name": "資源と経済",
+          "weight": 0.9,
+          "weight_share": 0.1452,
+          "entities": 3,
+          "entity_share": 0.1111
+        },
+        {
+          "id": "politics_power",
+          "name": "政治と権力",
+          "weight": 0.8,
+          "weight_share": 0.129,
+          "entities": 7,
+          "entity_share": 0.2593
+        },
+        {
+          "id": "law_norms",
+          "name": "法と規範",
+          "weight": 0.3,
+          "weight_share": 0.0484,
+          "entities": 2,
+          "entity_share": 0.0741
+        },
+        {
+          "id": "belief_thought",
+          "name": "信仰と思想",
+          "weight": 0.2,
+          "weight_share": 0.0323,
+          "entities": 0,
+          "entity_share": 0.0
+        },
+        {
+          "id": "language_writing",
+          "name": "言語と文字",
+          "weight": 0.1,
+          "weight_share": 0.0161,
+          "entities": 0,
+          "entity_share": 0.0
+        },
+        {
+          "id": "kinship_community",
+          "name": "血縁と共同体",
+          "weight": 0.7,
+          "weight_share": 0.1129,
+          "entities": 1,
+          "entity_share": 0.037
+        },
+        {
+          "id": "daily_life",
+          "name": "日々の暮らし",
+          "weight": 0.3,
+          "weight_share": 0.0484,
+          "entities": 1,
+          "entity_share": 0.037
+        },
+        {
+          "id": "occupations_labor",
+          "name": "職業と労働",
+          "weight": 0.3,
+          "weight_share": 0.0484,
+          "entities": 0,
+          "entity_share": 0.0
+        },
+        {
+          "id": "education_knowledge",
+          "name": "教育と知識",
+          "weight": 0.1,
+          "weight_share": 0.0161,
+          "entities": 0,
+          "entity_share": 0.0
+        },
+        {
+          "id": "arts_media",
+          "name": "芸術・娯楽・メディア",
+          "weight": 0.1,
+          "weight_share": 0.0161,
+          "entities": 0,
+          "entity_share": 0.0
+        },
+        {
+          "id": "history",
+          "name": "歴史",
+          "weight": 0.5,
+          "weight_share": 0.0806,
+          "entities": 2,
+          "entity_share": 0.0741
+        },
+        {
+          "id": "external_relations",
+          "name": "外部との関係",
+          "weight": 0.1,
+          "weight_share": 0.0161,
+          "entities": 0,
+          "entity_share": 0.0
+        }
+      ]
+    },
+    "scale_depth": {
+      "status": "warn",
+      "counts": {
+        "world": 2,
+        "region": 1,
+        "settlement": 1,
+        "district": 2,
+        "site": 3,
+        "detail": 0
+      },
+      "deepest_scale": "site",
+      "target_scale": "detail",
+      "min_entities_per_scale": 1,
+      "missing_scales": [
+        "detail"
+      ]
+    },
+    "reward_distribution": {
+      "status": "pass",
+      "reward": {
+        "count": 9,
+        "mean": 0.9742,
+        "min": 0.9483,
+        "max": 1.0
+      },
+      "histogram": [
+        0,
+        0,
+        0,
+        0,
+        9
+      ],
+      "low_reward_entities": [],
+      "unscored_entities": [],
+      "verifiers": {},
+      "warnings": []
+    },
+    "genericity": {
+      "status": "pass",
+      "genericity": {
+        "count": 0,
+        "mean": null,
+        "min": null,
+        "max": null
+      },
+      "threshold": 0.5,
+      "generic_entities": [],
+      "candidates_rejected_as_generic": 0,
+      "warnings": []
+    },
+    "provenance": {
+      "status": "pass",
+      "ungrounded_entities": []
+    },
+    "duplicates": {
+      "status": "pass",
+      "threshold": 0.8,
+      "entities": {
+        "item_count": 9,
+        "exact_duplicate_count": 0,
+        "normalized_duplicate_count": 0,
+        "near_duplicate_pair_count": 0
+      },
+      "names": {
+        "item_count": 9,
+        "exact_duplicate_count": 0,
+        "normalized_duplicate_count": 0,
+        "near_duplicate_pair_count": 0
+      }
+    },
+    "exploration": {
+      "status": "pass",
+      "run_status": "completed",
+      "stop_reason": "max_iterations",
+      "iterations": 12,
+      "counters": {
+        "generation_calls": 180,
+        "accepted": 9,
+        "rejected": 3,
+        "no_candidates": 0,
+        "rewrites": 28,
+        "errors": 0
+      },
+      "logged_iterations": 12,
+      "accepted_iterations": 9,
+      "notes": []
+    }
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "axes": [
+    {
+      "id": "geography_climate",
+      "name": "地理と気候",
+      "meaning": "雨の少ない内陸の盆地という地形と、それがもたらす乾燥した気候条件である。",
+      "weight": 0.9,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s2"
+        ],
+        "reason": "世界設定の基盤となる環境条件として、ブリーフで明確に定義されている。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "ecology",
+      "name": "生態",
+      "meaning": "雨の少ない盆地における動植物の生存環境や、塩分が生態系に与える影響。",
+      "weight": 0.2,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "特定された気候条件下で、その土地に実際にどのような生態系が成り立っているかは未定義だが、世界を機能させるために必要。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "laws_of_nature",
+      "name": "自然の法則と法則外の理",
+      "meaning": "この世界の物理法則や、超自然的な要素の有無。",
+      "weight": 0.1,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "現実的な自然現象に基づく記述だが、ファンタジー要素の有無は未確認であるため、低ウェイトで確保。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "technology_tools",
+      "name": "技術と道具",
+      "meaning": "生活用水を確保するために、地下の古い導水路というインフラ技術が利用されている。",
+      "weight": 0.6,
+      "grounds": {
+        "statement_ids": [
+          "s3"
+        ],
+        "reason": "水の供給方法が具体的な技術的・構造的要素（導水路）として言及されている。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "resources_economy",
+      "name": "資源と経済",
+      "meaning": "地域の経済基盤を塩の採掘が占めており、これが生活の中心となっている。",
+      "weight": 0.9,
+      "grounds": {
+        "statement_ids": [
+          "s1"
+        ],
+        "reason": "ブリーフの冒頭で地域が何によって成り立っているかが明記されている。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "politics_power",
+      "name": "政治と権力",
+      "meaning": "水という重要資源の管理権を巡り、異なる集団間で長期的な権力争いが行われている。",
+      "weight": 0.8,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": "対立の主体と争点（管理権）が示されており、権力構造が世界観に強く影響する。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "law_norms",
+      "name": "法と規範",
+      "meaning": "資源の管理権という権利関係が争点となるため、紛争を裁くための規範や制度が存在する可能性がある。",
+      "weight": 0.3,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "権力争いの解決や秩序維持には、何らかの社会的規範や裁定の仕組みが必要である。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "belief_thought",
+      "name": "信仰と思想",
+      "meaning": "対立する各集団の行動原理や、水や塩に対する文化的・精神的な価値観。",
+      "weight": 0.2,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "長年の対立や共同体の結束には、背景にある思想や信念体系が作用している可能性がある。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "language_writing",
+      "name": "言語と文字",
+      "meaning": "地域住民の使用する言語や、記録・伝達のための文字体系。",
+      "weight": 0.1,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "コミュニケーションや知識の伝承には言語が必要だが、ブリーフでは詳細が示されていない。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "kinship_community",
+      "name": "血縁と共同体",
+      "meaning": "対立する両陣営が「組合」と「家系」という、それぞれ異なる社会組織の形態を持っている。",
+      "weight": 0.7,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": "対立の当事者が特定の共同体または血縁関係に基づいて構成されていることが示されている。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "daily_life",
+      "name": "日々の暮らし",
+      "meaning": "雨水に頼れない環境下で、導水路から引いた水を使って日常の生活を行う。",
+      "weight": 0.3,
+      "grounds": {
+        "statement_ids": [
+          "s2",
+          "s3"
+        ],
+        "reason": "気候と水源の特性が、住人たちの日常の行動や生活習慣に直接影響を与える。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "occupations_labor",
+      "name": "職業と労働",
+      "meaning": "地域の基幹産業である塩の採掘に関わる労働や、組合の活動が含まれる。",
+      "weight": 0.3,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s4"
+        ],
+        "reason": "地域が採掘によって成り立っており、かつ組合が存在するため、関連する職業構造がある。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "education_knowledge",
+      "name": "教育と知識",
+      "meaning": "導水路の維持管理技術や、採掘技術の伝承方法。",
+      "weight": 0.1,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "高度なインフラ（導水路）の維持には技術的知識の伝承が必要だが、具体的な教育体系は未定義。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "arts_media",
+      "name": "芸術・娯楽・メディア",
+      "meaning": "地域の文化表現や娯楽の形態。",
+      "weight": 0.1,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "人間社会の一般的な要素として存在するが、ブリーフの焦点（資源・対立）からは外れている。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "history",
+      "name": "歴史",
+      "meaning": "現行の対立は「長く」続いていることから、過去の出来事や経緯が現在の状況に影響を与えている。",
+      "weight": 0.5,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": "「長く対立している」という時間的な要素が示されており、背景に歴史があることを示唆する。"
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "external_relations",
+      "name": "外部との関係",
+      "meaning": "この盆地地域が他の地域や外部勢力とどのような交易や外交関係にあるか。",
+      "weight": 0.1,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "内陸の盆地という地理的特性から、外部との関わり方が世界設定の重要な側面となり得るが、ブリーフでは言及がない。"
+      },
+      "origin": "catalog"
+    }
+  ]
+}

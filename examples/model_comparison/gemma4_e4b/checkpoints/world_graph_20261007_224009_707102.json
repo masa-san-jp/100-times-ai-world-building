@@ -1,0 +1,149 @@
+{
+  "contract_stage": {
+    "attempts": 2,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ]
+      },
+      {
+        "attempt": 2,
+        "errors": []
+      }
+    ],
+    "status": "success"
+  },
+  "entities": [
+    {
+      "id": "e1",
+      "type": "place",
+      "name": "塩水路",
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "scale": "world",
+      "parent": null,
+      "relations": [],
+      "summary": "塩水路は、内陸の盆地に位置する地理的領域であり、気候的には雨がほとんど降らない乾燥地帯である。経済基盤は塩の採掘にあり、水資源は地下の古い導水路から供給される。この水と塩の利用権を巡り、採掘組合と水番家系という二つの共同体の間で、権力構造が存在する。技術的には、塩の採掘と地下水路の維持管理が中心的な活動を構成する。",
+      "facts": [
+        {
+          "kind": "number",
+          "text": "採掘組合の定員は、盛塩期において最大500 kgの塩を処理できる能力を持つ。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [],
+            "reason": "提供された簡潔な記述s1, s2, s3は、それぞれが世界規模の独立した事実を定義しているため、外部の契約からの直接的な依存関係は設定しない。"
+          },
+          "subject": "採掘組合の処理能力",
+          "value": 500,
+          "unit": "kg"
+        },
+        {
+          "kind": "proper_noun",
+          "text": "塩水路の地下導水路の管理は、水番家系が担う。これは、潮時暦の「水汲期」における水の安定供給に直結している。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [],
+            "reason": "提供された簡潔な記述s1, s2, s3は、それぞれが世界規模の独立した事実を定義しているため、外部の契約からの直接的な依存関係は設定しない。"
+          }
+        }
+      ],
+      "provenance": {
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "derived_from": [],
+        "reason": "提供された簡潔な記述s1, s2, s3は、それぞれが世界規模の独立した事実を定義しているため、外部の契約からの直接的な依存関係は設定しない。"
+      },
+      "scores": {
+        "reward": 1.0
+      },
+      "origin_operator": "premise"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "乾期初月",
+          "水汲期",
+          "盛塩期",
+          "結塩時"
+        ],
+        "name": "潮時暦",
+        "origin": "水の循環と塩の採掘サイクルに基づく計測。"
+      },
+      "society": {
+        "description": "塩の採掘と水資源の配分を巡る二大共同体の構造。",
+        "institutions": [
+          {
+            "description": "塩の採掘権を基盤とする労働者集団。経済活動の主体。",
+            "name": "採掘組合"
+          },
+          {
+            "description": "古来より導水路の管理と水の配給を担う家系。水資源の管理者。",
+            "name": "水番家系"
+          },
+          {
+            "description": "水と塩の利用に関する一時的な合議体。対立構造を緩和する場。",
+            "name": "資源分配評議会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "塩の採掘と選別",
+          "地下水路の維持・管理",
+          "重い資材の運搬",
+          "水の貯蔵と分配"
+        ],
+        "description": "塩の採掘と水の輸送に特化した技術体系。",
+        "units": [
+          {
+            "quantity": "塩の重量。最大積載単位。",
+            "symbol": "kg"
+          },
+          {
+            "quantity": "水の体積。導水路からの汲み上げ量。",
+            "symbol": "lit"
+          },
+          {
+            "quantity": "距離の単位。移動や採掘範囲の計測。",
+            "symbol": "尺"
+          }
+        ]
+      }
+    }
+  }
+}

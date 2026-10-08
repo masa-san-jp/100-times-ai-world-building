@@ -1,0 +1,1068 @@
+{
+  "axes": [
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s1",
+          "s2"
+        ]
+      },
+      "id": "geography_climate",
+      "meaning": "内陸盆地で雨がほとんど降らず、塩採掘が主な経済活動である環境を指す。",
+      "name": "地理と気候",
+      "origin": "catalog",
+      "weight": 0.8
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s2"
+        ]
+      },
+      "id": "ecology",
+      "meaning": "降雨がほとんどなく、地下の古い導水路が水源となっている特殊な生態系を示す。",
+      "name": "生態",
+      "origin": "catalog",
+      "weight": 0.6
+    },
+    {
+      "grounds": {
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域",
+        "statement_ids": []
+      },
+      "id": "laws_of_nature",
+      "meaning": "何が可能で何が不可能か、それがどう振る舞うか。",
+      "name": "自然の法則と法則外の理",
+      "origin": "catalog",
+      "weight": 0.05
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s3"
+        ]
+      },
+      "id": "technology_tools",
+      "meaning": "古い導水路という水供給技術が地域の生活・産業に不可欠である。",
+      "name": "技術と道具",
+      "origin": "catalog",
+      "weight": 0.6
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s1",
+          "s4"
+        ]
+      },
+      "id": "resources_economy",
+      "meaning": "塩の採掘と導水路の管理権争いが経済活動と資源配分に大きく影響している。",
+      "name": "資源と経済",
+      "origin": "catalog",
+      "weight": 0.9
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s4"
+        ]
+      },
+      "id": "politics_power",
+      "meaning": "採掘組合と水番の家系の長期的対立が権力構造を形成している。",
+      "name": "政治と権力",
+      "origin": "catalog",
+      "weight": 0.8
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s4"
+        ]
+      },
+      "id": "law_norms",
+      "meaning": "導水路の管理権をめぐる争いは法的規範や権利主張を伴う。",
+      "name": "法と規範",
+      "origin": "catalog",
+      "weight": 0.8
+    },
+    {
+      "grounds": {
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域",
+        "statement_ids": []
+      },
+      "id": "belief_thought",
+      "meaning": "世界観、儀礼、物事のあり方についての説明。",
+      "name": "信仰と思想",
+      "origin": "catalog",
+      "weight": 0.05
+    },
+    {
+      "grounds": {
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域",
+        "statement_ids": []
+      },
+      "id": "language_writing",
+      "meaning": "話し言葉、文字、命名、記録、呼びかけの形式。",
+      "name": "言語と文字",
+      "origin": "catalog",
+      "weight": 0.05
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s4"
+        ]
+      },
+      "id": "kinship_community",
+      "meaning": "水番の家系という血縁構造が対立の核となっている。",
+      "name": "血縁と共同体",
+      "origin": "catalog",
+      "weight": 0.7
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "id": "daily_life",
+      "meaning": "雨が少なく水は地下の導水路から得られるため、住民の生活はそれに依存している。",
+      "name": "日々の暮らし",
+      "origin": "catalog",
+      "weight": 0.7
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s1",
+          "s4"
+        ]
+      },
+      "id": "occupations_labor",
+      "meaning": "採掘組合と水番の家系がそれぞれ主要な職業集団となっている。",
+      "name": "職業と労働",
+      "origin": "catalog",
+      "weight": 0.7
+    },
+    {
+      "grounds": {
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域",
+        "statement_ids": []
+      },
+      "id": "education_knowledge",
+      "meaning": "知識がどう保たれ、教えられ、確かめられ、失われるか。",
+      "name": "教育と知識",
+      "origin": "catalog",
+      "weight": 0.05
+    },
+    {
+      "grounds": {
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域",
+        "statement_ids": []
+      },
+      "id": "arts_media",
+      "meaning": "表現、遊び、情報の流通。",
+      "name": "芸術・娯楽・メディア",
+      "origin": "catalog",
+      "weight": 0.05
+    },
+    {
+      "grounds": {
+        "reason": "",
+        "statement_ids": [
+          "s4"
+        ]
+      },
+      "id": "history",
+      "meaning": "導水路管理権を巡る長期的対立は歴史的背景を有する。",
+      "name": "歴史",
+      "origin": "catalog",
+      "weight": 0.5
+    },
+    {
+      "grounds": {
+        "reason": "入力では触れられていないが、世界が成り立つために必要な領域",
+        "statement_ids": []
+      },
+      "id": "external_relations",
+      "meaning": "外部の者との接触、交易、対立、境界。",
+      "name": "外部との関係",
+      "origin": "catalog",
+      "weight": 0.05
+    }
+  ],
+  "contract_stage": {
+    "attempts": 1,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": []
+      }
+    ],
+    "status": "success"
+  },
+  "entities": [
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [],
+            "reason": "s1とs2から地理と気候の特徴が導出される。",
+            "statement_ids": [
+              "s1",
+              "s2"
+            ]
+          },
+          "subject": "塩生産量",
+          "text": "塩原盆地の塩生産量は 50000 kg である。",
+          "unit": "kg",
+          "value": 50000
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [],
+            "reason": "s1とs2から地理と気候の特徴が導出される。",
+            "statement_ids": [
+              "s1",
+              "s2"
+            ]
+          },
+          "text": "採掘組合は塩原盆地の塩生産量を管理し、毎採掘週に報告する"
+        }
+      ],
+      "id": "e1",
+      "name": "塩原盆地",
+      "origin_operator": "premise",
+      "parent": null,
+      "provenance": {
+        "derived_from": [],
+        "reason": "s1とs2から地理と気候の特徴が導出される。",
+        "statement_ids": [
+          "s1",
+          "s2"
+        ]
+      },
+      "relations": [],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "塩原盆地は内陸の盆地で、雨季はほとんど降らず、主に地下の古い導水路から水を得ている。この盆地では塩採掘が主要産業であり、採掘週ごとに採掘組合が生産量を管理し、共管委員会が資源配分を調整する。水番家系は導水路の保守を担当し、日々の水消費はm3dで測定される。乾季には水祭が行われ、自治議会が住民の意見を代表して政策を調整する。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "belief_thought",
+        "law_norms"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩原盆地の採掘組合と水番家系の長期対立により設立された",
+            "statement_ids": [
+              "s1",
+              "s4"
+            ]
+          },
+          "subject": "年間塩生産量",
+          "text": "水源監督会は盆地暦の採掘週に年間塩生産量を測定し、52000 kgを報告した。",
+          "unit": "kg",
+          "value": 52000
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩原盆地の採掘組合と水番家系の長期対立により設立された",
+            "statement_ids": [
+              "s1",
+              "s4"
+            ]
+          },
+          "text": "水源監督会は採掘組合と水番家系の対立を調整するために設立された"
+        }
+      ],
+      "id": "e2",
+      "name": "水源監督会",
+      "origin_operator": "expand",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "塩原盆地の採掘組合と水番家系の長期対立により設立された",
+        "statement_ids": [
+          "s1",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "part_of"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.8269230769230769
+      },
+      "summary": "水源監督会は盆地暦の採掘週ごとに古い導水路から抽出される水量をm3dで測定し、結果を共管委員会へ報告する。乾季の水祭時に水質を検査し、雨季の降水がほぼ無い状況下で資源配分を監視する。水源監督会は採掘組合と水番家系の対立を調整し、平均塩生産量52000 kgを統計する。自治議会と協働し住民の意見を政策に反映する。",
+      "type": "institution"
+    },
+    {
+      "axes": [
+        "daily_life",
+        "occupations_labor",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩採掘労働者は盆地の産業に直接関与している",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "平均塩生産量",
+          "text": "塩原労働団体は盆地暦の採掘週ごとに平均 5000 kg の塩を生産する",
+          "unit": "kg",
+          "value": 5000
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩採掘労働者は盆地の産業に直接関与している",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "共管委員会は塩原労働団体の採掘週ごとの塩生産量（kg）を監査し、自治議会に報告する。"
+        }
+      ],
+      "id": "e3",
+      "name": "塩原労働団体",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "塩採掘労働者は盆地の産業に直接関与している",
+        "statement_ids": [
+          "s1",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "affects"
+        },
+        {
+          "target": "e1",
+          "type": "located_in"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        },
+        {
+          "target": "e2",
+          "type": "uses"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.9807692307692307
+      },
+      "summary": "塩原労働団体は塩採掘労働者の組織で、盆地暦の採掘週に毎週の塩生産量（kg）を管理し、共管委員会に報告する。水番家系が保守する古い導水路からの水消費量（m3d）を調整し、乾季の水祭で水質検査結果を共有する。採掘組合との資源配分協議に参加し、自治議会の政策調整に影響を与える。",
+      "type": "group"
+    },
+    {
+      "axes": [
+        "history",
+        "law_norms",
+        "politics_power"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "古い導水路の建設が水番家系と採掘組合の権利対立を生じさせた",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "争議期間中の塩生産量",
+          "text": "古導水路争議期間中、採掘組合は合計120000 kgの塩を生産した。",
+          "unit": "kg",
+          "value": 120000
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "古い導水路の建設が水番家系と採掘組合の権利対立を生じさせた",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "共管委員会は古導水路争議の決議に基づき設立され、導水路管理権と塩採掘権の調整を担っている。"
+        }
+      ],
+      "id": "e4",
+      "name": "古導水路争議",
+      "origin_operator": "history",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "古い導水路の建設が水番家系と採掘組合の権利対立を生じさせた",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "affects"
+        },
+        {
+          "target": "e1",
+          "type": "causes"
+        },
+        {
+          "target": "e2",
+          "type": "causes"
+        },
+        {
+          "target": "e3",
+          "type": "causes"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "古導水路争議は紀元前3世紀に建設された導水路の管理権を巡る争いであり、採掘組合と水番家系の間で権益が分断された。これが現在の塩原盆地における水供給管理と塩採掘の対立の根源で、共管委員会や自治議会の設立へとつながった。",
+      "type": "event"
+    },
+    {
+      "axes": [
+        "kinship_community",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e2",
+              "e3",
+              "e4"
+            ],
+            "reason": "s1-s4 provide context for a new group experiencing the basin.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "水道管理協議会の水処理重量",
+          "text": "水道管理協議会は水処理重量 800 kg を管理している",
+          "unit": "kg",
+          "value": 800
+        },
+        {
+          "kind": "proper_noun",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e2",
+              "e3",
+              "e4"
+            ],
+            "reason": "s1-s4 provide context for a new group experiencing the basin.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "水道管理協議会は水番家系に属する血縁集団が中心である"
+        }
+      ],
+      "id": "e5",
+      "name": "水道管理協議会",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1",
+          "e2",
+          "e3",
+          "e4"
+        ],
+        "reason": "s1-s4 provide context for a new group experiencing the basin.",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "affects"
+        },
+        {
+          "target": "e4",
+          "type": "derived_from"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        },
+        {
+          "target": "e2",
+          "type": "related_to"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "水道管理協議会は、盆地暦の採掘週・水祭・乾季・雨季に沿って、古導水路から抽出される水をm3dで測定し、採掘組合と水番家系の間で水資源の配分を協議する。協議会は水番家系に属する血縁集団が中心で、共管委員会の下位委員会として機能し、水質検査結果を共有し、塩生産量（kg）と水消費量のバランスを調整する。",
+      "type": "group"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "premise_extensions": [],
+  "run": {
+    "build": {
+      "accepted": 5,
+      "failed": 7,
+      "failures_by_step": {
+        "fact": 7
+      },
+      "steps": {
+        "axes": {
+          "attempts": {
+            "1": 12
+          },
+          "calls": 12,
+          "failures": 0,
+          "reasons": {}
+        },
+        "fact": {
+          "attempts": {
+            "1": 7,
+            "2": 2,
+            "3": 1,
+            "4": 9
+          },
+          "calls": 52,
+          "failures": 7,
+          "reasons": {
+            "fits_world": {
+              "units and calendar markers must belong to the contract": 19
+            },
+            "informative": {
+              "character 3-gram overlap must be <= 0.6": 17
+            }
+          }
+        },
+        "fact_check": {
+          "attempts": {
+            "1": 15
+          },
+          "calls": 15,
+          "failures": 0,
+          "reasons": {}
+        },
+        "grounding": {
+          "attempts": {
+            "1": 12
+          },
+          "calls": 12,
+          "failures": 0,
+          "reasons": {}
+        },
+        "name": {
+          "attempts": {
+            "1": 11,
+            "3": 1
+          },
+          "calls": 14,
+          "failures": 0,
+          "reasons": {}
+        },
+        "relations": {
+          "attempts": {
+            "1": 5
+          },
+          "calls": 5,
+          "failures": 0,
+          "reasons": {}
+        },
+        "review": {
+          "attempts": {
+            "1": 5,
+            "3": 1
+          },
+          "calls": 8,
+          "failures": 0,
+          "reasons": {
+            "consistent": {
+              "Entity name '塩砂丘域' does not correspond to the institution described in the facts, which refers to '水源監督会'.; Summary describes activities of '水源監督会', inconsistent with the entity name '塩砂丘域'.; Fact 0 discusses '水源監督会', conflicting with the entity's name '塩砂丘域'.; Fact 1 discusses '水源監督会', conflicting with the entity's name '塩砂丘域'.": 1,
+              "Salt production figure 50000 kg conflicts with world contract which reports 52000 kg.": 1,
+              "summary states that 水源監督会 monitors water quality and supply, but no fact in the entity supports this claim.": 1
+            },
+            "fits_world": {
+              "": 1,
+              "Salt production figure 50000 kg does not match the value specified in world contract (52000 kg) and thus does not fit the world contract.": 1,
+              "false verdict has no issue identifying an affected field": 1,
+              "institution 水源監督会 is not listed in the world contract, so the entity does not fit the defined world structure.": 1
+            }
+          }
+        },
+        "summary": {
+          "attempts": {
+            "1": 7,
+            "2": 3,
+            "3": 2
+          },
+          "calls": 19,
+          "failures": 0,
+          "reasons": {
+            "informative": {
+              "character 3-gram overlap must be <= 0.6": 4
+            },
+            "no_story": {
+              "quoted speech in the summary; move quotations into facts": 1
+            },
+            "objective": {
+              "quoted speech in the summary; move quotations into facts": 1
+            }
+          }
+        },
+        "type": {
+          "attempts": {
+            "1": 11
+          },
+          "calls": 12,
+          "failures": 0,
+          "reasons": {}
+        }
+      }
+    },
+    "counters": {
+      "accepted": 5,
+      "errors": 0,
+      "generation_calls": 149,
+      "no_candidates": 0,
+      "rejected": 7,
+      "rewrites": 42
+    },
+    "coverage": {
+      "axes_ok": false,
+      "axis_entities": {
+        "arts_media": 0,
+        "belief_thought": 1,
+        "daily_life": 1,
+        "ecology": 0,
+        "education_knowledge": 0,
+        "external_relations": 0,
+        "geography_climate": 1,
+        "history": 1,
+        "kinship_community": 1,
+        "language_writing": 0,
+        "law_norms": 2,
+        "laws_of_nature": 0,
+        "occupations_labor": 1,
+        "politics_power": 3,
+        "resources_economy": 3,
+        "technology_tools": 0
+      },
+      "mean_reward": 0.9615384615384615,
+      "met": false,
+      "reward_ok": true,
+      "scale_entities": {
+        "detail": 0,
+        "district": 0,
+        "region": 0,
+        "settlement": 0,
+        "site": 0,
+        "world": 5
+      },
+      "scales_ok": false
+    },
+    "iterations": 12,
+    "stop_reason": "max_iterations",
+    "structured": {
+      "axes": {
+        "attempts": {
+          "1": 12
+        },
+        "calls": 12,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 175.91888675000519,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 12
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "fact": {
+        "attempts": {
+          "1": 50
+        },
+        "calls": 50,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 1,
+          "succeeded": 1,
+          "tried": 2
+        },
+        "elapsed": 1425.6538201621734,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 52
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "fact_check": {
+        "attempts": {
+          "1": 15
+        },
+        "calls": 15,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 247.87708508502692,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 15
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "grounding": {
+        "attempts": {
+          "1": 12
+        },
+        "calls": 12,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 380.60493391612545,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 12
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "input_brief": {
+        "attempts": {
+          "2": 1
+        },
+        "calls": 1,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 74.83268720796332,
+        "failures": 0,
+        "modes": {
+          "constrained": 1,
+          "unconstrained": 1
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "name": {
+        "attempts": {
+          "1": 14
+        },
+        "calls": 14,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 133.93584270961583,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 14
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "relations": {
+        "attempts": {
+          "1": 5
+        },
+        "calls": 5,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 148.47038291674107,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 5
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "review": {
+        "attempts": {
+          "1": 8
+        },
+        "calls": 8,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 550.309544458054,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 8
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "summary": {
+        "attempts": {
+          "1": 19
+        },
+        "calls": 19,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 994.2353820023127,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 19
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "type": {
+        "attempts": {
+          "1": 11
+        },
+        "calls": 11,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 1,
+          "tried": 1
+        },
+        "elapsed": 324.9310093340464,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 12
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "world_axes": {
+        "attempts": {
+          "1": 1
+        },
+        "calls": 1,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 94.09102520812303,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 1
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      },
+      "world_contract": {
+        "attempts": {
+          "1": 1
+        },
+        "calls": 1,
+        "conversions": {
+          "fidelity_failures": 0,
+          "schema_failures": 0,
+          "succeeded": 0,
+          "tried": 0
+        },
+        "elapsed": 177.37622441677377,
+        "failures": 0,
+        "modes": {
+          "unconstrained": 1
+        },
+        "placeholder_violations": 0,
+        "schema_echo": 0
+      }
+    }
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "採掘週",
+          "水祭",
+          "乾季",
+          "雨季"
+        ],
+        "name": "盆地暦",
+        "origin": "盆地の塩採掘と導水路管理に基づく"
+      },
+      "society": {
+        "description": "塩の採掘で成り立つ内陸盆地。雨ほぼ無、導水路から水を得る。採掘組合と水番家系の長期対立が社会構造を形作る。",
+        "institutions": [
+          {
+            "description": "採掘権管理と資源分配に責任",
+            "name": "採掘組合"
+          },
+          {
+            "description": "導水路管理権保持と保守担当",
+            "name": "水番家系"
+          },
+          {
+            "description": "争い解決と資源配分を協議",
+            "name": "共管委員会"
+          },
+          {
+            "description": "住民意見を代表し政策調整",
+            "name": "自治議会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "地下水抽出・導水路保守",
+          "塩結晶化プロセス制御",
+          "水質検査・監視"
+        ],
+        "description": "古い導水路と塩採掘機械の保守・運用。限界は老朽化と水質管理。",
+        "units": [
+          {
+            "quantity": "毎日消費水量",
+            "symbol": "m3d"
+          },
+          {
+            "quantity": "塩生産量",
+            "symbol": "kg"
+          }
+        ]
+      }
+    }
+  }
+}

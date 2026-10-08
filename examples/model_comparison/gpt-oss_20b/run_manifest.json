@@ -1,0 +1,561 @@
+{
+  "schema_version": 2,
+  "layout_version": 3,
+  "artifact_type": "world_output",
+  "engine": "world",
+  "run_id": "final2_gpt-oss_20b",
+  "backend": "ollama",
+  "model": "gpt-oss:20b",
+  "models": {
+    "generation": "gpt-oss:20b",
+    "vision": "llava:latest"
+  },
+  "run_seed": 1,
+  "seed_source": "argument",
+  "config": {
+    "path": "<repo>/config/ollama_config.yaml",
+    "sha256": "3b8715cbf9dbc0fc38aebcc3d617e266f1d14edc6265b10db9d8f543bbf48abc"
+  },
+  "engine_config": {
+    "explore": {
+      "selection": {
+        "strategy": "ucb1",
+        "exploration": 0.6,
+        "epsilon": 0.05,
+        "prior_mean": 0.5,
+        "prior_strength": 1.0,
+        "item_prior_weight": 0.3,
+        "deficit_weight": 0.7,
+        "axis_weight": 0.3,
+        "depth_weight": 1.0,
+        "breadth_weight": 0.8,
+        "arm_by_axis": false,
+        "max_items_per_kind": 12
+      },
+      "build": {
+        "max_step_attempts": 4,
+        "review_rounds": 2
+      },
+      "operators": {
+        "empty": [
+          "premise"
+        ],
+        "unexpanded": [
+          "zoom",
+          "expand"
+        ],
+        "uncaused": [
+          "cause"
+        ],
+        "thin": [
+          "history",
+          "document",
+          "perspective"
+        ],
+        "axis_gap": [
+          "zoom",
+          "perspective",
+          "cause"
+        ],
+        "low_score": [
+          "expand",
+          "cause"
+        ]
+      },
+      "breadth": {
+        "enabled": true,
+        "operators": [
+          "expand",
+          "perspective",
+          "cause",
+          "history",
+          "document"
+        ],
+        "min_entities_per_operator": 1
+      },
+      "frontier": {
+        "min_facts": 3,
+        "low_score_threshold": 0.5,
+        "low_score_verifiers": [
+          "genericity",
+          "specificity"
+        ]
+      },
+      "budget": {
+        "max_iterations": 200,
+        "max_wall_seconds": null,
+        "max_generation_calls": null,
+        "max_consecutive_failures": 5
+      },
+      "coverage": {
+        "enabled": true,
+        "min_axis_entities": 1,
+        "depth": "detail",
+        "min_entities_per_scale": 2,
+        "target_mean_reward": 0.6
+      }
+    },
+    "operator": {},
+    "generation": {
+      "max_tokens": 8192,
+      "num_ctx": 32768,
+      "think": false,
+      "temperature": null
+    },
+    "structured": {
+      "max_attempts": 3,
+      "max_conversions": 2
+    }
+  },
+  "files": {
+    "config/prompts/input_brief.yaml": "25524633ff740891ca78ff279157a56b3eaed44548563a947308cb9bfc395b46",
+    "config/prompts/world/contract.yaml": "fa0591a488e76e52d60c45072ad0a5420b06816eadaacd1cd3acc7ba7b0b2161",
+    "config/prompts/world/operators.yaml": "9880c90a1ecf5a7cb2022f6db6ad941845f1e87ae2d258b7cec09322896cea80",
+    "config/prompts/world/steps.yaml": "024c7f0c23d8a5c2ddfb389ac575ae28f7c768dacbcb34fc80d79efad7b8f44e",
+    "config/prompts/world_axes.yaml": "e6a3443148d5f6ada97daa06aaec0e30f189a7a3e1ddc14657bfe4ad39211e55",
+    "config/schemas/image_description.json": "e7dfda4d5d92a41cfd3d3ea2059ef3267602109fb5fa864e44dcad3759dc0791",
+    "config/schemas/input_brief.json": "6740c1dbf9f064a5d7a0895f71793bc8ea78c117b51c3b8c30b6cad28af708b7",
+    "config/schemas/steps/axes.json": "3ec6eb61bf6c2741d1ee537d1d8868c46a91b625d7b38bfb6f9537ee7c655ca5",
+    "config/schemas/steps/fact.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
+    "config/schemas/steps/fact_check.json": "b3c18eb241c77cbcbd4d571f755231f3ed24fbb70b1fbf2b125f5360d2fdc546",
+    "config/schemas/steps/grounding.json": "8729109bd691a2db909ea05fe0481b4be8ec939d6b6bb7e2719e8b7a7d48a7eb",
+    "config/schemas/steps/name.json": "f10757aa050a745a5bcd8c4d7b3372eefd993b22f06587bd139a2e1c549264d2",
+    "config/schemas/steps/relations.json": "11df31f3d19573bf355cfaa27025de75ee1427f4c69ab838472a6f97d29708b7",
+    "config/schemas/steps/review.json": "4c8e7efe1e8fdcb82e19d501866d2a544a40b557d257bdf68d0ce20ce7e1c421",
+    "config/schemas/steps/summary.json": "587e86b0b9bb906b32a4551f8df8819bbd3e5e55a88c666ab8377d7f3f7c8df1",
+    "config/schemas/steps/type.json": "c32aaaf81bcc4523f392b3685937a902010b07f679b341003ca9c803da042489",
+    "config/schemas/world_axes.json": "d3908416634d7ee04f2a3bb0f51a660545bdc7cb1ec1a12cc4188364923030e1",
+    "config/schemas/world_contract.json": "35ecbb952de8509e768ded0b2868c8daafe73c6e30e125abaa67541868d9cb37",
+    "config/world/criteria.yaml": "13d806497517a59c649d083136854fb5e2120644f36999107329e7e456b4048a",
+    "config/world/domains.yaml": "b5650ae80af6b396e40b5ce22a782cc64a4e73e4afe17a2d2b0ddf576a4168eb",
+    "config/world/explore.yaml": "48e7f923938dcacf68e2169035645eb6120518745dcbb048b55757ded43c10ca",
+    "config/world/language_rules.yaml": "786784e1a320bf003476d608f5b3d4b2fdb9802ab02543aa2bb3e51e11fe200f",
+    "config/world/languages.yaml": "d13991e024990f241f4c6fe10262a76a243698812ff42e8c3299b1049bcda4f7",
+    "config/world/quality.yaml": "d7864814a22eeb9cc2096277d18934a85d3d4377453a6ea3c02cc4f880732e25",
+    "config/world/render_labels.yaml": "d4ca5f36b22dcd177457c261f6b90e0e6c185f9eff9f9565619f8a577fa8519c",
+    "config/world/reward.yaml": "fe92b86483c166a30e26c6ec346a9b634347d8bffd5c9be4d19b89d150625253"
+  },
+  "paths": {
+    "input": "input",
+    "world": "world",
+    "checkpoints": "checkpoints",
+    "final": "final"
+  },
+  "created_at": "2026-10-07T17:56:47+00:00",
+  "status": "completed",
+  "updated_at": "2026-10-07T19:15:38+00:00",
+  "budget": {
+    "requested": {
+      "max_iterations": 12,
+      "max_wall_seconds": 14400.0
+    },
+    "effective": {
+      "max_iterations": 12,
+      "max_wall_seconds": 14400.0,
+      "max_generation_calls": null
+    }
+  },
+  "input": {
+    "raw_file": "smoke_input.txt",
+    "sha256": "f6c1cdd703a64cbc624680af6a35b2010e986dc8f661b59bc3d3e2c0e16682a7",
+    "characters": 81,
+    "images": []
+  },
+  "started_at": "2026-10-07T17:56:47+00:00",
+  "pid": 14666,
+  "world_contract": {
+    "status": "success",
+    "attempts": 1,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": []
+      }
+    ]
+  },
+  "phases": {
+    "world_explore": {
+      "status": "completed",
+      "started_at": "2026-10-07T18:02:34+00:00",
+      "finished_at": "2026-10-07T19:15:38+00:00"
+    }
+  },
+  "build": {
+    "steps": {
+      "type": {
+        "calls": 12,
+        "attempts": {
+          "1": 11
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "grounding": {
+        "calls": 12,
+        "attempts": {
+          "1": 12
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "name": {
+        "calls": 14,
+        "attempts": {
+          "1": 11,
+          "3": 1
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "axes": {
+        "calls": 12,
+        "attempts": {
+          "1": 12
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "summary": {
+        "calls": 19,
+        "attempts": {
+          "1": 7,
+          "2": 3,
+          "3": 2
+        },
+        "reasons": {
+          "informative": {
+            "character 3-gram overlap must be <= 0.6": 4
+          },
+          "objective": {
+            "quoted speech in the summary; move quotations into facts": 1
+          },
+          "no_story": {
+            "quoted speech in the summary; move quotations into facts": 1
+          }
+        },
+        "failures": 0
+      },
+      "fact": {
+        "calls": 52,
+        "attempts": {
+          "1": 7,
+          "4": 9,
+          "3": 1,
+          "2": 2
+        },
+        "reasons": {
+          "fits_world": {
+            "units and calendar markers must belong to the contract": 19
+          },
+          "informative": {
+            "character 3-gram overlap must be <= 0.6": 17
+          }
+        },
+        "failures": 7
+      },
+      "fact_check": {
+        "calls": 15,
+        "attempts": {
+          "1": 15
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "review": {
+        "calls": 8,
+        "attempts": {
+          "1": 5,
+          "3": 1
+        },
+        "reasons": {
+          "consistent": {
+            "summary states that 水源監督会 monitors water quality and supply, but no fact in the entity supports this claim.": 1,
+            "Entity name '塩砂丘域' does not correspond to the institution described in the facts, which refers to '水源監督会'.; Summary describes activities of '水源監督会', inconsistent with the entity name '塩砂丘域'.; Fact 0 discusses '水源監督会', conflicting with the entity's name '塩砂丘域'.; Fact 1 discusses '水源監督会', conflicting with the entity's name '塩砂丘域'.": 1,
+            "Salt production figure 50000 kg conflicts with world contract which reports 52000 kg.": 1
+          },
+          "fits_world": {
+            "institution 水源監督会 is not listed in the world contract, so the entity does not fit the defined world structure.": 1,
+            "": 1,
+            "false verdict has no issue identifying an affected field": 1,
+            "Salt production figure 50000 kg does not match the value specified in world contract (52000 kg) and thus does not fit the world contract.": 1
+          }
+        },
+        "failures": 0
+      },
+      "relations": {
+        "calls": 5,
+        "attempts": {
+          "1": 5
+        },
+        "reasons": {},
+        "failures": 0
+      }
+    },
+    "accepted": 5,
+    "failed": 7,
+    "failures_by_step": {
+      "fact": 7
+    }
+  },
+  "world_explore": {
+    "iteration": 12,
+    "counters": {
+      "generation_calls": 149,
+      "accepted": 5,
+      "rejected": 7,
+      "no_candidates": 0,
+      "rewrites": 42,
+      "errors": 0
+    },
+    "stop_reason": "max_iterations",
+    "elapsed_seconds": 4383.914
+  },
+  "structured": {
+    "input_brief": {
+      "calls": 1,
+      "attempts": {
+        "2": 1
+      },
+      "failures": 0,
+      "elapsed": 74.83268720796332,
+      "modes": {
+        "constrained": 1,
+        "unconstrained": 1
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "world_axes": {
+      "calls": 1,
+      "attempts": {
+        "1": 1
+      },
+      "failures": 0,
+      "elapsed": 94.09102520812303,
+      "modes": {
+        "unconstrained": 1
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "world_contract": {
+      "calls": 1,
+      "attempts": {
+        "1": 1
+      },
+      "failures": 0,
+      "elapsed": 177.37622441677377,
+      "modes": {
+        "unconstrained": 1
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "type": {
+      "calls": 11,
+      "attempts": {
+        "1": 11
+      },
+      "failures": 0,
+      "elapsed": 324.9310093340464,
+      "modes": {
+        "unconstrained": 12
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 1,
+        "succeeded": 1,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "grounding": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 380.60493391612545,
+      "modes": {
+        "unconstrained": 12
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "name": {
+      "calls": 14,
+      "attempts": {
+        "1": 14
+      },
+      "failures": 0,
+      "elapsed": 133.93584270961583,
+      "modes": {
+        "unconstrained": 14
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "axes": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 175.91888675000519,
+      "modes": {
+        "unconstrained": 12
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "summary": {
+      "calls": 19,
+      "attempts": {
+        "1": 19
+      },
+      "failures": 0,
+      "elapsed": 994.2353820023127,
+      "modes": {
+        "unconstrained": 19
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "fact": {
+      "calls": 50,
+      "attempts": {
+        "1": 50
+      },
+      "failures": 0,
+      "elapsed": 1425.6538201621734,
+      "modes": {
+        "unconstrained": 52
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 2,
+        "succeeded": 1,
+        "fidelity_failures": 0,
+        "schema_failures": 1
+      }
+    },
+    "fact_check": {
+      "calls": 15,
+      "attempts": {
+        "1": 15
+      },
+      "failures": 0,
+      "elapsed": 247.87708508502692,
+      "modes": {
+        "unconstrained": 15
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "review": {
+      "calls": 8,
+      "attempts": {
+        "1": 8
+      },
+      "failures": 0,
+      "elapsed": 550.309544458054,
+      "modes": {
+        "unconstrained": 8
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "relations": {
+      "calls": 5,
+      "attempts": {
+        "1": 5
+      },
+      "failures": 0,
+      "elapsed": 148.47038291674107,
+      "modes": {
+        "unconstrained": 5
+      },
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    }
+  },
+  "finished_at": "2026-10-07T19:15:38+00:00",
+  "stop_reason": "max_iterations",
+  "iterations": 12,
+  "counters": {
+    "generation_calls": 149,
+    "accepted": 5,
+    "rejected": 7,
+    "no_candidates": 0,
+    "rewrites": 42,
+    "errors": 0
+  },
+  "quality_report": {
+    "json": "quality_report.json",
+    "markdown": "quality_report.md"
+  }
+}

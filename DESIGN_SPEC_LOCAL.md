@@ -1,185 +1,201 @@
 # 100 TIMES AI WORLD BUILDING — エンジン設計仕様書
 
-**バージョン**: v3.0
-**対象**: 入力から世界設定資料を自律的に生成・検証・深化するエンジン（Ollama 既定、Anthropic 任意）
-**位置づけ**: 旧 v2.x（物語を生成する Phase 0〜6 のパイプライン）の設計は撤去しました。旧クラウド版ノートブックの
-設計は [DESIGN_SPEC.md](DESIGN_SPEC.md)（旧版）にあります。
+**対象**: 入力から世界設定資料を自律的に生成・検証・深化する現在のエンジン（Ollama / Anthropic）
 
-> **検証状況**：テストは決定的なフェイクバックエンドのみです。実機のローカルモデルでのエンドツーエンド実行は未確認です
-> （[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)）。
+この文書は現在のコードの仕組みを説明します。利用方法は [README_LOCAL.md](README_LOCAL.md)、
+実装・検証状況は [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) を参照してください。
+旧クラウド版ノートブックの設計は [DESIGN_SPEC.md](DESIGN_SPEC.md) にあります。
 
----
+## 1. 目的と制約
 
-## 1. 目的と原則
+入力を起点に、広がり・因果と歴史・スケール階層・具体的なディテールを持つ世界設定資料を作ります。
+説明文は中立・客観的な資料の調子とし、物語の主人公・プロット・章・小説本文は生成しません。
 
-利用者の入力（形式自由）だけを起点に、**物語制作の土台になる世界設定資料**を、人の介入なしに生成・検証・深化し続ける。
+- 入力受付では明示事項だけを抽出し、後の生成では入力や局所エンティティからの由来を記録します。
+- モデル名・モデル固有パラメータは設定から与えます。生成の文脈は件数・文字数で制限します。
+- 作例は閲覧用で、仕組みに取り込みません。`tests/test_example_run.py` が `examples/` を再帰探索し、
+  `run_manifest.json` を持つ各パッケージの原文から、句読点・改行で分割した4文字以上の断片と
+  二重引用符内の6文字以上の値を集めます。入力の `.json` は除外します。
+  `src/` の Python、`config/` の YAML、ルートの Python・ノートブック、`legacy/*.ipynb`、
+  このガード自身を除くテストに断片や作例の参照が含まれないことを検査します。
+- 自動テストは決定的なフェイクバックエンドを使い、実モデルへ接続しません。
 
-| 性質 | 意味 | 実現する仕組み |
-|---|---|---|
-| 広がり | 周縁・他者・無関係な領域まで存在する | 入力から決める軸と重み、`perspective` |
-| 深み | 各要素に因果と歴史の地層がある | `cause` / `history`、由来の記録 |
-| スケール感 | 世界から個人の一日までの階層 | スケール階層、`zoom` |
-| ディテール | 場面に置ける具体物 | 具体性の検証、`document` |
-
-あわせて、客観的な説明文（百科事典・設定解説の調子）を必ず出力する（客観性の検証と描画規則）。
-
-共通の制約：
-
-- **作例を仕組みに持ち込まない**：`examples/` をコード・設定・プロンプト・テストから参照しない（`tests/test_example_run.py`
-  の混入ガード）。テスト入力はテスト内の最小の合成入力。
-- **入力に前提を持ち込まない**：ジャンル・時代・舞台・技術・主人公像を埋め込まない。世界の内容は入力かそこから導いた
-  前提だけに由来する。
-- **物語を書かない**：主人公・プロット・章・小説本文は生成しない（`tests/test_old_phases_removed.py` が旧語彙を検査）。
-- **モデル非依存**：モデル名・モデル固有パラメータは設定ファイルと `src/llm/` の抽象で扱う。1 回の生成で扱う文脈を小さく保つ。
-- **テスト**：実 LLM に接続しない決定的なフェイクバックエンドで検証する。
-
-## 2. 全体構成
-
-```
-example_run.py ─► src/pipeline.py (Pipeline) ─► src/world/explore.py (run_world_engine)
-                  │  設定・バックエンド/モデル解決      ├─ input.py   入力の受け入れ
-                  │  パッケージ・マニフェスト           ├─ axes.py    世界の軸
-                  │  品質レポート                       ├─ graph.py   エンティティグラフ
-src/batch.py ─────┘                                     ├─ operators.py 生成オペレータ
-src/quality.py / src/compare.py（レポート）             ├─ verify.py / reward.py 検証器と報酬
-src/llm/（Ollama / Anthropic / フェイク）               └─ render.py  世界設定資料の描画
-src/checkpoint_manager.py / src/run_manifest.py（再開・記録）
-```
-
-`Pipeline` は薄いラッパー（API は `Pipeline(...)`, `.run(input)`, `.resume()`, `.check_prerequisites()`）で、生成ロジックは
-持たない。担当は、設定からのバックエンド/モデルの解決、世界パッケージ 1 つ分のディレクトリ、`run_manifest.json`、
-全呼び出しへの生成既定値の適用（`ConfiguredBackend`）、実行後の品質レポートのみ。旧 `Pipeline` の Phase メソッドは撤去した。
-
-## 3. 入力の受け入れ（`src/world/input.py`）
-
-原文（UTF-8 のテキスト / YAML / JSON、任意の形）と任意の画像を `input/` に保存する。画像はビジョンモデルで観察可能な
-事項だけを記述し、原文に付加する。モデルは `statements`（引用付きの明示事項）、`open_questions`、`constraints` だけを
-返し、**引用は原文の連続部分文字列であることをコードが検査**し、合致しないものは捨てる。ID はコードが振る。
-結果は `input/input_brief.json`。事項を推測・補完しない。
-
-## 4. 世界の軸（`src/world/axes.py`）
-
-`config/world/domains.yaml` の汎用領域カタログ（地理と気候・生態・自然法則・技術・資源と経済・政治と権力・規範・信仰と思想・言語と文字・親族と共同体・日常・労働・教育と知・
-芸術とメディア・歴史・外部との関係の 16 領域。どの世界にも当てはまる）は**被覆のチェックリスト**であり、特定の世界の雛形ではない。モデルは入力に照らして各領域の
-重みと世界固有の意味付けを提案し、コードが検証する：すべてのカタログ領域が軸になる／重みの下限（0 にならない）／
-根拠となる事項がない軸の重みの上限／入力が加える領域の数の上限。結果は `world/world_axes.json`
-（`id`・`name`・`meaning`・`weight`・`grounds`・`origin`）。後段は軸を `id` で参照し、重みで探索の配分を決める。
-
-## 5. エンティティグラフ（`src/world/graph.py`）
-
-世界は素の `dict`（JSON と往復可能）のグラフ `world/graph.json`。
-
-- **スケール階層**：`world → region → settlement → district → site → detail`。親のスケールは子より上でなければならず、
-  `world` だけが親を持たない。
-- **エンティティ**：`id`（コードが `eN` を採番）、`type`（place / group / institution / person / object / practice /
-  event / concept / document）、`name`、`axes`、`scale`、`parent`、`relations`（located_in / causes / affects / opposes /
-  derived_from / part_of / uses / produces / governs / related_to など）、`summary`、`facts`、`provenance`、`scores`。
-  人物は住人であり物語上の役割を持たない。
-- **事実**：`kind`（proper_noun / number / period / procedure / object / expression / other）と `text` と事実ごとの由来。
-- **由来（provenance）**：入力の記述 ID（`statement_ids`）、導出元エンティティ（`derived_from`）、理由（`reason`）。
-  入力にも既存の世界にも根拠のないものは採用されない。
-- **検証**：スキーマと参照整合性（`validate_graph`）。書き込みは原子的（一時ファイル + rename）で、コミットごとに
-  `world_graph` チェックポイントを残す。
-- **局所文脈**：`local_context` が対象の周囲（親・兄弟・関連・事実）を件数・文字数で上限を切って返し、1 回の生成の
-  文脈を世界の大きさに依存させない。
-
-## 6. オペレータ（`src/world/operators.py`）
-
-| オペレータ | 対象 | 新エンティティの置き場 |
-|---|---|---|
-| `premise` | 世界全体 | `world` スケール |
-| `expand` | 既存エンティティ | 同じスケール・同じ親（兄弟） |
-| `zoom` | 既存エンティティ | 1 つ下のスケール・対象を親に |
-| `cause` | 既存エンティティ | 兄弟 + `causes` 関係（なぜそうなっているか） |
-| `perspective` | 既存エンティティ | 兄弟 + `related_to`（別の立場・周縁から見た姿） |
-| `history` | 既存エンティティ | 兄弟 + `affects`（歴史の地層） |
-| `document` | 既存エンティティ | 兄弟 + `related_to`（条文・記録・掲示などの世界内文書） |
-
-1 回の呼び出しは対象の局所文脈と少数の事項・軸だけをプロンプトに入れ、`n` 個の候補を 1 度に求める。**ID・スケール・
-親・構造的な関係はコードが付与**し、由来のない候補は捨て、スケールが下がるほど増える最低限の具体的事実数を課す。
-プロンプトは `config/prompts/world/operators.yaml`。基準未満の候補は `revision.yaml` の批評付きプロンプトで書き直す。
-
-## 7. 検証器と報酬（`src/world/verify.py`, `reward.py`）
-
-各検証器は 0〜1（1 が最良）のスコアと、どのフィールドをなぜ減点したかの構造化された減点記録を返す。既定は決定的で、
-LLM 審査や埋め込み類似度は任意のプラグイン。言語依存の語彙は `config/world/language_rules.yaml`（言語コード別）。
-
-| 検証器 | 見るもの |
-|---|---|
-| genericity（凡庸さ） | 同じスロットを**入力なし**で生成した対照（モデルの事前分布）との文字 3-gram 類似度。近い記述を減点。対照は `world/contrasts.json` にキャッシュ |
-| provenance | 由来の有無、参照先の実在、導出の理由 |
-| specificity | 固有名詞・数値・事実の種類の多様さ、抽象語の密度 |
-| consistency | グラフの整合、自己関係、関係の矛盾、所在・時間順序・数値の矛盾 |
-| objectivity | 引用・一人称・二人称・感嘆・疑問・修辞（説明文の調子から外れる表現） |
-| novelty | 既存のエンティティとの重複 |
-
-報酬は重み付き平均（`config/world/reward.yaml` の `weights`）。候補は、全検証器が各しきい値以上で、かつ合計報酬が
-`thresholds.total` 以上のとき合格。スコアは採用されたエンティティの `scores` に保存される。
-
-## 8. 自律探索ループ（`src/world/explore.py`）
-
-1 反復：
-
-1. **フロンティア評価**：`empty`（空）／`unexpanded`（下のスケールがない）／`uncaused`（因果がない）／`thin`（事実が少ない）／
-   `axis_gap`（軸の被覆が重みに比べ不足）／`low_score`（保存済みスコアが低い）の各項目を、不足度（deficit）付きで列挙。
-2. **選択**：`config/world/explore.yaml` の `operators` で各種別に許す操作を結び、（操作 × 種別）を腕とするバンディット
-   （UCB1 または Thompson、ε ランダム）が（フロンティア項目 × 操作）を選ぶ。腕の価値は平均報酬（事前分布付き）で、
-   項目の不足度と軸の重みが事前値として加わる。乱数は 1 つの seed 付き `random.Random`。
-3. **生成**：選んだオペレータで候補を複数生成。
-4. **採点**：検証器で採点し、報酬を算出。
-5. **採否**：最良候補が合格ならそれを採用。不合格なら減点記録を批評として添えて書き直し（最大 `max_rewrites` 回）。
-   どれも合格しなければ破棄し、腕の報酬を `discard_reward` として記録。
-6. **反映**：採用したエンティティをグラフにコミットし、チェックポイント（グラフ・バンディット・乱数状態・ログ行数）を保存。
-
-**停止条件**（`stop_reason`）：`coverage_met`（全軸が下限件数以上・指定スケールまで各 N 件以上・平均報酬が目標以上）、
-`max_iterations`、`max_wall_seconds`、`max_generation_calls`、`frontier_exhausted`。予算は設定とエンジン呼び出しの
-引数（CLI の `--max-*`）で指定する。途中で止まっても、再開時に乱数状態とログ位置を復元して同じ経過をたどる
-（コミット済みでチェックポイント未保存の変更は巻き戻す）。第 1 段階のため、モデルの重みは更新しない。
-
-**選好ログ**（`world/preferences.jsonl`）：すべての候補（スコア・減点・採否・書き直し元）と反復の記録を追記。
-`extract_preference_pairs` が（プロンプト, 採用, 却下）の組を取り出す。第 2 段階（DPO など）の入力形式までを実装し、
-学習そのものは行わない。
-
-## 9. 出力（`src/world/render.py`）
-
-テンプレートによる決定的な描画で、モデルは呼ばず、世界モデルにない文章は書かない。見出しは
-`config/world/render_labels.yaml`（`meta.language` で選択、なければ `en`）。
+## 2. 全体構成と処理順
 
 ```text
-final/world.json         機械可読の世界モデル（正規化したグラフ + 軸 + 実行サマリ）
-final/world_bible/       README.md（概要・軸・目次）, scales/<scale>.md, entities/<id>.md,
-                         glossary.md, timeline.md, documents.md
-final/world_report.md    停止理由・被覆・スケール別件数・報酬分布・凡庸さで落とした候補の例
+example_run.py → Pipeline（src/pipeline.py）→ run_world_engine（src/world/explore.py）
+入力 → 入力ブリーフ（input.py）→ 軸（axes.py）→ 契約（contract.py、独立した段階）
+                                                   ↓
+探索ループ：フロンティア評価 → バンディットで「操作×対象」を選択
+                                                   ↓
+EntityBuilder（builder.py）：型 → 由来 → 名前 → 軸 → 説明
+                           → 種類を指定した事実を1件ずつ → 関係 → 審査
+                           各項目を検証し、不合格の項目だけ再生成
+                                                   ↓
+全基準に合格 → グラフへ採用 → 次の反復
+                                                   ↓
+世界設定資料の出力（render.py）・品質レポート（src/quality.py）
 ```
 
-## 10. 基盤
+`Pipeline` は設定・バックエンド解決、生成の既定値、出力パッケージ、manifest、品質レポートを担当する薄いラッパーです。
+バッチは `src/batch.py`、比較は `src/compare.py`、再開は `src/checkpoint_manager.py` を使います。
 
-- **バックエンド抽象**（`src/llm/`）：`LLMBackend`（`generate_json` / `generate_text` / `check_ready`）。Ollama
-  （`src/ollama_client.py`）と Anthropic（`src/llm/anthropic_client.py`）、テスト用の決定的フェイク（`src/llm/fake.py`）。
-  `src/llm/factory.py` が設定からクライアントを組み立てる。
-- **設定**（`config/ollama_config.yaml`）：`backend`、`server`、`model.name`、`models.vision`、`anthropic`、`generation`
-  （全生成呼び出しの既定値）、`engine.explore` / `engine.operator`（上書き）、`checkpointing`、`logging`、`output`。
-  エンジン本体の設定は `config/world/`（`domains` / `explore` / `reward` / `language_rules` / `render_labels` / `quality`）。
-- **モデルの役割**：「生成」と「画像読み取り（ビジョン）」の 2 つ。旧版の role 別モデル（structured / story / reference）は、
-  物語・参考資料の生成とともに廃止した。Anthropic では単一のモデルが両方を担う。
-- **マニフェスト**（`run_manifest.json`）：`engine_config`（探索・オペレータ・生成既定値）、`budget`（要求値と有効値）、
-  `run_seed`、`backend` / `model` / `models`、設定ファイルのハッシュと設定・プロンプトのスナップショット、`input`、
-  `status`、`stop_reason`、`iterations`、`counters`。再開時は保存済みの seed・バックエンド・モデルを引き継ぐ。
-- **チェックポイント**（`src/checkpoint_manager.py`）：`world_graph` と `world_explore`。
-- **バッチ**（`src/batch.py`）：同じ入力から N 個の独立した世界（各自の package・seed・チェックポイント）。
-  `batch_manifest.json`（各世界の seed・停止理由・状態）と、2 個以上なら `comparison.md`。1 つの失敗は他を止めない。
-- **品質レポート**（`src/quality.py`）：軸の被覆、スケールの深さ、報酬の分布、凡庸さ、由来、重複、探索の状態。
-  **比較レポート**（`src/compare.py`）：世界ごとの要約と、世界同士の重複（同名・近似エンティティ・共通の固有名詞・軸の類似）。
+## 3. 入力ブリーフと軸
 
-## 11. 制約と未検証事項
+`InputBriefBuilder` は原文と任意の画像を `input/` に保存します。画像は観察可能な事項を記述して入力に加えます。
+ブリーフは引用付きの `statements`、`open_questions`、`constraints` で構成し、
+引用が原文の連続部分文字列でない事項は除外します。IDはコードが付け、`input/input_brief.json` に保存します。
 
-- 実機のローカルモデルでのエンドツーエンド実行は未確認（所要時間・出力品質・20B 級モデルでの安定性）。
-- 凡庸さの対照は同じモデルの「入力なし」生成なので、モデルの事前分布そのものが偏っている場合の限界は残る。
-- 類似度は決定的な文字 3-gram が既定。意味的な類似（埋め込み）や LLM 審査はプラグイン点だけ用意している。
-- 旧パイプライン（物語生成）の出力は新エンジンから読まない。
+`WorldAxesBuilder` は `config/world/domains.yaml` の16領域のカタログを入力に照らして重み付けします。
+カタログの全領域、重みの下限、根拠のない軸の重みの上限、追加領域数の上限を検査します。
+結果は `world/world_axes.json`（`id`・`name`・`meaning`・`weight`・`grounds`・`origin`）です。
 
-## 12. 将来の拡張
+## 4. 独立した契約生成
 
-- 選好ログを使った DPO などによるモデル調整（第 2 段階）。
-- 埋め込みによる類似度、LLM 審査の導入。
-- 実機での長時間実行の検証と、そこで得た知見による設定の見直し。
+`establish_contract`（`src/world/contract.py`）は軸の後・探索の前に実行します。
+入力事項は最大12件、制約は8件、軸は16本、各文字列は160文字までの文脈から、
+暦・技術（能力・限界・単位）・社会を生成します。契約はエンティティの件数や軸の被覆には数えません。
+
+- 原本はグラフの `world_contract` に保存します。
+- 成功・失敗、試行回数、違反内容はグラフの `contract_stage` と manifest の `world_contract` に記録します。
+- 構造化出力の規定回数で準拠しなければ `StructuredFailure` で実行を失敗にします。
+- 再開では保存済みの結果を使い、失敗済みなら再び失敗として報告します。旧形式の契約も再利用できます。
+- 入力・軸・契約の生成は探索の呼び出し予算の外で、構造化出力の試行上限で制限します。
+
+## 5. 出力契約と修復（`src/world/structured.py`）
+
+`config/schemas/` の JSON Schema（draft 2020-12）が入力ブリーフ・画像記述・軸・契約・各ステップの形式を定義します。
+`src/world/schemas.py` がステップごとに許される型・事項ID・局所エンティティID・軸ID・単位・暦の標識を埋めます。
+共通の `generate_structured` は次の順で出力を扱います。
+
+1. JSONを解析し、スキーマの違反をパス・期待値・実際の値とともに列挙します。
+2. スキーマの書き写しと、型名・プロパティ名などをそのまま値にしたプレースホルダーを検出します。
+   これらは形式変換で救済せず、内容の書き直しに進みます。
+3. 非空の出力が形式に合わない場合、`config/prompts/structured/convert.yaml` で形式を変換します。
+   変換した自由文字列・数値が元の生成出力に含まれるかを、文字幅・空白などを正規化して決定的に検査します。
+   比較元は常に元の生成出力で、前回の変換結果には置き換えません。
+4. 変換が解決しない場合、元の指示・違反内容・前回の生成出力を示して内容を書き直します。
+
+忠実性検査は部分文字列の存在検査です。文字列の列挙値はこの検査の対象外で、意味の同一性全体を保証する検査ではありません。
+真偽値を含むスキーマでは変換を省きます。
+`engine.structured.max_attempts` は初回込みの内容生成上限（既定3）、`max_conversions` は内容生成1回あたりの変換上限（既定2）です。
+
+Ollama はJSON Schemaによるデコード拘束と `think: false` で始めます。拘束中の応答が解析不能なら拘束なしへ切り替え、
+同じクライアントのバックエンド・モデルの組ごとに記憶します。解析可能なスキーマ違反だけでは拘束を外しません。
+Anthropic は強制した tool use による拘束を維持します。この学習はクライアント内の状態で、モデルの重み更新ではありません。
+
+## 6. 操作とEntityBuilder
+
+`src/world/operators.py` が操作の種類と置き場を決め、`config/prompts/world/operators.yaml` が操作の目的を与えます。
+
+| 操作 | 置き場と関係 |
+|---|---|
+| `premise` | 世界スケール |
+| `expand` | 対象と同じスケール・親 |
+| `zoom` | 対象の1段下、対象を親にする |
+| `cause` | 対象の兄弟、対象への `causes` |
+| `perspective` | 対象の兄弟、対象への `related_to` |
+| `history` | 対象の兄弟、対象への `affects` |
+| `document` | 対象の兄弟、対象への `related_to`、型は `document` |
+
+`EntityBuilder`（`src/world/builder.py`）は `config/prompts/world/steps.yaml` を使い、1つのエンティティを組み立てます。
+型・由来・名前・軸・説明・事実・関係を独立したステップで生成・検証します。型が操作で一意なら生成を省き、
+局所エンティティがなければ追加関係の生成を省きます。ID・スケール・親・操作に対応する関係はコードが付けます。
+
+事実の計画は測定値と固有名詞から始め、物・手順・期間を順に加えます。
+件数は `max(2, min_concrete_facts[scale] + 1)` で、既定は世界2、地域2、集落3、地区3、施設4、細部5です。
+1件ずつ種類を指定し、測定値は本文内の値・非時間の測定単位、期間は暦の標識と値を検査します。
+それ以外の種類は `fact_check` の小さな確認タスクを使います。
+
+各ステップは検査が通るまで既定4試行以内で作り直し、不合格の変更は戻します。
+最後の `review` は組み立てた全体の整合性・客観性・物語の語り口の不在・世界との適合を4つの合否と問題一覧で返します。
+問題のある名前・説明・事実だけを再生成して再審査します。全体審査後の修正は既定2巡です。
+問題を特定しない不合格判定や、合格判定と矛盾する問題一覧は採用しません。
+
+## 7. 採用基準
+
+[config/world/criteria.yaml](config/world/criteria.yaml) の8基準をステップの検査と全体審査で満たした場合だけ採用します。
+
+| 基準 | 現在の検査 |
+|---|---|
+| `grounded` | 入力事項または局所エンティティが由来。エンティティからの導出理由は10文字以上 |
+| `consistent` | 出力スキーマ、既存数値との矛盾、自己参照、全体審査 |
+| `objective` | 名前の文字種が出力言語に合う。説明の客観性検査と全体審査 |
+| `no_story` | 説明の引用・一人称・二人称などの検査と全体審査 |
+| `specific` | 測定値・期間の決定的検査、他の種類の `fact_check` |
+| `informative` | 説明・事実の文字3-gramの重複率が入力・局所文脈に対して0.6以下。事実は他の事実も比較対象 |
+| `distinct` | 正規化した名前が既存名と異なり、同一エンティティの事実が重複しない |
+| `fits_world` | 単位とその組合せ・暦の標識が契約に属する。全体が入力と世界に適合するかの審査 |
+
+決定的な客観性・整合性検査は `src/world/verify.py`、言語規則は `config/world/language_rules.yaml`、
+単位照合は `src/world/quantities.py` を使います。内容の意味審査はモデルの判定に依存します。
+
+## 8. 探索・採用・再開（`src/world/explore.py`）
+
+1. フロンティアを評価します。空・未展開・因果なし・事実不足・軸の不足・保存された低いスコアが対象です。
+   下位スケールの不足と、広がりの操作の未使用も事前値に反映します。
+2. UCB1 / Thompson とεランダム選択で「操作×対象」を選びます。腕は操作とフロンティア種別で分け、軸で分ける設定もあります。
+3. EntityBuilderを実行します。全基準を通ったエンティティをグラフへ採用し、作れなければその反復を破棄します。
+4. 採用時の更新値は、各項目の余分な試行回数を再試行可能な回数で割って `1 - 0.5 × 比率` とし、不採用時は0です。
+   バンディットを更新し、採用エンティティの `scores.reward` にも保存します。
+5. ステップと反復のログ、グラフ・バンディット・乱数・計測のチェックポイントを保存します。
+
+停止条件は `coverage_met`、`max_iterations`、`max_wall_seconds`、`max_generation_calls`、
+`frontier_exhausted`、`too_many_failures` です。被覆条件には軸ごとの最低件数、指定スケールまでの最低件数、
+保存されたバンディット更新値の平均が含まれます。探索中の生成・再試行・変換・審査を呼び出し予算に数えます。
+予算途中で組み立てが中断されたエンティティは採用しません。
+
+グラフは `src/world/graph.py` の `GraphStore` が参照と親子・スケールを検証して原子的に保存します。
+階層は `world → region → settlement → district → site → detail` です。
+再開ではグラフ・バンディット・乱数状態・ログ位置・ステップ計測を復元し、チェックポイント後の余分な採用やログを戻します。
+`--seed` は操作と対象の選択を制御し、実モデルのサンプリングを固定するものではありません。
+
+## 9. 計測と選好ログ
+
+- manifest の `structured`：タスク別のハーネス呼び出し数、準拠までの試行回数分布、失敗数、所要時間、拘束方式の試行数、
+  プレースホルダー違反・スキーマ書き写しの検出数、変換の試行・成功・忠実性違反・スキーマ違反。
+- manifest の `build`：ステップ別の生成呼び出し数（再試行・変換を含む）、試行回数分布、失敗数、
+  基準ごとの不合格理由と回数、失敗したエンティティのステップ別件数。
+- `world/preferences.jsonl`：ステップ・事実の位置・試行・出力・検査・合否、および反復の操作・対象・採否・失敗理由。
+  `extract_preference_pairs` は同じ反復・ステップ・位置の合格出力と不合格出力を組にします。
+  組に含まれる `prompt` は保存されたステップと反復の文脈から構成します。モデルの学習は実行しません。
+
+## 10. 出力と基盤
+
+`src/world/render.py` は保存された世界モデルをテンプレートで描画し、出力時にモデルを呼びません。
+見出しは `config/world/render_labels.yaml` の言語設定を使います。
+
+```text
+output/world_<run_id>/
+├── run_manifest.json        # 設定・予算・seed・モデル・状態・停止理由・契約・計測
+├── input/                   # 原文・画像・input_brief.json
+├── world/                   # world_axes.json・graph.json・preferences.jsonl
+├── checkpoints/             # world_graph・world_explore
+├── quality_report.json/.md
+└── final/
+    ├── world.json           # グラフ・軸・実行サマリ
+    ├── world_bible/         # README・スケール別・エンティティ別・用語集・年表・世界内文書
+    └── world_report.md      # 停止理由・契約・被覆・件数・タスク別とステップ別の計測
+```
+
+バックエンドの `generate_schema` は Ollama、Anthropic、フェイクで実装します。
+設定は `config/ollama_config.yaml` の `generation`・`engine.structured`・`engine.explore`・`engine.operator` と
+`config/world/` のカタログ・探索・検査・言語・描画・品質の設定です。
+manifest は設定のハッシュと設定・プロンプト・スキーマのスナップショットも保存します。
+
+`src/batch.py` は同じ入力から独立した世界を作り、世界ごとのseedと状態を `batch_manifest.json` に保存します。
+1つの失敗で他を止めません。`src/quality.py` はグラフ・被覆・深さ・由来・重複・探索の状態を確認でき、
+`src/compare.py` は世界同士の同名・近似エンティティ・共通の固有名詞・軸の類似を比較します。
+レポートには互換用の項目も残っています。現在の合否と不合格理由はステップ計測と選好ログで確認します。
+
+## 11. 実機検証と限界
+
+Ollama上の3モデルを同じ入力・seed 1・各12反復で比較しています。
+gemma4:e4b は5件採用・地区まで・約14分、gpt-oss:20b は5件採用・世界のみ・約79分、
+qwen3.8:27b は9件採用・施設まで・約116分です。構造化出力の呼び出しはそれぞれ168・149・183回でした。
+3モデルとも形式に準拠できずに失敗したタスクはなく、内容の不合格には言い換えや契約にない単位がありました。
+条件・資料は [モデル比較の作例](examples/model_comparison/README.md) を参照してください。
+
+入力・seedは各1つで、全入力での性能や長時間実行の品質を示す比較ではありません。時間は並行処理の影響も受けます。
+文字3-gramの重複検査は意味の同一性を完全には検出せず、種類の確認と全体審査はモデルの能力に依存します。
+Anthropicとバッチの実機エンドツーエンド検証は未実施です。
