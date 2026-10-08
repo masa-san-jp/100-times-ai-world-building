@@ -1,0 +1,209 @@
+[
+  {
+    "id": "outside-digit-unit",
+    "criterion": "no_outside_premises",
+    "check": "summary.units",
+    "input": {
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        }
+      },
+      "outputs": {
+        "summary": {
+          "summary": "The records have a measured capacity of 120 q2v in each container."
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "A contract unit containing a digit is one complete symbol, not an outside unit."
+  },
+  {
+    "id": "outside-fullwidth-unit",
+    "criterion": "no_outside_premises",
+    "check": "summary.units",
+    "input": {
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        }
+      },
+      "outputs": {
+        "summary": {
+          "summary": "The records have a measured capacity of １２０ ｑ２ｖ in each container."
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Width normalization preserves a digit-bearing contract unit."
+  },
+  {
+    "id": "outside-joined-unit",
+    "criterion": "no_outside_premises",
+    "check": "summary.units",
+    "input": {
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        }
+      },
+      "outputs": {
+        "summary": {
+          "summary": "The records retain measured capacity of 120q2v alongside 3 q2."
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Adjacent numbers and overlapping registered unit symbols are accepted."
+  },
+  {
+    "id": "outside-unknown-unit",
+    "criterion": "no_outside_premises",
+    "check": "summary.units",
+    "input": {
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        }
+      },
+      "outputs": {
+        "summary": {
+          "summary": "The records have a measured capacity of 120 uv in each container."
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "An unregistered unit in the summary is an outside premise."
+  },
+  {
+    "id": "outside-suffix-unit",
+    "criterion": "no_outside_premises",
+    "check": "summary.units",
+    "input": {
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        }
+      },
+      "outputs": {
+        "summary": {
+          "summary": "The records have a measured capacity of 120 q2vx in each container."
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "A registered unit prefix does not allow a longer unknown symbol."
+  },
+  {
+    "id": "outside-mixed-unit",
+    "criterion": "no_outside_premises",
+    "check": "summary.units",
+    "input": {
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            },
+            {
+              "symbol": "q2",
+              "quantity": "capacity"
+            }
+          ]
+        }
+      },
+      "outputs": {
+        "summary": {
+          "summary": "The records retain 120 q2v and an additional measured capacity of 4 uv."
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "One valid unit does not excuse another unregistered unit."
+  },
+  {
+    "id": "outside-input-name",
+    "criterion": "no_outside_premises",
+    "check": "name.real_world_check",
+    "input": {
+      "raw_input": "The term Zevral identifies retained records.",
+      "categories": {
+        "Zevral": "real_person_name"
+      }
+    },
+    "expected": "pass",
+    "note": "A classified real name is allowed exactly when it occurs in normalized original input; classification is supplied by a fake."
+  },
+  {
+    "id": "outside-normalized-input-name",
+    "criterion": "no_outside_premises",
+    "check": "name.real_world_check",
+    "input": {
+      "raw_input": "The term ＺＥＶ ＲＡＬ identifies retained records.",
+      "categories": {
+        "Zevral": "real_person_name"
+      }
+    },
+    "expected": "pass",
+    "note": "A classified real name is allowed exactly when it occurs in normalized original input; classification is supplied by a fake."
+  },
+  {
+    "id": "outside-absent-name",
+    "criterion": "no_outside_premises",
+    "check": "name.real_world_check",
+    "input": {
+      "raw_input": "Only retained records are specified.",
+      "categories": {
+        "Zevral": "real_person_name"
+      }
+    },
+    "expected": "fail",
+    "note": "A classified real name is allowed exactly when it occurs in normalized original input; classification is supplied by a fake."
+  }
+]

@@ -1,0 +1,278 @@
+[
+  {
+    "id": "new-information-repeated-brief",
+    "criterion": "new_information",
+    "check": "entity.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        }
+      ],
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "Capacity is 12 q2v."
+          }
+        ]
+      }
+    },
+    "expected": "fail",
+    "note": "An entity with only an existing (value, unit) pair adds no information, even if its name and summary are different."
+  },
+  {
+    "id": "new-information-new-value-brief",
+    "criterion": "new_information",
+    "check": "entity.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 13,
+          "unit": "q2v",
+          "fact": "Capacity is 13 q2v."
+        }
+      ],
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "Capacity is 12 q2v."
+          }
+        ]
+      }
+    },
+    "expected": "pass",
+    "note": "A new measured value adds information even when its unit was already used."
+  },
+  {
+    "id": "new-information-repeated-local",
+    "criterion": "new_information",
+    "check": "entity.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "number",
+              "value": 12,
+              "unit": "q2v",
+              "text": "Capacity is 12 q2v."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "An entity with only an existing (value, unit) pair adds no information, even if its name and summary are different."
+  },
+  {
+    "id": "new-information-new-value-local",
+    "criterion": "new_information",
+    "check": "entity.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 13,
+          "unit": "q2v",
+          "fact": "Capacity is 13 q2v."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "number",
+              "value": 12,
+              "unit": "q2v",
+              "text": "Capacity is 12 q2v."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "A new measured value adds information even when its unit was already used."
+  },
+  {
+    "id": "new-information-repeated-global",
+    "criterion": "new_information",
+    "check": "entity.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "detail",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "number",
+              "value": 12,
+              "unit": "q2v",
+              "text": "Capacity is 12 q2v."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "An entity with only an existing (value, unit) pair adds no information, even if its name and summary are different."
+  },
+  {
+    "id": "new-information-new-value-global",
+    "criterion": "new_information",
+    "check": "entity.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 13,
+          "unit": "q2v",
+          "fact": "Capacity is 13 q2v."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "detail",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "number",
+              "value": 12,
+              "unit": "q2v",
+              "text": "Capacity is 12 q2v."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "A new measured value adds information even when its unit was already used."
+  },
+  {
+    "id": "new-information-new-unit",
+    "criterion": "new_information",
+    "check": "entity.new_information",
+    "input": {
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "Capacity is 12 q2v."
+          }
+        ]
+      },
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "v2q",
+          "fact": "Capacity is 12 v2q."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "An equal value with a new unit is a different pair."
+  }
+]

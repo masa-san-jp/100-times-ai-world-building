@@ -1,0 +1,1367 @@
+[
+  {
+    "id": "faithful-statement",
+    "criterion": "faithful",
+    "check": "grounding.sources",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "outputs": {
+        "grounding": {
+          "statement_ids": [
+            "s1"
+          ],
+          "derived_from": [],
+          "reason": ""
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "An input statement anchors the entity."
+  },
+  {
+    "id": "faithful-derived",
+    "criterion": "faithful",
+    "check": "grounding.reason",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "outputs": {
+        "grounding": {
+          "statement_ids": [],
+          "derived_from": [
+            "e1"
+          ],
+          "reason": "The retained records determine the new properties."
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "An existing entity with an explained derivation anchors the entity."
+  },
+  {
+    "id": "faithful-combined",
+    "criterion": "faithful",
+    "check": "grounding.sources",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "outputs": {
+        "grounding": {
+          "statement_ids": [
+            "s1"
+          ],
+          "derived_from": [
+            "e1"
+          ],
+          "reason": "The source and records jointly determine the properties."
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Both types of valid sources may be combined."
+  },
+  {
+    "id": "faithful-unanchored",
+    "criterion": "faithful",
+    "check": "grounding.sources",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "outputs": {
+        "grounding": {
+          "statement_ids": [],
+          "derived_from": [],
+          "reason": "An explanation alone is not a source."
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "A reason alone cannot replace source references."
+  },
+  {
+    "id": "faithful-missing-reason",
+    "criterion": "faithful",
+    "check": "grounding.reason",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "outputs": {
+        "grounding": {
+          "statement_ids": [],
+          "derived_from": [
+            "e1"
+          ],
+          "reason": ""
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "An existing source requires an explanation."
+  },
+  {
+    "id": "faithful-short-reason",
+    "criterion": "faithful",
+    "check": "grounding.reason",
+    "input": {
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "world",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "outputs": {
+        "grounding": {
+          "statement_ids": [
+            "s1"
+          ],
+          "derived_from": [
+            "e1"
+          ],
+          "reason": "Same."
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "An input source does not excuse an insufficient derivation reason."
+  },
+  {
+    "id": "world-faithful-pass-1",
+    "criterion": "faithful",
+    "check": "world.faithful",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Synthetic graph meets all existing configured measurements for this criterion."
+  },
+  {
+    "id": "world-faithful-pass-2",
+    "criterion": "faithful",
+    "check": "world.faithful",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ],
+      "contract": {
+        "provenance": {
+          "statement_ids": [
+            "s2"
+          ]
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "Synthetic graph meets all existing configured measurements for this criterion."
+  },
+  {
+    "id": "world-faithful-pass-3",
+    "criterion": "faithful",
+    "check": "world.faithful",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2",
+                "s2",
+                "unknown"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Synthetic graph meets all existing configured measurements for this criterion."
+  },
+  {
+    "id": "world-faithful-fail-1",
+    "criterion": "faithful",
+    "check": "world.faithful",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "Not every input statement is used."
+  },
+  {
+    "id": "world-faithful-fail-2",
+    "criterion": "faithful",
+    "check": "world.faithful",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {},
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "An empty input denominator cannot count as achievement."
+  },
+  {
+    "id": "world-faithful-fail-3",
+    "criterion": "faithful",
+    "check": "world.faithful",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "unknown"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "unknown"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "unknown"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "unknown"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "unknown"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "unknown"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "Unknown statement ids do not cover the input."
+  }
+]

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "consistent-integer",
+    "criterion": "consistent",
+    "check": "all.schema",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Numeric fact responses obey the existing schema, including required fields, numeric type and no extra properties."
+  },
+  {
+    "id": "consistent-decimal",
+    "criterion": "consistent",
+    "check": "all.schema",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12.5,
+          "unit": "q2v",
+          "fact": "Capacity is 12.5 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Numeric fact responses obey the existing schema, including required fields, numeric type and no extra properties."
+  },
+  {
+    "id": "consistent-zero",
+    "criterion": "consistent",
+    "check": "all.schema",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 0,
+          "unit": "q2v",
+          "fact": "Capacity is 0 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Numeric fact responses obey the existing schema, including required fields, numeric type and no extra properties."
+  },
+  {
+    "id": "consistent-missing-subject",
+    "criterion": "consistent",
+    "check": "all.schema",
+    "input": {
+      "facts": [
+        {
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "Numeric fact responses obey the existing schema, including required fields, numeric type and no extra properties."
+  },
+  {
+    "id": "consistent-boolean-value",
+    "criterion": "consistent",
+    "check": "all.schema",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": true,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v."
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "Numeric fact responses obey the existing schema, including required fields, numeric type and no extra properties."
+  },
+  {
+    "id": "consistent-extra-field",
+    "criterion": "consistent",
+    "check": "all.schema",
+    "input": {
+      "facts": [
+        {
+          "subject": "Capacity",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Capacity is 12 q2v.",
+          "extra": "unsupported"
+        },
+        {
+          "name": "Nuvrel",
+          "fact": "Nuvrel identifies retained records."
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "Numeric fact responses obey the existing schema, including required fields, numeric type and no extra properties."
+  }
+]

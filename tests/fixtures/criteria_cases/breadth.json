@@ -1,0 +1,1123 @@
+[
+  {
+    "id": "world-breadth-pass-1",
+    "criterion": "breadth",
+    "check": "world.breadth",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Synthetic graph meets all existing configured measurements for this criterion."
+  },
+  {
+    "id": "world-breadth-pass-2",
+    "criterion": "breadth",
+    "check": "world.breadth",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Synthetic graph meets all existing configured measurements for this criterion."
+  },
+  {
+    "id": "world-breadth-pass-3",
+    "criterion": "breadth",
+    "check": "world.breadth",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "Synthetic graph meets all existing configured measurements for this criterion."
+  },
+  {
+    "id": "world-breadth-fail-1",
+    "criterion": "breadth",
+    "check": "world.breadth",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a1",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a1",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a1",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a1",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a1",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a1",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "Repeated axis ids do not cover a missing axis."
+  },
+  {
+    "id": "world-breadth-fail-2",
+    "criterion": "breadth",
+    "check": "world.breadth",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": [
+        {
+          "id": "a1",
+          "weight": 0.6
+        },
+        {
+          "id": "a2",
+          "weight": 0.3
+        },
+        {
+          "id": "a3",
+          "weight": 0.1
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "Axis coverage does not replace recorded perspective origin."
+  },
+  {
+    "id": "world-breadth-fail-3",
+    "criterion": "breadth",
+    "check": "world.breadth",
+    "input": {
+      "graph": {
+        "meta": {
+          "schema_version": 1,
+          "language": "en"
+        },
+        "entities": [
+          {
+            "id": "e1",
+            "type": "concept",
+            "name": "Entity 1",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "world",
+            "parent": null,
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1",
+                "s2"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e2",
+            "type": "concept",
+            "name": "Entity 2",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "region",
+            "parent": "e1",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "perspective"
+          },
+          {
+            "id": "e3",
+            "type": "concept",
+            "name": "Entity 3",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "settlement",
+            "parent": "e2",
+            "relations": [
+              {
+                "type": "affects",
+                "target": "e2"
+              }
+            ],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {},
+            "origin_operator": "history"
+          },
+          {
+            "id": "e4",
+            "type": "concept",
+            "name": "Entity 4",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "district",
+            "parent": "e3",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e5",
+            "type": "concept",
+            "name": "Entity 5",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "site",
+            "parent": "e4",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          },
+          {
+            "id": "e6",
+            "type": "concept",
+            "name": "Entity 6",
+            "axes": [
+              "a1",
+              "a2",
+              "a3"
+            ],
+            "scale": "detail",
+            "parent": "e5",
+            "relations": [],
+            "summary": "",
+            "facts": [],
+            "provenance": {
+              "statement_ids": [
+                "s1"
+              ],
+              "derived_from": [],
+              "reason": ""
+            },
+            "scores": {}
+          }
+        ]
+      },
+      "brief": {
+        "statements": [
+          {
+            "id": "s1",
+            "text": "First property."
+          },
+          {
+            "id": "s2",
+            "text": "Second property."
+          }
+        ]
+      },
+      "axes": []
+    },
+    "expected": "fail",
+    "note": "An empty axis denominator cannot count as achievement."
+  }
+]

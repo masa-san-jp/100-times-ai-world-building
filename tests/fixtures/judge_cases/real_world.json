@@ -1,0 +1,690 @@
+[
+  {
+    "id": "real_unit-1",
+    "term": "kg",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-2",
+    "term": "m",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-3",
+    "term": "s",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-4",
+    "term": "A",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-5",
+    "term": "K",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-6",
+    "term": "mol",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-7",
+    "term": "cd",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-8",
+    "term": "Hz",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-9",
+    "term": "Pa",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-10",
+    "term": "J",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-11",
+    "term": "W",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_unit-12",
+    "term": "N",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_calendar-1",
+    "term": "Gregorian calendar",
+    "raw_input": "",
+    "expected_category": "real_calendar",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_calendar-2",
+    "term": "Julian calendar",
+    "raw_input": "",
+    "expected_category": "real_calendar",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_calendar-3",
+    "term": "Islamic calendar",
+    "raw_input": "",
+    "expected_category": "real_calendar",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_calendar-4",
+    "term": "Hebrew calendar",
+    "raw_input": "",
+    "expected_category": "real_calendar",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_calendar-5",
+    "term": "Chinese calendar",
+    "raw_input": "",
+    "expected_category": "real_calendar",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_calendar-6",
+    "term": "Persian calendar",
+    "raw_input": "",
+    "expected_category": "real_calendar",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_person_name-1",
+    "term": "Maria Garcia",
+    "raw_input": "",
+    "expected_category": "real_person_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_person_name-2",
+    "term": "Ahmed Hassan",
+    "raw_input": "",
+    "expected_category": "real_person_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_person_name-3",
+    "term": "Wei Zhang",
+    "raw_input": "",
+    "expected_category": "real_person_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_person_name-4",
+    "term": "Aarav Sharma",
+    "raw_input": "",
+    "expected_category": "real_person_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_person_name-5",
+    "term": "Anna Kowalska",
+    "raw_input": "",
+    "expected_category": "real_person_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_person_name-6",
+    "term": "John Smith",
+    "raw_input": "",
+    "expected_category": "real_person_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_place_name-1",
+    "term": "Nairobi",
+    "raw_input": "",
+    "expected_category": "real_place_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_place_name-2",
+    "term": "Lima",
+    "raw_input": "",
+    "expected_category": "real_place_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_place_name-3",
+    "term": "Kyoto",
+    "raw_input": "",
+    "expected_category": "real_place_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_place_name-4",
+    "term": "Cairo",
+    "raw_input": "",
+    "expected_category": "real_place_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_place_name-5",
+    "term": "Warsaw",
+    "raw_input": "",
+    "expected_category": "real_place_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_place_name-6",
+    "term": "Sydney",
+    "raw_input": "",
+    "expected_category": "real_place_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_organization_name-1",
+    "term": "United Nations",
+    "raw_input": "",
+    "expected_category": "real_organization_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_organization_name-2",
+    "term": "World Health Organization",
+    "raw_input": "",
+    "expected_category": "real_organization_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_organization_name-3",
+    "term": "International Labour Organization",
+    "raw_input": "",
+    "expected_category": "real_organization_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "real_organization_name-4",
+    "term": "World Trade Organization",
+    "raw_input": "",
+    "expected_category": "real_organization_name",
+    "expected_violation": true,
+    "note": "Common real-system term or proper name; cases span regions and writing traditions."
+  },
+  {
+    "id": "invented-1",
+    "term": "Qevrul",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-2",
+    "term": "Zanqeth",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-3",
+    "term": "Uvreqal",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-4",
+    "term": "Vuqresh",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-5",
+    "term": "Nalqev",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-6",
+    "term": "Druqev",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-7",
+    "term": "Qelvush",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-8",
+    "term": "Zuvqarn",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-9",
+    "term": "Orqevul",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-10",
+    "term": "Treqzan",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-11",
+    "term": "Qashvul",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-12",
+    "term": "Veqrith",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-13",
+    "term": "Zalqur",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-14",
+    "term": "Ushqev",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-15",
+    "term": "Qevzun",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "invented-16",
+    "term": "Zunqel",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "Synthetic coined term with no reference to a work, region or setting."
+  },
+  {
+    "id": "general-word-1",
+    "term": "recorder",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-2",
+    "term": "container",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-3",
+    "term": "capacity",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-4",
+    "term": "duration",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-5",
+    "term": "council",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-6",
+    "term": "calendar",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-7",
+    "term": "length",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-8",
+    "term": "mass",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-9",
+    "term": "energy",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-10",
+    "term": "temperature",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-11",
+    "term": "archive",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "general-word-12",
+    "term": "transport",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "An ordinary concept, object or role is not a real system or proper name."
+  },
+  {
+    "id": "input-authorized-1",
+    "term": "kg",
+    "raw_input": "The original input specifies kg.",
+    "expected_category": "real_unit",
+    "expected_violation": false,
+    "note": "The original input authorizes a real term, so classification remains real but violation is false."
+  },
+  {
+    "id": "input-authorized-2",
+    "term": "Gregorian calendar",
+    "raw_input": "The original input specifies Gregorian calendar.",
+    "expected_category": "real_calendar",
+    "expected_violation": false,
+    "note": "The original input authorizes a real term, so classification remains real but violation is false."
+  },
+  {
+    "id": "input-authorized-3",
+    "term": "John Smith",
+    "raw_input": "The original input specifies John Smith.",
+    "expected_category": "real_person_name",
+    "expected_violation": false,
+    "note": "The original input authorizes a real term, so classification remains real but violation is false."
+  },
+  {
+    "id": "input-authorized-4",
+    "term": "Nairobi",
+    "raw_input": "The original input specifies Nairobi.",
+    "expected_category": "real_place_name",
+    "expected_violation": false,
+    "note": "The original input authorizes a real term, so classification remains real but violation is false."
+  },
+  {
+    "id": "input-authorized-5",
+    "term": "United Nations",
+    "raw_input": "The original input specifies United Nations.",
+    "expected_category": "real_organization_name",
+    "expected_violation": false,
+    "note": "The original input authorizes a real term, so classification remains real but violation is false."
+  },
+  {
+    "id": "ja-general-1",
+    "term": "干潮",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "一般的な言葉。現実の現象を表すが、体系や固有名ではない（実機で誤って現実と判定された例）"
+  },
+  {
+    "id": "ja-general-2",
+    "term": "満水",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "一般的な言葉（実機で誤って現実と判定された例）"
+  },
+  {
+    "id": "ja-general-3",
+    "term": "水体積",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "量の名前を表す一般的な言葉（実機で誤って現実と判定された例）"
+  },
+  {
+    "id": "ja-general-4",
+    "term": "塩重さ",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "量の名前を表す一般的な言葉（実機で誤って現実と判定された例）"
+  },
+  {
+    "id": "ja-general-5",
+    "term": "水管理委員会",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "役割を表す一般的な組織の呼び方で、特定の実在組織の固有名ではない（実機で誤って現実と判定された例）"
+  },
+  {
+    "id": "ja-general-6",
+    "term": "採掘組合",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "一般的な組織の呼び方"
+  },
+  {
+    "id": "ja-general-7",
+    "term": "乾季",
+    "raw_input": "",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "一般的な言葉"
+  },
+  {
+    "id": "ja-invented-1",
+    "term": "潮時暦",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "架空の暦の名前"
+  },
+  {
+    "id": "ja-invented-2",
+    "term": "導程",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "架空の単位"
+  },
+  {
+    "id": "ja-invented-3",
+    "term": "塩量",
+    "raw_input": "",
+    "expected_category": "invented",
+    "expected_violation": false,
+    "note": "架空の単位"
+  },
+  {
+    "id": "ja-unit-1",
+    "term": "リットル",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "現実の単位（カタカナ表記）"
+  },
+  {
+    "id": "ja-unit-2",
+    "term": "キログラム",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "現実の単位（カタカナ表記）"
+  },
+  {
+    "id": "ja-unit-3",
+    "term": "m3",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "現実の単位記号"
+  },
+  {
+    "id": "ja-unit-4",
+    "term": "L",
+    "raw_input": "",
+    "expected_category": "real_unit",
+    "expected_violation": true,
+    "note": "現実の単位記号"
+  },
+  {
+    "id": "ja-calendar-1",
+    "term": "グレゴリオ暦",
+    "raw_input": "",
+    "expected_category": "real_calendar",
+    "expected_violation": true,
+    "note": "現実の暦"
+  },
+  {
+    "id": "ja-place-1",
+    "term": "大阪",
+    "raw_input": "",
+    "expected_category": "real_place_name",
+    "expected_violation": true,
+    "note": "現実の地名"
+  },
+  {
+    "id": "ja-org-1",
+    "term": "国際連合",
+    "raw_input": "",
+    "expected_category": "real_organization_name",
+    "expected_violation": true,
+    "note": "現実の組織名"
+  },
+  {
+    "id": "ja-person-1",
+    "term": "田中正義",
+    "raw_input": "",
+    "expected_category": "real_person_name",
+    "expected_violation": true,
+    "note": "現実に多い形の人名（実機で出力された例）"
+  },
+  {
+    "id": "ja-input-1",
+    "term": "採掘組合",
+    "raw_input": "採掘組合と水番が導水路を管理する。",
+    "expected_category": "general_word",
+    "expected_violation": false,
+    "note": "入力の原文に含まれる用語は違反にならない"
+  }
+]
