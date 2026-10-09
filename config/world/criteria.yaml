@@ -40,6 +40,7 @@ consistent:
   method: judge
 new_information:
   level: entity
-  definition: Each entity includes a new proper name or a measurement value and unit pair absent from the brief, local context and all existing entity facts; normalized names and facts do not duplicate existing names or other facts in the entity.
-  checks: [name.duplicate, fact.duplicate, entity.new_information]
+  definition: Each fact adds information absent from the brief, local context and every existing fact. A number's (value, unit) pair and a period's (marker, value) pair must not appear in existing facts, and the fact text must not equal (after NFKC, whitespace removal and lowercasing) or nearly equal (character 3-gram Jaccard at or above duplicate_jaccard) the text of any existing fact, including the other facts of the entity being built.
+  duplicate_jaccard: 0.8
+  checks: [name.duplicate, fact.new_information]
   method: rule

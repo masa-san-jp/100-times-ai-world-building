@@ -67,6 +67,37 @@ def outside_terms(data, raw_input):
             and normalize_term(item["term"]) not in raw]
 
 
+def duplicate_jaccard():
+    path = Path(__file__).resolve().parents[2] / "config/world/criteria.yaml"
+    return float(yaml.safe_load(path.read_text(encoding="utf-8"))["new_information"]["duplicate_jaccard"])
+
+
+def _trigrams(text):
+    return {text[i:i + 3] for i in range(max(len(text) - 2, 1))}
+
+
+def duplicate_fact(text, existing_texts, threshold=None):
+    """Return the first existing fact text equal to or nearly equal to text, else None."""
+    threshold = duplicate_jaccard() if threshold is None else threshold
+    key = normalize_term(text)
+    grams = _trigrams(key)
+    for other in existing_texts:
+        other_key = normalize_term(other)
+        if key == other_key:
+            return other
+        other_grams = _trigrams(other_key)
+        if len(grams & other_grams) / len(grams | other_grams) >= threshold:
+            return other
+    return None
+
+
+def period_present(marker, value, entities):
+    """Match a (marker, value) pair against the structured fields of existing period facts."""
+    return any(f.get("kind") == "period" and normalize_term(f.get("marker", "")) == normalize_term(marker)
+               and normalize_term(f.get("value")) == normalize_term(value)
+               for e in entities for f in e.get("facts", []))
+
+
 def measurement_present(value, unit, brief, views, entities):
     """Match structured pairs or complete numeric tokens in existing text."""
     from .quantities import NUMBER, normalized
