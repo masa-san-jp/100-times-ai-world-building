@@ -82,5 +82,41 @@
     },
     "expected": "fail",
     "note": "Explanations use objective reference wording without personal narration or exclamations."
+  },
+  {
+    "id": "objective-ja-bracketed-terms",
+    "criterion": "objective",
+    "check": "summary.objectivity",
+    "input": {
+      "language": "ja",
+      "outputs": {
+        "name": {"name": "ゼヴラル"},
+        "summary": {"summary": "水資源の管理は「水番館」や「塩権議会」といった制度によって規定され、その運用は記録に残される。"}
+      },
+      "facts": [
+        {"subject": "容量", "value": 12, "unit": "q2v", "fact": "容量は 12 q2v である。"},
+        {"name": "ヌヴレル", "fact": "ヌヴレルは保持された記録を識別する。"}
+      ]
+    },
+    "expected": "pass",
+    "note": "A term shown in brackets inside an explanation is a term, not quoted speech; here it is listed with といった."
+  },
+  {
+    "id": "objective-ja-quoted-speech",
+    "criterion": "objective",
+    "check": "summary.objectivity",
+    "input": {
+      "language": "ja",
+      "outputs": {
+        "name": {"name": "ゼヴラル"},
+        "summary": {"summary": "記録の保管区画の入口では、担当者が「来るな」と言った。立ち入りは記録の番号で確認される。"}
+      },
+      "facts": [
+        {"subject": "容量", "value": 12, "unit": "q2v", "fact": "容量は 12 q2v である。"},
+        {"name": "ヌヴレル", "fact": "ヌヴレルは保持された記録を識別する。"}
+      ]
+    },
+    "expected": "fail",
+    "note": "A quotation followed by a speech verb is quoted speech, which an explanation must not contain."
   }
 ]
