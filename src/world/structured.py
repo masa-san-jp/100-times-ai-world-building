@@ -253,6 +253,8 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
         entry = metrics.setdefault(task, {"calls": 0, "attempts": {}, "failures": 0,
                                           "elapsed": 0.0, "modes": {}})
         entry["calls"] += 1
+        if getattr(client, "model", None):
+            entry["model"] = str(client.model)
         if data is None:
             entry["failures"] += 1
         else:
@@ -271,11 +273,11 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
 
 def metrics_markdown(metrics):
     lines = ["## Structured output", "",
-             "| Task | Calls | Attempts to compliance | Failures | Seconds | Modes (attempts) | Placeholder violations | Schema echo | Conversions tried | Conversions succeeded | Fidelity failures | Schema failures |",
-             "| --- | ---: | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+             "| Task | Model | Calls | Attempts to compliance | Failures | Seconds | Modes (attempts) | Placeholder violations | Schema echo | Conversions tried | Conversions succeeded | Fidelity failures | Schema failures |",
+             "| --- | --- | ---: | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for task, entry in metrics.items():
         counts = entry.get("conversions", {})
-        lines.append(f"| {task} | {entry['calls']} | {json.dumps(entry['attempts'])} | {entry['failures']} | {entry['elapsed']:.3f} | {json.dumps(entry['modes'])} | "
+        lines.append(f"| {task} | {entry.get('model', '')} | {entry['calls']} | {json.dumps(entry['attempts'])} | {entry['failures']} | {entry['elapsed']:.3f} | {json.dumps(entry['modes'])} | "
                      f"{entry.get('placeholder_violations', 0)} | {entry.get('schema_echo', 0)} | "
                      f"{counts.get('tried', 0)} | {counts.get('succeeded', 0)} | {counts.get('fidelity_failures', 0)} | {counts.get('schema_failures', 0)} |")
     return "\n".join(lines) + "\n"

@@ -30,8 +30,9 @@ ITEMS = (
 
 
 class ContractBuilder:
-    def __init__(self, backend, *, max_attempts=3, max_conversions=2, raw_input=""):
+    def __init__(self, backend, *, max_attempts=3, max_conversions=2, raw_input="", judge_backend=None):
         self.backend = backend
+        self.judge_backend = judge_backend if judge_backend is not None else backend
         self.max_attempts = max_attempts
         self.max_conversions = max_conversions
         self.raw_input = raw_input
@@ -78,7 +79,7 @@ class ContractBuilder:
                         return []
                     term = data[term_key]
                     violations = []
-                    judged = real_world_check(self.backend, [term], language=language,
+                    judged = real_world_check(self.judge_backend, [term], language=language,
                         max_attempts=self.max_attempts, max_conversions=self.max_conversions)
                     check_calls += judged.attempts + judged.conversions
                     if judged.data is None:
@@ -149,7 +150,8 @@ class ContractBuilder:
         return stage
 
 
-def establish_contract(backend, graph, brief, axes, *, max_attempts=3, max_conversions=2, raw_input=""):
+def establish_contract(backend, graph, brief, axes, *, max_attempts=3, max_conversions=2, raw_input="",
+                       judge_backend=None):
     """Reuse saved stages and legacy contracts; otherwise build item by item."""
     if graph.get("contract_stage"):
         stage = graph["contract_stage"]
@@ -166,7 +168,8 @@ def establish_contract(backend, graph, brief, axes, *, max_attempts=3, max_conve
                                    "disabled_checks": [], "errors": []}
         return graph["contract_stage"]
     return ContractBuilder(backend, max_attempts=max_attempts,
-        max_conversions=max_conversions, raw_input=raw_input).build(graph, brief, axes)
+        max_conversions=max_conversions, raw_input=raw_input,
+        judge_backend=judge_backend).build(graph, brief, axes)
 
 
 def contract_metrics_markdown(stage):

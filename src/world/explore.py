@@ -486,12 +486,16 @@ def pair_prior(
 class _CountingBackend:
     """Counts generation calls and enforces the call budget."""
 
-    def __init__(self, inner: Any, counters: Dict[str, int]) -> None:
+    def __init__(self, inner: Any, counters: Dict[str, int], parent: Any = None) -> None:
         self._inner = inner
         self._counters = counters
+        self._parent = parent  # shares the parent's call budget
         self.limit: Optional[int] = None
 
     def _tick(self) -> None:
+        if self._parent is not None:
+            self._parent._tick()
+            return
         if self.limit is not None and self._counters["generation_calls"] >= self.limit:
             raise BudgetExhausted("generation-call budget exhausted")
         self._counters["generation_calls"] += 1
@@ -554,6 +558,7 @@ class ExplorationLoop:
         raw_input: Optional[str] = None,
         structured_max_attempts: int = 3,
         structured_max_conversions: int = 2,
+        judge_backend: Any = None,
     ) -> None:
         self.package_dir = Path(package_dir)
         raw_path = self.package_dir / "input" / "user_input.txt"
@@ -579,7 +584,9 @@ class ExplorationLoop:
                                      "max_conversions": structured_max_conversions}
         if operator_config is not None:
             builder_cfg["operator"] = asdict(operator_config)
-        self.builder = EntityBuilder(self.backend, builder_cfg)
+        self.judge_backend = (_CountingBackend(judge_backend, self.state["counters"], self.backend)
+                              if judge_backend is not None else self.backend)
+        self.builder = EntityBuilder(self.backend, builder_cfg, judge_backend=self.judge_backend)
         self.store = GraphStore(
             self.package_dir, self.checkpoints, self.axes, self.brief)
         self.log_path = self.package_dir / PREFERENCES_RELATIVE_PATH
@@ -861,6 +868,8 @@ def run_world_engine(
     resume: bool = True, render: bool = True,
     structured_max_attempts: int = 3,
     structured_max_conversions: int = 2,
+    judge_backend: Any = None,
+    models: Optional[Mapping[str, Any]] = None,
 ) -> ExplorationResult:
     """Input brief -> axes -> graph -> exploration loop, with no human input.
 
@@ -895,7 +904,7 @@ def run_world_engine(
     if isinstance(structured_max_conversions, bool) or not isinstance(structured_max_conversions, int) or structured_max_conversions < 0:
         raise ValueError("structured.max_conversions must be a nonnegative integer")
     metrics = copy.deepcopy(manifest.data.get("structured", {}))
-    for client in (backend, vision_backend):
+    for client in (backend, vision_backend, judge_backend):
         if client is not None:
             client_instance(client)._structured_metrics = metrics
     manifest.set_status("running")
@@ -930,13 +939,15 @@ def run_world_engine(
             config=config, operator_config=operator_config,
             checkpoints=checkpoints, manifest=manifest,
             structured_max_attempts=structured_max_attempts,
-            structured_max_conversions=structured_max_conversions)
+            structured_max_conversions=structured_max_conversions,
+            judge_backend=judge_backend)
         from .contract import establish_contract
         graph = loop.store.load_or_create(lang)
         try:
             stage = establish_contract(backend, graph, brief, axes, raw_input=raw_text,
                                        max_attempts=structured_max_attempts,
-                                       max_conversions=structured_max_conversions)
+                                       max_conversions=structured_max_conversions,
+                                       judge_backend=judge_backend)
         finally:
             loop.store.save(graph)
             if "contract_stage" in graph:
@@ -954,6 +965,7 @@ def run_world_engine(
                 "iterations": result.iterations,
                 "counters": result.counters,
                 "structured": metrics,
+                "models": dict(models or {}),
                 "build": loop.builder.metrics,
             }, explore_config=loop.cfg)
     except BaseException as exc:

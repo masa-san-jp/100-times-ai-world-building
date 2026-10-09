@@ -72,6 +72,8 @@ en:
   contract_attempts: Attempts
   contract_disabled: Calendar, technology, unit and institution contract checks were disabled because contract generation failed. Exploration continued using the input, axes and existing facts.
   run_summary: Run summary
+  generation_model: Generation model
+  judge_model: Judge model
   stop_reason: Stop reason
   iterations: Iterations
   generation_calls: Generation calls
@@ -223,6 +225,8 @@ ja:
   contract_attempts: 試行回数
   contract_disabled: 契約の生成に失敗したため、暦・技術・単位・制度の契約に依存する検証を無効にして、入力・軸・既存事実に基づく探索を続行しました。
   run_summary: 実行の概要
+  generation_model: 生成モデル
+  judge_model: 判定モデル
   stop_reason: 停止理由
   iterations: 反復回数
   generation_calls: 生成呼び出し数

@@ -90,6 +90,7 @@ class Pipeline:
         vision_model: Optional[str] = None,
         backend: Optional[Union[str, LLMBackend]] = None,
         budget: Optional[Mapping[str, Any]] = None,
+        judge_model: Optional[str] = None,
     ) -> None:
         """
         Args:
@@ -106,6 +107,9 @@ class Pipeline:
             budget: ``max_iterations`` / ``max_wall_seconds`` /
                 ``max_generation_calls``; unset keys fall back to the
                 configured budget.
+            judge_model: Model for the judging tasks (``real_world_check``,
+                ``review``) on the same backend type; overrides
+                ``engine.judge_model``. Empty means the generation model.
         """
         self.config_path = config_path
         self.config = load_config(config_path)
@@ -170,11 +174,24 @@ class Pipeline:
             backend_name, model, vision_model,
             stored_models if use_stored else {}, injected)
 
+        # Resuming keeps the judge of the run unless a model is given.
+        configured_judge = judge_model or (
+            stored.get("judge_model") if use_stored else None) \
+            or engine_cfg.get("judge_model") or ""
+        self.judge_model = str(configured_judge) or self.model_names["generation"]
+        client_models = dict(self.model_names)
+        separate_judge = self.judge_model != self.model_names["generation"]
+        if separate_judge:
+            client_models["judge"] = self.judge_model
+
         clients = build_backend_clients(
-            backend_name, self.model_names,
+            backend_name, client_models,
             self.config.get("server") or {},
             self.config.get("anthropic") or {},
             injected_backend=injected)
+        self.judge_client = (
+            ConfiguredBackend(clients["judge"], self.generation_defaults)
+            if separate_judge else None)
         self.client = ConfiguredBackend(
             clients["generation"], self.generation_defaults)
         self.vision_client = ConfiguredBackend(
@@ -198,6 +215,8 @@ class Pipeline:
             self.manifest.update(
                 backend=self.backend_name, model=self.model,
                 models=dict(self.model_names))
+        if self.manifest.data.get("judge_model") != self.judge_model:
+            self.manifest.update(judge_model=self.judge_model)
         self.manifest.update(budget={
             "requested": dict(self.budget_requested),
             "effective": dict(self.budget)})
@@ -253,6 +272,7 @@ class Pipeline:
             "backend": self.backend_name,
             "model": self.model_names["generation"],
             "models": dict(self.model_names),
+            "judge_model": self.judge_model,
             "run_seed": seed,
             "seed_source": "argument" if requested is not None
             else "generated",
@@ -278,6 +298,8 @@ class Pipeline:
         if include_vision and self.model_names["vision"] \
                 != self.model_names["generation"]:
             clients.append(("vision", self.vision_client))
+        if self.judge_client is not None:
+            clients.append(("judge", self.judge_client))
         for role, client in clients:
             if not client.check_ready():
                 logger.error(
@@ -342,7 +364,9 @@ class Pipeline:
                 vision_backend=self.vision_client,
                 source_name=raw_name, resume=True, render=True,
                 structured_max_attempts=self.structured_config["max_attempts"],
-                structured_max_conversions=self.structured_config["max_conversions"])
+                structured_max_conversions=self.structured_config["max_conversions"],
+                judge_backend=self.judge_client,
+                models={"generation": self.model, "judge": self.judge_model})
         finally:
             # The engine updates the manifest file through its own handle.
             self.manifest = RunManifest(self.manifest.path, {})
