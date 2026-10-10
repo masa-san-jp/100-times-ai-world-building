@@ -90,6 +90,37 @@ def duplicate_fact(text, existing_texts, threshold=None):
     return next((other for other in existing_texts if nearly_same(text, other, threshold)), None)
 
 
+def restatement_candidates_limit():
+    path = Path(__file__).resolve().parents[2] / "config/world/criteria.yaml"
+    return int(yaml.safe_load(path.read_text(encoding="utf-8"))["new_information"]["restatement_candidates"])
+
+
+def restatement_candidates(text, existing_texts, limit=None):
+    """Up to limit existing texts by descending 3-gram Jaccard with text; zero overlap excluded."""
+    limit = restatement_candidates_limit() if limit is None else limit
+    grams = _trigrams(normalize_term(text))
+    scored = []
+    for index, other in enumerate(existing_texts):
+        other_grams = _trigrams(normalize_term(other))
+        score = len(grams & other_grams) / len(grams | other_grams)
+        if score > 0:
+            scored.append((-score, index, other))
+    return [other for _, _, other in sorted(scored)[:limit]]
+
+
+def restatement_check(backend, text, candidates, *, language, max_attempts, max_conversions):
+    """Judge whether text restates one of candidates; ids f1..fN are assigned in order."""
+    ids = [f"f{i}" for i in range(1, len(candidates) + 1)]
+    prompts = yaml.safe_load((Path(__file__).resolve().parents[2] /
+        "config/prompts/world/restatement_check.yaml").read_text(encoding="utf-8"))
+    return generate_structured(backend, prompts["user"].format(
+        language=language, fact=json.dumps(text, ensure_ascii=False),
+        candidates="\n".join(f"{i}: {json.dumps(c, ensure_ascii=False)}" for i, c in zip(ids, candidates))),
+        step_schema("restatement_check", candidate_ids=ids), task="restatement_check",
+        system_prompt=prompts["system"], max_attempts=max_attempts,
+        max_conversions=max_conversions, allow_conversion=False)
+
+
 def measurement_present(value, unit, subject, views, entities):
     """Return True when an existing number fact has the same (value, unit) and a near subject."""
     threshold = duplicate_jaccard()

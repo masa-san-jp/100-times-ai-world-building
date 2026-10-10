@@ -22,7 +22,7 @@ def world_axes_schema(catalog):
 
 
 def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(), fact_count=0,
-                kind=None, contract=None, terms=()):
+                kind=None, contract=None, terms=(), candidate_ids=()):
     """Fill a step contract with the ids allowed by this build's context."""
     schema = load_schema("steps/" + step)
     props = schema["properties"]
@@ -60,6 +60,8 @@ def step_schema(step, *, types=(), statement_ids=(), entity_ids=(), axis_ids=(),
         terms = list(dict.fromkeys(terms))
         props["items"]["items"]["properties"]["term"] = choices(terms)
         props["items"]["minItems"] = props["items"]["maxItems"] = len(terms)
+    elif step == "restatement_check":
+        props["restates"]["enum"] = ["none", *candidate_ids]
     elif step == "relations":
         rel = props["relations"]["items"]["properties"]
         rel["type"] = choices(graph.RELATION_TYPES)

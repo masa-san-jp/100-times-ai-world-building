@@ -72,6 +72,8 @@ def run_entity_case(data, criterion, monkeypatch):
                 "category": data.get("categories", {}).get(term, "invented"),
                 "reason": "Synthetic classification for deterministic checks."} for term in terms]}
         step = re.search(r"^STEP: (.+)$", prompt, re.M).group(1)
+        if step == "restatement_check":
+            return {"restates": "none", "reason": "Synthetic fact adds new information."}
         if step in {"fact_element", "fact_text"}:
             slot = int(re.search(r"^SLOT: (.+)$", prompt, re.M).group(1))
             return ({"fact": facts[slot]["fact"]} if step == "fact_text" else

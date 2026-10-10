@@ -1,0 +1,311 @@
+[
+  {
+    "id": "restates-1",
+    "fact": "Every line of a ledger holds a single transaction.",
+    "candidates": [
+      "Each ledger records one transaction per line."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-2",
+    "fact": "Each morning the gate is opened when the second bell sounds.",
+    "candidates": [
+      "The gate opens at the second bell each morning."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-3",
+    "fact": "Sealed clay jars are used for storing grain so that damp stays out.",
+    "candidates": [
+      "Grain is stored in sealed clay jars to keep out damp."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-4",
+    "fact": "Both parties each keep one half of a split tally stick.",
+    "candidates": [
+      "A tally stick is split so both parties keep half."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-5",
+    "fact": "Water level is raised 3 m by the weir.",
+    "candidates": [
+      "The weir raises the water level by 3 m."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-6",
+    "fact": "Before the market opens, each scale is checked by inspectors.",
+    "candidates": [
+      "Inspectors check every scale before the market opens."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-7",
+    "fact": "All contracts have copies retained in the archive for 40 years.",
+    "candidates": [
+      "The archive keeps copies of all contracts for 40 years."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-8",
+    "fact": "After each flood season the bridges get repainted.",
+    "candidates": [
+      "Bridges are repainted after every flood season."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-9",
+    "fact": "Sealed letters travel between the two depots in the hands of a courier.",
+    "candidates": [
+      "A courier carries sealed letters between the two depots."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-10",
+    "fact": "Before being sold, salt is weighed out in 20 kg lots.",
+    "candidates": [
+      "Salt is weighed in lots of 20 kg before sale."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-11",
+    "fact": "Prices are set when the council meets, once every lunar month.",
+    "candidates": [
+      "The council meets once per lunar month to set prices."
+    ],
+    "expected_restates": "f1",
+    "note": "Same subject and content in different wording."
+  },
+  {
+    "id": "restates-12",
+    "fact": "At the beginning of every dry season the wells are hand-cleaned.",
+    "candidates": [
+      "Unrelated: the dock has four berths.",
+      "Wells are cleaned by hand at the start of each dry season."
+    ],
+    "expected_restates": "f2",
+    "note": "Same subject and content in different wording; the matching candidate is not the first."
+  },
+  {
+    "id": "new-1",
+    "fact": "Ledgers are bound with waxed cord and shelved by year.",
+    "candidates": [
+      "Each ledger records one transaction per line."
+    ],
+    "expected_restates": "none",
+    "note": "Shares a word with the candidate but states a new subject."
+  },
+  {
+    "id": "new-2",
+    "fact": "The gate is closed to carts when the river is above the marked line.",
+    "candidates": [
+      "The gate opens at the second bell each morning."
+    ],
+    "expected_restates": "none",
+    "note": "Shares a word with the candidate but states a new relation."
+  },
+  {
+    "id": "new-3",
+    "fact": "Clay jars are fired in kilns at 900 degrees and glazed on the inside.",
+    "candidates": [
+      "Grain is stored in sealed clay jars to keep out damp."
+    ],
+    "expected_restates": "none",
+    "note": "Shares words with the candidate but states a new procedure."
+  },
+  {
+    "id": "new-4",
+    "fact": "A tally stick is cut from willow wood and notched with a flat blade.",
+    "candidates": [
+      "A tally stick is split so both parties keep half."
+    ],
+    "expected_restates": "none",
+    "note": "Shares words with the candidate but states a new procedure."
+  },
+  {
+    "id": "new-5",
+    "fact": "The weir is rebuilt with stone every 15 years by the river guild.",
+    "candidates": [
+      "The weir raises the water level by 3 m."
+    ],
+    "expected_restates": "none",
+    "note": "Shares a word with the candidate but states a new quantity."
+  },
+  {
+    "id": "new-6",
+    "fact": "Inspectors are paid by the market guild from a share of stall fees.",
+    "candidates": [
+      "Inspectors check every scale before the market opens."
+    ],
+    "expected_restates": "none",
+    "note": "Shares words with the candidate but states a new relation."
+  },
+  {
+    "id": "new-7",
+    "fact": "The archive is cooled by an underground channel to protect the paper.",
+    "candidates": [
+      "The archive keeps copies of all contracts for 40 years."
+    ],
+    "expected_restates": "none",
+    "note": "Shares a word with the candidate but states a new mechanism."
+  },
+  {
+    "id": "new-8",
+    "fact": "Bridges are built with three arches so floodwater can pass beneath.",
+    "candidates": [
+      "Bridges are repainted after every flood season."
+    ],
+    "expected_restates": "none",
+    "note": "Shares words with the candidate but states a new design."
+  },
+  {
+    "id": "new-9",
+    "fact": "Couriers rest at relay huts placed every 12 km along the road.",
+    "candidates": [
+      "A courier carries sealed letters between the two depots."
+    ],
+    "expected_restates": "none",
+    "note": "Shares a word with the candidate but states a new quantity."
+  },
+  {
+    "id": "new-10",
+    "fact": "Salt is dried on raised flat beds for 10 days before it is weighed.",
+    "candidates": [
+      "Salt is weighed in lots of 20 kg before sale."
+    ],
+    "expected_restates": "none",
+    "note": "Shares words with the candidate but states a new procedure."
+  },
+  {
+    "id": "new-11",
+    "fact": "The council has seven seats, each held by a guild representative.",
+    "candidates": [
+      "The council meets once per lunar month to set prices."
+    ],
+    "expected_restates": "none",
+    "note": "Shares a word with the candidate but states a new quantity."
+  },
+  {
+    "id": "new-12",
+    "fact": "Wells are lined with fitted stones and covered by a wooden lid.",
+    "candidates": [
+      "Wells are cleaned by hand at the start of each dry season.",
+      "The dock has four berths."
+    ],
+    "expected_restates": "none",
+    "note": "Shares a word with a candidate but states a new object."
+  },
+  {
+    "id": "ja-restates-1",
+    "fact": "深度測定では、1単位の結晶を基準に層の性質を測る。",
+    "candidates": [
+      "層の性質は、結晶1単位を用いた深度測定で調べられる。"
+    ],
+    "expected_restates": "f1",
+    "note": "同じ主張の言い換え（実機で見られた形）"
+  },
+  {
+    "id": "ja-restates-2",
+    "fact": "配水所は乾期の初日に各戸へ水を配る。",
+    "candidates": [
+      "各戸への配水は、乾期が始まる日に配水所が行う。"
+    ],
+    "expected_restates": "f1",
+    "note": "主語と語順を変えた言い換え"
+  },
+  {
+    "id": "ja-restates-3",
+    "fact": "記録簿は管理所の地下室に保管されている。",
+    "candidates": [
+      "倉庫の鍵は管理人が持つ。",
+      "管理所の地下室には記録簿が置かれている。"
+    ],
+    "expected_restates": "f2",
+    "note": "2 番目の候補の言い換え"
+  },
+  {
+    "id": "ja-restates-4",
+    "fact": "導水路の総延長は12区画分である。",
+    "candidates": [
+      "導水路は全部で12区画の長さを持つ。"
+    ],
+    "expected_restates": "f1",
+    "note": "数量を同じまま言い換え"
+  },
+  {
+    "id": "ja-restates-5",
+    "fact": "評議会は月に一度、配分の割合を決める。",
+    "candidates": [
+      "配分の割合は、毎月一回開かれる評議会で決められる。"
+    ],
+    "expected_restates": "f1",
+    "note": "頻度と主体を同じまま言い換え"
+  },
+  {
+    "id": "ja-new-1",
+    "fact": "深度測定の結果は、評議会の配分の根拠として使われる。",
+    "candidates": [
+      "深度測定では、1単位の結晶を基準に層の性質を測る。"
+    ],
+    "expected_restates": "none",
+    "note": "同じ語を含むが、新しい関係を述べる"
+  },
+  {
+    "id": "ja-new-2",
+    "fact": "配水所には3基の貯水槽がある。",
+    "candidates": [
+      "配水所は乾期の初日に各戸へ水を配る。"
+    ],
+    "expected_restates": "none",
+    "note": "同じ対象について新しい物を述べる"
+  },
+  {
+    "id": "ja-new-3",
+    "fact": "導水路の東側の区画は、崩落のため閉鎖されている。",
+    "candidates": [
+      "導水路の総延長は12区画分である。"
+    ],
+    "expected_restates": "none",
+    "note": "同じ対象について新しい状態を述べる"
+  },
+  {
+    "id": "ja-new-4",
+    "fact": "記録簿の写しは、年に一度、評議会に提出される。",
+    "candidates": [
+      "記録簿は管理所の地下室に保管されている。"
+    ],
+    "expected_restates": "none",
+    "note": "同じ物について新しい手順を述べる"
+  },
+  {
+    "id": "ja-new-5",
+    "fact": "評議会の議長は、水番の家系から交代で選ばれる。",
+    "candidates": [
+      "評議会は月に一度、配分の割合を決める。"
+    ],
+    "expected_restates": "none",
+    "note": "同じ組織について新しい制度を述べる"
+  }
+]
