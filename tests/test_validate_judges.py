@@ -128,3 +128,35 @@ def test_script_help_runs_from_outside_repository_without_backend(tmp_path):
                              capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert "--model" in result.stdout
+    assert "--task" in result.stdout
+
+
+RESTATEMENT_CASES = json.loads(validate_judges.RESTATEMENT_CASE_PATH.read_text(encoding="utf-8"))
+
+
+def test_restatement_fixture_has_both_kinds_of_pairs():
+    assert len({case["id"] for case in RESTATEMENT_CASES}) == len(RESTATEMENT_CASES)
+    restated = [c for c in RESTATEMENT_CASES if c["expected_restates"] != "none"]
+    fresh = [c for c in RESTATEMENT_CASES if c["expected_restates"] == "none"]
+    assert len(restated) >= 10 and len(fresh) >= 10
+    for case in RESTATEMENT_CASES:
+        ids = [f"f{i}" for i in range(1, len(case["candidates"]) + 1)]
+        assert case["expected_restates"] in ["none", *ids] and case["note"].strip()
+
+
+def test_restatement_cases_execute_through_the_fake_backend():
+    backend = FakeLLMBackend([{"restates": c["expected_restates"], "reason": "Fake."} for c in RESTATEMENT_CASES])
+    report = validate_judges.validate_restatement_cases(backend, RESTATEMENT_CASES, language="en",
+                                                        max_attempts=1, max_conversions=0)
+    assert report["summary"] == {"total": len(RESTATEMENT_CASES), "accuracy": 1.0,
+                                 "false_restates": 0, "missed_restates": 0}
+    assert all("STEP: restatement_check\n" in call["prompt"] for call in backend.schema_calls)
+
+
+def test_restatement_errors_are_counted_by_direction():
+    cases = [{"id": "a", "fact": "x", "candidates": ["y"], "expected_restates": "f1"},
+             {"id": "b", "fact": "x", "candidates": ["y"], "expected_restates": "none"}]
+    backend = FakeLLMBackend([{"restates": "none", "reason": "Fake."}, {"restates": "f1", "reason": "Fake."}])
+    summary = validate_judges.validate_restatement_cases(backend, cases, language="en",
+                                                         max_attempts=1, max_conversions=0)["summary"]
+    assert summary == {"total": 2, "accuracy": 0.0, "false_restates": 1, "missed_restates": 1}

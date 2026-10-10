@@ -18,7 +18,7 @@ from .operators import (OPERATORS, OperatorConfig, OperatorError, _TARGET_RELATI
 from .quantities import NUMBER, is_counter, outside_units, unit_factors
 from .premises import unit_symbols
 from .criteria import (duplicate_fact, measurement_present, new_name, outside_terms,
-                       real_world_check)
+                       real_world_check, restatement_candidates, restatement_check)
 from .schemas import step_schema
 from .structured import generate_structured
 from .textsim import normalize_item
@@ -119,6 +119,7 @@ class EntityBuilder:
         records, attempts, attempt_limits = [], {}, {}
         elements = {}
         restarted_slots = set()
+        restating = [False]
         calls = 0
         failure = None
         schema_args = dict(types=ALLOWED_TYPES[operator], statement_ids=[s["id"] for s in brief.get("statements", []) if s.get("id")],
@@ -239,10 +240,40 @@ class EntityBuilder:
             candidate = {"entity": entity, "operator": operator, "target": target_id}
             deductions = verify_consistency(candidate, graph, axes, brief).deductions
             conflicts = [d for d in deductions if d.code == "number_conflict"]
-            return [check("detail", specific, specific_reason),
-                    *premise_checks(text, f"facts[{slot}]"),
-                    check("consistent", not conflicts, "; ".join(d.message for d in conflicts)),
-                    check("new_information", repeated is None, f"fact text duplicates an existing fact: {repeated!r}")]
+            checks = [check("detail", specific, specific_reason),
+                      *premise_checks(text, f"facts[{slot}]"),
+                      check("consistent", not conflicts, "; ".join(d.message for d in conflicts)),
+                      check("new_information", repeated is None, f"fact text duplicates an existing fact: {repeated!r}")]
+            if repeated is None:
+                checks.append(restatement_checks(text, existing))
+            return checks
+
+        def restatement_checks(text, existing):
+            nonlocal calls
+            candidates = restatement_candidates(text, existing)
+            if not candidates:
+                return check("new_information", True, "no candidate to compare")
+            result = restatement_check(self.judge_backend, text, candidates, language=language,
+                max_attempts=self.structured_attempts, max_conversions=self.structured_conversions)
+            calls += result.attempts + result.conversions
+            entry = self.metrics["steps"].setdefault("restatement_check",
+                {"calls": 0, "attempts": {}, "reasons": {}, "failures": 0})
+            entry["calls"] += result.attempts + result.conversions
+            entry["attempts"][str(result.attempts)] = entry["attempts"].get(str(result.attempts), 0) + 1
+            if result.data is None:
+                ok, reason = False, "schema: " + json.dumps(result.violations[-1], ensure_ascii=False)
+            else:
+                restated = result.data["restates"]
+                ok = restated == "none"
+                reason = result.data["reason"] if ok else (
+                    "fact text restates an existing fact: " +
+                    repr(candidates[int(restated[1:]) - 1]))
+                restating[0] = not ok
+            if not ok:
+                entry["failures"] += 1
+                reasons = entry["reasons"].setdefault("new_information", {})
+                reasons[reason] = reasons.get(reason, 0) + 1
+            return check("new_information", ok, reason)
 
         def premise_checks(text, field):
             deductions = verify_consistency({"entity": entity, "operator": operator,
@@ -286,7 +317,8 @@ class EntityBuilder:
             key = (step, slot)
             while attempts.get(key, 0) < attempt_limits.get(key, self.max_step_attempts):
                 attempts[key] = attempts.get(key, 0) + 1
-                previous = copy.deepcopy(entity)
+                restating[0] = False
+                previous =copy.deepcopy(entity)
                 previous_elements = copy.deepcopy(elements)
                 result = generate(step, slot, correction)
                 data = result.data
@@ -304,6 +336,9 @@ class EntityBuilder:
                 reasons = [c for c in checks if not c["ok"]]
                 failure = {"step": step, "slot": slot, "reason": "; ".join(c["criterion"] + ": " + c["reason"] for c in reasons)}
                 correction = "PREVIOUS OUTPUT:\n" + json.dumps(data, ensure_ascii=False) + "\nFAILED CHECKS:\n" + json.dumps(reasons, ensure_ascii=False)
+                if step == "fact_text" and restating[0]:
+                    # A restatement is repaired by choosing different elements, not by rewording.
+                    return False
             if failure is None or failure["step"] != step or failure["slot"] != slot:
                 failure = {"step": step, "slot": slot, "reason": correction}
             return False

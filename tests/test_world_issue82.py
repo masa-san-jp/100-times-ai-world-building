@@ -12,7 +12,7 @@ from src.world.explore import run_world_engine
 from tests.test_world_builder import cfg
 from tests.test_world_explore import RAW, make_backend
 
-JUDGE_STEPS = ("real_world_check", "review")
+JUDGE_STEPS = ("real_world_check", "restatement_check", "review")
 CONFIG = Path(__file__).resolve().parent.parent / "config" / "ollama_config.yaml"
 
 

@@ -105,6 +105,8 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
             terms = json.JSONDecoder().raw_decode(prompt.split("TERMS:\n", 1)[1])[0]
             return {"items": [{"term": term, "category": "invented",
                                "reason": "Invented synthetic term."} for term in terms]}
+        if "STEP: restatement_check\n" in prompt:
+            return {"restates": "none", "reason": "Synthetic fact adds new information."}
         schema = json.loads(prompt.split("OUTPUT SCHEMA:\n", 1)[1].split("\n\nREPAIR INSTRUCTIONS:", 1)[0])
         props = schema["properties"]
         step = re.search(r"^STEP: (.+)$", prompt, re.M).group(1)

@@ -1,0 +1,15 @@
+system: |
+  Judge whether a fact restates an existing fact. Return only the requested structured JSON.
+user: |
+  STEP: restatement_check
+  SLOT: None
+  TASK: restatement_check
+  OUTPUT LANGUAGE: {language}
+  FACT UNDER JUDGMENT:
+  {fact}
+  CANDIDATES:
+  {candidates}
+  If the fact under judgment only restates, in different wording, the same claim (the same subject with the same content) as one of the candidates, return that candidate's id as restates.
+  If it states information that no candidate has (a new subject, a new quantity, a new relation, a new procedure), return none.
+  Sharing words with a candidate is not a restatement by itself.
+  Return restates (none or a candidate id) and reason (1 to 200 characters).
