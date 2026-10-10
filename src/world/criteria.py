@@ -3,7 +3,6 @@
 import json
 import re
 import unicodedata
-from decimal import Decimal
 from pathlib import Path
 
 import yaml
@@ -76,41 +75,24 @@ def _trigrams(text):
     return {text[i:i + 3] for i in range(max(len(text) - 2, 1))}
 
 
+def nearly_same(text, other, threshold):
+    """Equal after normalization, or character 3-gram Jaccard at or above threshold."""
+    key, other_key = normalize_term(text), normalize_term(other)
+    if key == other_key:
+        return True
+    grams, other_grams = _trigrams(key), _trigrams(other_key)
+    return len(grams & other_grams) / len(grams | other_grams) >= threshold
+
+
 def duplicate_fact(text, existing_texts, threshold=None):
     """Return the first existing fact text equal to or nearly equal to text, else None."""
     threshold = duplicate_jaccard() if threshold is None else threshold
-    key = normalize_term(text)
-    grams = _trigrams(key)
-    for other in existing_texts:
-        other_key = normalize_term(other)
-        if key == other_key:
-            return other
-        other_grams = _trigrams(other_key)
-        if len(grams & other_grams) / len(grams | other_grams) >= threshold:
-            return other
-    return None
+    return next((other for other in existing_texts if nearly_same(text, other, threshold)), None)
 
 
-def period_present(marker, value, entities):
-    """Match a (marker, value) pair against the structured fields of existing period facts."""
-    return any(f.get("kind") == "period" and normalize_term(f.get("marker", "")) == normalize_term(marker)
-               and normalize_term(f.get("value")) == normalize_term(value)
-               for e in entities for f in e.get("facts", []))
-
-
-def measurement_present(value, unit, brief, views, entities):
-    """Match structured pairs or complete numeric tokens in existing text."""
-    from .quantities import NUMBER, normalized
-    for source in [brief, *views, *entities]:
-        if isinstance(source, dict):
-            for fact in source.get("facts", []):
-                if fact.get("value") == value and fact.get("unit") == unit:
-                    return True
-        texts = descriptions(source) if source is brief else (
-            f.get("text", "") for f in source.get("facts", []))
-        pattern = r"(?<![A-Za-z\d.])(" + NUMBER + r")\s*" + re.escape(normalized(unit)) + r"(?![A-Za-z0-9_/^*·×])"
-        for text in texts:
-            if any(Decimal(m[1].replace(",", "")) == Decimal(str(value))
-                   for m in re.finditer(pattern, normalized(text))):
-                return True
-    return False
+def measurement_present(value, unit, subject, views, entities):
+    """Return True when an existing number fact has the same (value, unit) and a near subject."""
+    threshold = duplicate_jaccard()
+    return any(f.get("kind") == "number" and all(key in f for key in ("subject", "value", "unit"))
+               and f["value"] == value and f["unit"] == unit and nearly_same(subject, f["subject"], threshold)
+               for source in [*views, *entities] for f in source.get("facts", []))
