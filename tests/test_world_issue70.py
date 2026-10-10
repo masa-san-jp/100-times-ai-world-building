@@ -102,14 +102,14 @@ def test_new_name_normalizes_and_checks_every_source(source, embedded):
     assert new_name("Tavren", raw, brief, views, entities, contract)
 
 
-def test_existing_proper_name_is_rejected_by_detail():
+def test_existing_proper_name_is_rejected_by_new_information():
     def change(step, slot, attempt, prompt, good):
         if step in {"fact_element", "fact_text"} and slot == 1:
             return split_fact_output(step, {"name": "alpha", "fact": "The alpha registry handles the records."})
         return good
     _, result = build(backend_with(change), config={"build": {"max_step_attempts": 2}})
     assert not result.entity and result.failure["slot"] == 1
-    assert "detail" in result.failure["reason"] and "name must be new" in result.failure["reason"]
+    assert "new_information" in result.failure["reason"] and "name must be new" in result.failure["reason"]
 
 
 @pytest.mark.parametrize("text", ["Capacity is 120 k2s.", "Capacity is １２０ ｋ２ｓ。",
@@ -343,8 +343,7 @@ def test_measurement_pairs_found_in_all_reference_sources(source, structured):
 
 
 @pytest.mark.parametrize("recover", [False, True])
-def test_no_new_information_rebuilds_first_number_before_review(monkeypatch, recover):
-    # Exercise the gate without the independent mandatory proper-name check.
+def test_repeated_measurement_pair_rebuilds_only_the_element_stage(monkeypatch, recover):
     monkeypatch.setattr("src.world.builder.fact_plan", lambda *args: ["number", "object"])
     g = graph()
     g["entities"][0]["facts"] = [{"kind": "number", "value": 12, "unit": "quota",
@@ -352,23 +351,60 @@ def test_no_new_information_rebuilds_first_number_before_review(monkeypatch, rec
     def change(step, slot, attempt, prompt, good):
         if step == "fact_element" and slot == 0:
             if attempt > 1:
-                assert "new_information" in prompt and "new (value, unit) pair" in prompt
+                assert "new_information" in prompt and "(12, quota)" in prompt
             value = 13 if attempt > 1 and recover else 12
             return split_fact_output(step, {**good, "value": value, "fact": f"Measured capacity is {value} quota."})
         return good
     backend = backend_with(change)
     builder, result = build(backend, g, config={"build": {"max_step_attempts": 2}})
     assert backend.attempts[("fact_element", 0)] == 2
-    assert backend.attempts[("fact_element", 1)] == 1
+    assert backend.attempts.get(("fact_text", 0), 0) == (1 if recover else 0)
     assert not next(r for r in result.steps if r.step == "fact_element" and r.slot == 0).accepted
     assert builder.metrics["steps"]["fact_element"]["reasons"]["new_information"]
     if recover:
         assert result.entity and result.entity["facts"][0]["value"] == 13
-        assert backend.attempts[("review", None)] == 1
     else:
         assert result.entity is None and result.failure["step"] == "fact_element" and result.failure["slot"] == 0
         assert "new_information" in result.failure["reason"]
-        assert ("review", None) not in backend.attempts
+
+
+def test_repeated_period_pair_is_rejected_at_the_element_stage(monkeypatch):
+    monkeypatch.setattr("src.world.builder.fact_plan", lambda *args: ["period"])
+    g = graph()
+    g["entities"][0]["facts"] = [{"kind": "period", "marker": "VelaCount", "value": 3,
+                                  "text": "The cycle lasts VelaCount 3."}]
+    def change(step, slot, attempt, prompt, good):
+        if step == "fact_element":
+            return {"marker": "VelaCount", "value": 3 if attempt == 1 else 4}
+        if step == "fact_text":
+            return {"fact": "Records are rotated after VelaCount 4 completes."}
+        return good
+    backend = backend_with(change)
+    _, result = build(backend, g, contract=SYNTHETIC_PREMISES, config={"build": {"max_step_attempts": 2}})
+    assert result.entity, result.failure
+    assert backend.attempts[("fact_element", 0)] == 2 and backend.attempts[("fact_text", 0)] == 1
+    first = next(r for r in result.steps if r.step == "fact_element")
+    assert any(c["criterion"] == "new_information" and not c["ok"] for c in first.checks)
+
+
+def test_duplicate_fact_text_rebuilds_only_the_text_stage(monkeypatch):
+    monkeypatch.setattr("src.world.builder.fact_plan", lambda *args: ["number", "object"])
+    g = graph()
+    existing = "The containers hold the sealed tokens across every exchange cycle."
+    g["entities"][0]["facts"] = [{"kind": "object", "object": "containers", "text": existing}]
+    def change(step, slot, attempt, prompt, good):
+        if step == "fact_element" and slot == 1:
+            return {"object": "containers"}
+        if step == "fact_text" and slot == 1:
+            if attempt > 1:
+                assert "new_information" in prompt and existing in prompt
+                return {"fact": "Physical containers keep discarded tokens apart."}
+            return {"fact": existing.replace("The", "the")}
+        return good
+    backend = backend_with(change)
+    _, result = build(backend, g, config={"build": {"max_step_attempts": 2}})
+    assert result.entity
+    assert backend.attempts[("fact_element", 1)] == 1 and backend.attempts[("fact_text", 1)] == 2
 
 
 def test_contract_term_collection_uses_names_and_symbols_without_descriptions():

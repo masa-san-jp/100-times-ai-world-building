@@ -17,7 +17,8 @@ from .operators import (OPERATORS, OperatorConfig, OperatorError, _TARGET_RELATI
                         _clip, _world_context, load_prompts, placement)
 from .quantities import NUMBER, is_counter, outside_units, unit_factors
 from .premises import unit_symbols
-from .criteria import measurement_present, new_name, outside_terms, real_world_check
+from .criteria import (duplicate_fact, measurement_present, new_name, outside_terms,
+                       period_present, real_world_check)
 from .schemas import step_schema
 from .structured import generate_structured
 from .textsim import normalize_item
@@ -199,9 +200,12 @@ class EntityBuilder:
             if step == "fact_element":
                 kind = plan[slot]
                 if kind == "proper_noun":
-                    return [check("detail", new_name(data["name"], raw_input, brief, views,
-                        graph["entities"], contract), "name must be new in the input, context and contract"),
+                    return [check("new_information", new_name(data["name"], raw_input, brief, views,
+                        graph["entities"], contract), f"name must be new in the input, context and contract; already present: {data['name']!r}"),
                         *term_checks(data["name"])]
+                if kind == "period":
+                    return [check("new_information", not period_present(data["marker"], data["value"], graph["entities"]),
+                                  f"period pair ({data['marker']}, {data['value']}) already appears in an existing fact")]
                 if kind == "number":
                     times = {normalize_item(v) for v in rl.get("time_basis_aliases", {})}
                     factors = unit_factors(data["unit"])
@@ -210,13 +214,18 @@ class EntityBuilder:
                     return [check("detail", not is_counter(data["unit"], rl) and non_time,
                                   "number requires a non-time measurement unit"),
                             check("no_outside_premises", not contract or data["unit"] in unit_symbols(contract),
-                                  "number unit must belong to the contract")]
+                                  "number unit must belong to the contract"),
+                            check("new_information", not measurement_present(data["value"], data["unit"], brief,
+                                  views, graph["entities"]),
+                                  f"(value, unit) pair ({data['value']}, {data['unit']}) already appears in the input, context or an existing fact")]
                 return []
             if step != "fact_text":
                 return []
             data = {**elements[slot], **data}
             text, kind = data["fact"], plan[slot]
-            others = [f["text"] for i, f in enumerate(entity["facts"]) if i != slot]
+            existing = [f["text"] for e in graph["entities"] for f in e.get("facts", [])] + \
+                [f["text"] for i, f in enumerate(entity["facts"]) if i != slot]
+            repeated = duplicate_fact(text, existing)
             if kind == "number":
                 specific = value_in_text(data["value"], text) and data["unit"] in text
                 specific_reason = "number requires its value and non-time measurement unit in the fact text"
@@ -234,7 +243,7 @@ class EntityBuilder:
             return [check("detail", specific, specific_reason),
                     *premise_checks(text, f"facts[{slot}]"),
                     check("consistent", not conflicts, "; ".join(d.message for d in conflicts)),
-                    check("new_information", normalize_item(text) not in {normalize_item(t) for t in others}, "facts in the entity must not duplicate one another")]
+                    check("new_information", repeated is None, f"fact text duplicates an existing fact: {repeated!r}")]
 
         def premise_checks(text, field):
             deductions = verify_consistency({"entity": entity, "operator": operator,
@@ -340,27 +349,6 @@ class EntityBuilder:
             self.metrics["steps"][step]["failures"] += 1
             return BuildResult(None, records, failure, calls)
 
-        def ensure_new_information():
-            def has_new_information():
-                return any((fact["kind"] == "proper_noun" and new_name(fact["name"], raw_input,
-                    brief, views, graph["entities"], contract)) or
-                    (fact["kind"] == "number" and not measurement_present(fact["value"],
-                        fact["unit"], brief, views, graph["entities"])) for fact in entity["facts"])
-            while not has_new_information():
-                slot = plan.index("number")
-                reason = "new_information: entity needs a new proper name or a new (value, unit) pair"
-                # Attribute this failure to the accepted number output before repairing it.
-                row = next(r for r in reversed(records) if r.step == "fact_element" and r.slot == slot)
-                if row.accepted:
-                    row.checks.append(check("new_information", False, reason))
-                    row.accepted = False
-                    reasons = self.metrics["steps"]["fact_element"]["reasons"].setdefault("new_information", {})
-                    reasons[reason] = reasons.get(reason, 0) + 1
-                if not run_fact(slot, "PREVIOUS OUTPUT:\n" +
-                    json.dumps(entity["facts"][slot], ensure_ascii=False) + "\nFAILED CHECKS:\n" + reason):
-                    return False
-            return True
-
         if len(ALLOWED_TYPES[operator]) == 1:
             entity["type"] = ALLOWED_TYPES[operator][0]
         elif not run_step("type"):
@@ -379,8 +367,6 @@ class EntityBuilder:
             if relation not in entity["relations"]:
                 entity["relations"].append(relation)
         for rnd in range(self.review_rounds + 1):
-            if not ensure_new_information():
-                return finish(False)
             result = generate("review", None)
             attempts[("review", None)] = rnd + 1
             data = result.data
