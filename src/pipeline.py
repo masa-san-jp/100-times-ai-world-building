@@ -27,7 +27,9 @@ from .llm.factory import build_backend_clients
 from .output_layout import world_package_path
 from .run_manifest import RunManifest, file_sha256, snapshot_files, utc_now
 from .utils import load_config
-from .world.explore import ExplorationResult, load_explore_config, run_world_engine
+from .world.explore import (
+    BACKEND_WAIT_MAX_SECONDS, ExplorationResult, load_explore_config, run_world_engine,
+)
 from .world.operators import OperatorConfig
 
 BUDGET_KEYS = ("max_iterations", "max_wall_seconds", "max_generation_calls")
@@ -116,6 +118,8 @@ class Pipeline:
         engine_cfg = self.config.get("engine") or {}
         self.structured_config = {"max_attempts": 3, "max_conversions": 2,
                                   **(engine_cfg.get("structured") or {})}
+        self.backend_wait_max_seconds = float(
+            engine_cfg.get("backend_wait_max_seconds", BACKEND_WAIT_MAX_SECONDS))
         self.explore_config = load_explore_config(
             overrides=engine_cfg.get("explore") or {})
         self.operator_config = _operator_config(engine_cfg.get("operator") or {})
@@ -366,6 +370,7 @@ class Pipeline:
                 structured_max_attempts=self.structured_config["max_attempts"],
                 structured_max_conversions=self.structured_config["max_conversions"],
                 judge_backend=self.judge_client,
+                backend_wait_max_seconds=self.backend_wait_max_seconds,
                 models={"generation": self.model, "judge": self.judge_model})
         finally:
             # The engine updates the manifest file through its own handle.

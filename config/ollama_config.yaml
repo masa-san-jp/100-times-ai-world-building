@@ -33,6 +33,9 @@ server:
   timeout: 900  # seconds per request
   max_retries: 3
   retry_delay: 5  # seconds
+  # Upper bound on one generation call including retries. Beyond it the call
+  # fails with BackendUnavailable instead of waiting on.
+  call_deadline_seconds: 1800
 
 # Ollama models
 # ----------------------------------------
@@ -60,6 +63,10 @@ engine:
   # backend type as generation (override with --judge-model). Empty = the
   # generation model.
   judge_model: ""
+  # While the backend does not respond, the exploration loop saves a
+  # checkpoint and polls it (60, 120, 240, 480, 600, 600... s). After this
+  # many seconds of waiting without progress the run exits with code 75.
+  backend_wait_max_seconds: 7200
   structured:
     max_attempts: 3
     max_conversions: 2

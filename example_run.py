@@ -18,6 +18,8 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 from src import Pipeline, load_config, run_batch, setup_logging  # noqa: E402
+from src.llm import BackendUnavailable  # noqa: E402
+from src.world.explore import EXIT_CODE_BACKEND_UNAVAILABLE  # noqa: E402
 
 
 class ContextInputError(ValueError):
@@ -371,6 +373,9 @@ def main(argv=None, backend=None):
     except KeyboardInterrupt:
         print("\n\nInterrupted by user.")
         return 1
+    except BackendUnavailable as e:
+        print(f"\n✗ Backend unavailable: {e}")
+        return EXIT_CODE_BACKEND_UNAVAILABLE
     except ContextInputError as e:
         print(f"\n✗ {e}")
         return 1

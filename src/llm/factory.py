@@ -29,6 +29,7 @@ def build_backend_clients(
             "timeout": server_config.get("timeout", 300),
             "max_retries": server_config.get("max_retries", 3),
             "retry_delay": server_config.get("retry_delay", 5),
+            "call_deadline_seconds": server_config.get("call_deadline_seconds", 1800),
         }
         return {
             role: OllamaClient(model=model_name, **client_kwargs)
