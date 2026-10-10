@@ -40,7 +40,7 @@ consistent:
   method: judge
 new_information:
   level: entity
-  definition: Each fact adds information absent from the brief, local context and every existing fact. A number's (value, unit) pair and a period's (marker, value) pair must not appear in existing facts, and the fact text must not equal (after NFKC, whitespace removal and lowercasing) or nearly equal (character 3-gram Jaccard at or above duplicate_jaccard) the text of any existing fact, including the other facts of the entity being built.
+  definition: Each fact adds information absent from every existing fact. A proper name must also be absent from the original input, brief, local context, existing entity names and contract terms. A number repeats an existing number fact only when both its (value, unit) pair and its subject match; subjects match when they are equal after NFKC, whitespace removal and lowercasing or their character 3-gram Jaccard is at or above duplicate_jaccard. The same pair with another subject is new information, and brief or local text is not compared with numbers. A period's (marker, value) pair is not compared. The fact text must not equal (after NFKC, whitespace removal and lowercasing) or nearly equal (character 3-gram Jaccard at or above duplicate_jaccard) the text of any existing fact, including the other facts of the entity being built.
   duplicate_jaccard: 0.8
   checks: [name.duplicate, fact.new_information]
   method: rule
