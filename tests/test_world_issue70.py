@@ -324,36 +324,34 @@ def test_entity_name_in_original_input_is_allowed_even_if_real():
     assert [r.attempt for r in result.steps if r.step == "name"] == [1]
 
 
-@pytest.mark.parametrize("source", ["brief", "local", "global"])
-@pytest.mark.parametrize("structured", [False, True])
-def test_measurement_pairs_found_in_all_reference_sources(source, structured):
-    fact = {"text": "Capacity is １，２００ k2s."}
-    if structured:
-        fact.update(value=1200, unit="k2s")
-    brief, views, entities = {}, [], []
-    if source == "brief":
-        brief = {"statements": [{"text": fact["text"]}]}
-    elif source == "local":
-        views = [{"facts": [fact]}]
-    else:
-        entities = [{"facts": [fact]}]
-    assert measurement_present(1200, "k2s", brief, views, entities)
-    assert not measurement_present(120, "k2s", brief, views, entities)
-    assert not measurement_present(1200, "k2", brief, views, entities)
+@pytest.mark.parametrize("source", ["local", "global"])
+def test_measurement_pairs_match_only_structured_number_facts_with_a_near_subject(source):
+    fact = {"kind": "number", "subject": "Capacity limit", "value": 1200, "unit": "k2s",
+            "text": "Capacity limit is １，２００ k2s."}
+    views, entities = ([{"facts": [fact]}], []) if source == "local" else ([], [{"facts": [fact]}])
+    assert measurement_present(1200, "k2s", "Capacity limit", views, entities)
+    assert measurement_present(1200, "k2s", "capacity limits", views, entities)
+    assert not measurement_present(1200, "k2s", "Capacity", views, entities)
+    assert not measurement_present(1200, "k2s", "Allotment", views, entities)
+    assert not measurement_present(120, "k2s", "Capacity limit", views, entities)
+    assert not measurement_present(1200, "k2", "Capacity limit", views, entities)
+    text_only = {"kind": "number", "text": "Capacity limit is １，２００ k2s."}
+    assert not measurement_present(1200, "k2s", "Capacity limit", [], [{"facts": [text_only]}])
 
 
 @pytest.mark.parametrize("recover", [False, True])
 def test_repeated_measurement_pair_rebuilds_only_the_element_stage(monkeypatch, recover):
     monkeypatch.setattr("src.world.builder.fact_plan", lambda *args: ["number", "object"])
     g = graph()
-    g["entities"][0]["facts"] = [{"kind": "number", "value": 12, "unit": "quota",
+    g["entities"][0]["facts"] = [{"kind": "number", "subject": "Capacity", "value": 12, "unit": "quota",
                                   "text": "Measured capacity is 12 quota."}]
     def change(step, slot, attempt, prompt, good):
         if step == "fact_element" and slot == 0:
             if attempt > 1:
                 assert "new_information" in prompt and "(12, quota)" in prompt
             value = 13 if attempt > 1 and recover else 12
-            return split_fact_output(step, {**good, "value": value, "fact": f"Measured capacity is {value} quota."})
+            return split_fact_output(step, {**good, "subject": "Capacity", "value": value,
+                                            "fact": f"Measured capacity is {value} quota."})
         return good
     backend = backend_with(change)
     builder, result = build(backend, g, config={"build": {"max_step_attempts": 2}})
@@ -368,23 +366,22 @@ def test_repeated_measurement_pair_rebuilds_only_the_element_stage(monkeypatch, 
         assert "new_information" in result.failure["reason"]
 
 
-def test_repeated_period_pair_is_rejected_at_the_element_stage(monkeypatch):
+def test_repeated_period_pair_with_new_text_passes_the_element_stage(monkeypatch):
     monkeypatch.setattr("src.world.builder.fact_plan", lambda *args: ["period"])
     g = graph()
     g["entities"][0]["facts"] = [{"kind": "period", "marker": "VelaCount", "value": 3,
                                   "text": "The cycle lasts VelaCount 3."}]
     def change(step, slot, attempt, prompt, good):
         if step == "fact_element":
-            return {"marker": "VelaCount", "value": 3 if attempt == 1 else 4}
+            return {"marker": "VelaCount", "value": 3}
         if step == "fact_text":
-            return {"fact": "Records are rotated after VelaCount 4 completes."}
+            return {"fact": "Records are rotated after VelaCount 3 completes."}
         return good
     backend = backend_with(change)
     _, result = build(backend, g, contract=SYNTHETIC_PREMISES, config={"build": {"max_step_attempts": 2}})
     assert result.entity, result.failure
-    assert backend.attempts[("fact_element", 0)] == 2 and backend.attempts[("fact_text", 0)] == 1
-    first = next(r for r in result.steps if r.step == "fact_element")
-    assert any(c["criterion"] == "new_information" and not c["ok"] for c in first.checks)
+    assert backend.attempts[("fact_element", 0)] == 1 and backend.attempts[("fact_text", 0)] == 1
+    assert next(r for r in result.steps if r.step == "fact_element").accepted
 
 
 def test_duplicate_fact_text_rebuilds_only_the_text_stage(monkeypatch):
@@ -415,9 +412,12 @@ def test_contract_term_collection_uses_names_and_symbols_without_descriptions():
     assert len(terms) == len(set(terms))
 
 
-@pytest.mark.parametrize("text", ["容量は12quota。", "容量は１２ ｑｕｏｔａ。", "Capacity is 12 quota."])
-def test_measurement_pair_matches_cjk_prose(text):
-    assert measurement_present(12, "quota", {"statements": [{"text": text}]}, [], [])
+@pytest.mark.parametrize("subject", ["容量", "容 量", "　容量　"])
+def test_measurement_subject_is_compared_after_cjk_width_and_spacing_normalization(subject):
+    entities = [{"facts": [{"kind": "number", "subject": "容量", "value": 12, "unit": "quota",
+                            "text": "容量は12quotaである。"}]}]
+    assert measurement_present(12, "quota", subject, [], entities)
+    assert not measurement_present(12, "quota", "容量の上限", [], entities)
 
 
 def test_summary_overlap_is_not_a_rejection_when_entity_adds_new_information():

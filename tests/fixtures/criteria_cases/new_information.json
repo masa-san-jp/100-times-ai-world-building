@@ -1,6 +1,6 @@
 [
   {
-    "id": "new-information-repeated-brief",
+    "id": "new-information-brief-text-not-counted",
     "criterion": "new_information",
     "check": "fact.new_information",
     "input": {
@@ -24,8 +24,8 @@
         ]
       }
     },
-    "expected": "fail",
-    "note": "An entity with only an existing (value, unit) pair adds no information, even if its name and summary are different."
+    "expected": "pass",
+    "note": "Brief text is not compared with numbers: the entity derives from the brief, so restating its measurement is not a repetition of an existing number fact."
   },
   {
     "id": "new-information-new-value-brief",
@@ -84,6 +84,7 @@
           "facts": [
             {
               "kind": "number",
+              "subject": "Capacity",
               "value": 12,
               "unit": "q2v",
               "text": "Capacity is 12 q2v."
@@ -101,7 +102,7 @@
       ]
     },
     "expected": "fail",
-    "note": "An entity with only an existing (value, unit) pair adds no information, even if its name and summary are different."
+    "note": "An existing number with the same (value, unit) pair and the same subject repeats the measurement, even if the entity's name and summary are different."
   },
   {
     "id": "new-information-new-value-local",
@@ -132,6 +133,7 @@
           "facts": [
             {
               "kind": "number",
+              "subject": "Capacity",
               "value": 12,
               "unit": "q2v",
               "text": "Capacity is 12 q2v."
@@ -180,6 +182,7 @@
           "facts": [
             {
               "kind": "number",
+              "subject": "Capacity",
               "value": 12,
               "unit": "q2v",
               "text": "Capacity is 12 q2v."
@@ -197,7 +200,7 @@
       ]
     },
     "expected": "fail",
-    "note": "An entity with only an existing (value, unit) pair adds no information, even if its name and summary are different."
+    "note": "An existing number with the same (value, unit) pair and the same subject repeats the measurement, even if the entity's name and summary are different."
   },
   {
     "id": "new-information-new-value-global",
@@ -228,6 +231,7 @@
           "facts": [
             {
               "kind": "number",
+              "subject": "Capacity",
               "value": 12,
               "unit": "q2v",
               "text": "Capacity is 12 q2v."
@@ -304,6 +308,7 @@
           "facts": [
             {
               "kind": "number",
+              "subject": "Allotment",
               "value": 12,
               "unit": "q2v",
               "text": "Each ration district receives the weekly allotment of 12 q2v from the central store."
@@ -399,6 +404,7 @@
           "facts": [
             {
               "kind": "number",
+              "subject": "Capacity",
               "value": 12,
               "unit": "v2q",
               "text": "Capacity is 12 v2q."
@@ -417,6 +423,279 @@
     },
     "expected": "pass",
     "note": "A fact with the same wording that states a new element stays below the 0.8 Jaccard threshold and passes."
+  },
+  {
+    "id": "new-information-same-pair-other-subject",
+    "criterion": "new_information",
+    "check": "fact.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Allotment",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Allotment is 12 q2v."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "detail",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "number",
+              "subject": "Capacity",
+              "value": 12,
+              "unit": "q2v",
+              "text": "Capacity is 12 q2v."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ]
+    },
+    "expected": "pass",
+    "note": "The same (value, unit) pair with a different subject is a different measurement."
+  },
+  {
+    "id": "new-information-same-pair-near-subject",
+    "criterion": "new_information",
+    "check": "fact.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "Capacity limits",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Each store holds 12 q2v at most."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "detail",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "number",
+              "subject": "Capacity limit",
+              "value": 12,
+              "unit": "q2v",
+              "text": "Capacity limit is 12 q2v."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "The same (value, unit) pair with a near subject (character 3-gram Jaccard of about 0.92, at or above 0.8) repeats the existing measurement."
+  },
+  {
+    "id": "new-information-same-pair-normalized-subject",
+    "criterion": "new_information",
+    "check": "fact.new_information",
+    "input": {
+      "fact_kinds": [
+        "number"
+      ],
+      "facts": [
+        {
+          "subject": "CAPACITY",
+          "value": 12,
+          "unit": "q2v",
+          "fact": "Storage holds 12 q2v in total."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "detail",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "number",
+              "subject": "Capacity",
+              "value": 12,
+              "unit": "q2v",
+              "text": "Capacity is 12 q2v."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ]
+    },
+    "expected": "fail",
+    "note": "Subjects equal after NFKC, whitespace removal and lowercasing are the same subject, so the same pair repeats the existing measurement."
+  },
+  {
+    "id": "new-information-period-same-pair-new-text",
+    "criterion": "new_information",
+    "check": "fact.new_information",
+    "input": {
+      "fact_kinds": [
+        "period"
+      ],
+      "facts": [
+        {
+          "marker": "ZevCycle",
+          "value": 3,
+          "fact": "Records are rotated after ZevCycle 3 completes."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "detail",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "period",
+              "marker": "ZevCycle",
+              "value": 3,
+              "text": "The cycle lasts ZevCycle 3."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            }
+          ]
+        },
+        "calendar": {
+          "name": "ZevCycle",
+          "markers": [
+            "ZevCycle"
+          ]
+        }
+      }
+    },
+    "expected": "pass",
+    "note": "A period whose (marker, value) pair already appears is not rejected by the pair; only a repeated fact text is a repetition."
+  },
+  {
+    "id": "new-information-period-same-text",
+    "criterion": "new_information",
+    "check": "fact.new_information",
+    "input": {
+      "fact_kinds": [
+        "period"
+      ],
+      "facts": [
+        {
+          "marker": "ZevCycle",
+          "value": 3,
+          "fact": "The cycle lasts ZevCycle 3."
+        }
+      ],
+      "entities": [
+        {
+          "id": "e1",
+          "type": "concept",
+          "name": "Existing",
+          "axes": [],
+          "scale": "detail",
+          "parent": null,
+          "relations": [],
+          "summary": "",
+          "facts": [
+            {
+              "kind": "period",
+              "marker": "ZevCycle",
+              "value": 3,
+              "text": "The cycle lasts ZevCycle 3."
+            }
+          ],
+          "provenance": {
+            "statement_ids": [
+              "s1"
+            ],
+            "derived_from": [],
+            "reason": ""
+          },
+          "scores": {}
+        }
+      ],
+      "contract": {
+        "technology": {
+          "units": [
+            {
+              "symbol": "q2v",
+              "quantity": "capacity"
+            }
+          ]
+        },
+        "calendar": {
+          "name": "ZevCycle",
+          "markers": [
+            "ZevCycle"
+          ]
+        }
+      }
+    },
+    "expected": "fail",
+    "note": "A period whose fact text equals an existing fact text repeats it."
   },
   {
     "id": "new-information-existing-name",

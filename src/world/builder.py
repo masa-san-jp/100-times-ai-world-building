@@ -18,7 +18,7 @@ from .operators import (OPERATORS, OperatorConfig, OperatorError, _TARGET_RELATI
 from .quantities import NUMBER, is_counter, outside_units, unit_factors
 from .premises import unit_symbols
 from .criteria import (duplicate_fact, measurement_present, new_name, outside_terms,
-                       period_present, real_world_check)
+                       real_world_check)
 from .schemas import step_schema
 from .structured import generate_structured
 from .textsim import normalize_item
@@ -205,9 +205,6 @@ class EntityBuilder:
                     return [check("new_information", new_name(data["name"], raw_input, brief, views,
                         graph["entities"], contract), f"name must be new in the input, context and contract; already present: {data['name']!r}"),
                         *term_checks(data["name"])]
-                if kind == "period":
-                    return [check("new_information", not period_present(data["marker"], data["value"], graph["entities"]),
-                                  f"period pair ({data['marker']}, {data['value']}) already appears in an existing fact")]
                 if kind == "number":
                     times = {normalize_item(v) for v in rl.get("time_basis_aliases", {})}
                     factors = unit_factors(data["unit"])
@@ -217,9 +214,9 @@ class EntityBuilder:
                                   "number requires a non-time measurement unit"),
                             check("no_outside_premises", not contract or data["unit"] in unit_symbols(contract),
                                   "number unit must belong to the contract"),
-                            check("new_information", not measurement_present(data["value"], data["unit"], brief,
-                                  views, graph["entities"]),
-                                  f"(value, unit) pair ({data['value']}, {data['unit']}) already appears in the input, context or an existing fact")]
+                            check("new_information", not measurement_present(data["value"], data["unit"],
+                                  data["subject"], views, graph["entities"]),
+                                  f"(value, unit) pair ({data['value']}, {data['unit']}) with a near subject ({data['subject']!r}) already appears in an existing fact")]
                 return []
             if step != "fact_text":
                 return []
