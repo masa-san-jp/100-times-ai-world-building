@@ -16,6 +16,7 @@ from typing import (
 import yaml
 from loguru import logger
 
+from ..llm import BackendUnavailable
 from .graph import (
     SCALE_RANK, SCALES, GraphStore, guess_language, local_context,
 )
@@ -46,6 +47,21 @@ BREADTH_OPERATORS = ("expand", "perspective", "cause", "history", "document")
 
 class BudgetExhausted(RuntimeError):
     """Raised inside an iteration when the generation-call budget is spent."""
+
+
+class BackendWaitExhausted(BackendUnavailable):
+    """The backend stayed silent for the whole wait allowance; the run is resumable."""
+
+    def __init__(self, message: str, run_id: str, resume_command: str) -> None:
+        super().__init__(message)
+        self.run_id = run_id
+        self.resume_command = resume_command
+
+
+# Seconds between liveness checks while waiting; the last value repeats.
+BACKEND_WAIT_INTERVALS = (60, 120, 240, 480, 600)
+BACKEND_WAIT_MAX_SECONDS = 7200
+EXIT_CODE_BACKEND_UNAVAILABLE = 75
 
 
 # ------------------------------------------------------------------ config
@@ -531,6 +547,8 @@ def _fresh_state(seed: int) -> Dict[str, Any]:
         "elapsed_seconds": 0.0, "bandit": {"arms": {}}, "rng": None,
         "log_lines": 0, "max_entity_n": 0, "stop_reason": None,
         "consecutive_failures": 0,
+        "backend_waits": {"started": 0, "recovered": 0, "abandoned": 0,
+                          "total_seconds": 0.0},
     }
 
 
@@ -559,7 +577,10 @@ class ExplorationLoop:
         structured_max_attempts: int = 3,
         structured_max_conversions: int = 2,
         judge_backend: Any = None,
+        backend_wait_max_seconds: float = BACKEND_WAIT_MAX_SECONDS,
     ) -> None:
+        self.backend_wait_max_seconds = float(backend_wait_max_seconds)
+        self._wait_total = 0.0  # waiting since the last accepted iteration
         self.package_dir = Path(package_dir)
         raw_path = self.package_dir / "input" / "user_input.txt"
         self.raw_input = (raw_input if raw_input is not None else
@@ -603,7 +624,7 @@ class ExplorationLoop:
         counters.update({k: int(v) for k, v in data["counters"].items()})
         self.state.update({k: data[k] for k in (
             "iteration", "elapsed_seconds", "log_lines", "max_entity_n",
-            "stop_reason", "consecutive_failures") if k in data})
+            "stop_reason", "consecutive_failures", "backend_waits") if k in data})
         self.bandit.arms = Bandit(self.cfg.get("selection", {}), self.rng,
                                   data.get("bandit")).arms
         if "build" in data:
@@ -621,6 +642,7 @@ class ExplorationLoop:
             self.manifest.update(build=copy.deepcopy(self.builder.metrics), world_explore={
                 "iteration": s["iteration"], "counters": dict(s["counters"]),
                 "stop_reason": s["stop_reason"],
+                "backend_waits": dict(s["backend_waits"]),
                 "world_status": copy.deepcopy(s["world_status"]),
                 "elapsed_seconds": round(s["elapsed_seconds"], 3)})
 
@@ -721,7 +743,13 @@ class ExplorationLoop:
                 except BudgetExhausted:
                     _set_rng_state(self.rng, rng_before)
                     reason = "max_generation_calls"
+                except BackendUnavailable as exc:
+                    # Nothing of the failed iteration was committed: redo it.
+                    _set_rng_state(self.rng, rng_before)
+                    self._wait_for_backend(exc)
+                    continue
                 else:
+                    self._wait_total = 0.0
                     self.state["elapsed_seconds"] += max(0.0, self.clock() - started)
                     if not progressed:
                         reason = "frontier_exhausted"
@@ -737,6 +765,52 @@ class ExplorationLoop:
                 graph=graph, counters=dict(self.state["counters"]),
                 coverage=self._world_status(graph),
                 preferences_path=self.log_path, state=copy.deepcopy(self.state))
+
+    # -- waiting for an unresponsive backend
+    def _backend_alive(self) -> bool:
+        """Probe every distinct backend client; one without a probe counts as alive."""
+        clients = {id(c): c for c in (client_instance(self.backend),
+                                      client_instance(self.judge_backend))}
+        for client in clients.values():
+            probe = getattr(client, "is_alive", None)
+            if callable(probe) and not probe():
+                return False
+        return True
+
+    def _resume_command(self) -> Tuple[str, str]:
+        run_id = ((self.manifest.data.get("run_id") if self.manifest is not None else None)
+                  or self.package_dir.name.removeprefix("world_"))
+        return run_id, f"--choice 2 --run-id {run_id}"
+
+    def _wait_for_backend(self, exc: BackendUnavailable) -> None:
+        """Checkpoint, then poll until the backend answers or the allowance runs out."""
+        waits = self.state["backend_waits"]
+        self._save_state()
+        waits["started"] += 1
+        logger.warning("バックエンド応答なし、待機開始: {}", exc)
+        step = 0
+        while True:
+            interval = BACKEND_WAIT_INTERVALS[min(step, len(BACKEND_WAIT_INTERVALS) - 1)]
+            step += 1
+            time.sleep(interval)
+            self._wait_total += interval
+            waits["total_seconds"] += interval
+            if self._backend_alive():
+                waits["recovered"] += 1
+                logger.warning("バックエンド応答が回復、反復をやり直す (待機 {:.0f} 秒)",
+                               self._wait_total)
+                self._save_state()
+                return
+            if self._wait_total > self.backend_wait_max_seconds:
+                waits["abandoned"] += 1
+                self._save_state()
+                run_id, args = self._resume_command()
+                command = f"python example_run.py {args}"
+                logger.error("バックエンド応答なしのまま待機上限 {:.0f} 秒を超えた、終了する。"
+                             "再開コマンド: {}", self.backend_wait_max_seconds, command)
+                raise BackendWaitExhausted(
+                    f"backend did not recover within {self.backend_wait_max_seconds:.0f}s "
+                    f"of waiting; resume with: {command}", run_id, command) from exc
 
     def _set_phase(self, status: str) -> None:
         if self.manifest is not None:
@@ -761,7 +835,7 @@ class ExplorationLoop:
         try:
             result = self._attempt(graph, operator, target, item)
             records = [{"type": "step", "iteration": it, **asdict(r)} for r in result.steps]
-        except BudgetExhausted:
+        except (BudgetExhausted, BackendUnavailable):
             raise
         except Exception as exc:
             error = {"class": type(exc).__name__, "message": str(exc)[:300]}
@@ -870,6 +944,7 @@ def run_world_engine(
     structured_max_conversions: int = 2,
     judge_backend: Any = None,
     models: Optional[Mapping[str, Any]] = None,
+    backend_wait_max_seconds: float = BACKEND_WAIT_MAX_SECONDS,
 ) -> ExplorationResult:
     """Input brief -> axes -> graph -> exploration loop, with no human input.
 
@@ -940,7 +1015,8 @@ def run_world_engine(
             checkpoints=checkpoints, manifest=manifest,
             structured_max_attempts=structured_max_attempts,
             structured_max_conversions=structured_max_conversions,
-            judge_backend=judge_backend)
+            judge_backend=judge_backend,
+            backend_wait_max_seconds=backend_wait_max_seconds)
         from .contract import establish_contract
         graph = loop.store.load_or_create(lang)
         try:
@@ -988,7 +1064,8 @@ def run_world_engine(
 
 
 __all__ = [
-    "Bandit", "BudgetExhausted", "ExplorationLoop", "ExplorationResult",
+    "Bandit", "BackendWaitExhausted", "BudgetExhausted",
+    "EXIT_CODE_BACKEND_UNAVAILABLE", "ExplorationLoop", "ExplorationResult",
     "BREADTH_OPERATORS", "PREFERENCES_RELATIVE_PATH", "STOP_REASONS", "arm_key", "axis_consumption",
     "axis_shares", "candidate_pairs", "evaluate_frontier",
     "extract_preference_pairs", "item_prior", "load_explore_config",

@@ -11,7 +11,9 @@ from typing import Optional, Dict, Any, List, Union
 import requests
 from loguru import logger
 
-from .llm import LLMBackend
+from .llm import BackendUnavailable, LLMBackend
+
+LIVENESS_TIMEOUT_SECONDS = 10
 
 
 class OllamaClient(LLMBackend):
@@ -27,6 +29,7 @@ class OllamaClient(LLMBackend):
         timeout: int = 300,
         max_retries: int = 3,
         retry_delay: int = 5,
+        call_deadline_seconds: float = 1800,
     ):
         """
         Initialize Ollama client
@@ -38,12 +41,15 @@ class OllamaClient(LLMBackend):
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries on failure
             retry_delay: Delay between retries in seconds
+            call_deadline_seconds: Upper bound on one generation call,
+                retries included; exceeding it raises BackendUnavailable
         """
         self.base_url = f"{host}:{port}"
         self.model = model
         self.timeout = timeout
         self.max_retries = max_retries
         self.retry_delay = retry_delay
+        self.call_deadline_seconds = float(call_deadline_seconds)
         self.last_response_meta: Dict[str, Any] = {}
 
         logger.info(f"Initialized OllamaClient: {self.base_url}, model: {self.model}")
@@ -67,6 +73,14 @@ class OllamaClient(LLMBackend):
             return False
         except Exception as e:
             logger.error(f"Error checking Ollama server: {e}")
+            return False
+
+    def is_alive(self) -> bool:
+        """Return whether the server answers ``GET /api/tags`` at all."""
+        try:
+            requests.get(f"{self.base_url}/api/tags", timeout=LIVENESS_TIMEOUT_SECONDS)
+            return True
+        except requests.exceptions.RequestException:
             return False
 
     def list_models(self) -> List[Dict[str, Any]]:
@@ -226,6 +240,7 @@ class OllamaClient(LLMBackend):
             # ``think`` is an Ollama request field, not a sampling option.
             payload["think"] = think
 
+        call_started = time.monotonic()
         for attempt in range(1 if single_attempt else self.max_retries):
             try:
                 logger.debug(f"Generating (attempt {attempt + 1}/{self.max_retries})")
@@ -249,14 +264,23 @@ class OllamaClient(LLMBackend):
                 if single_attempt:
                     return generated_text
 
-            except requests.exceptions.Timeout:
-                logger.warning(f"Request timeout (attempt {attempt + 1})")
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                logger.warning(f"Request timeout or connection error (attempt {attempt + 1}): {e}")
+                if not self.is_alive():
+                    raise BackendUnavailable(
+                        f"Ollama at {self.base_url} does not respond to /api/tags") from e
             except requests.exceptions.RequestException as e:
                 logger.error(f"Request error: {e}")
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error: {e}")
             except Exception as e:
                 logger.error(f"Unexpected error: {e}")
+
+            elapsed = time.monotonic() - call_started
+            if elapsed > self.call_deadline_seconds:
+                raise BackendUnavailable(
+                    f"generation call exceeded {self.call_deadline_seconds:g}s "
+                    f"({elapsed:.0f}s elapsed including retries)")
 
             # Wait before retry
             if not single_attempt and attempt < self.max_retries - 1:

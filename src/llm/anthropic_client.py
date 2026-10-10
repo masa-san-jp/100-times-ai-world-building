@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 from loguru import logger
 
+from . import BackendUnavailable
+
 
 ImageInput = Union[str, Path, bytes]
 
@@ -121,8 +123,9 @@ class AnthropicClient:
             )
             return None
         except self._anthropic.APIConnectionError as exc:
+            # Includes APITimeoutError; the SDK has already retried.
             self._record_exception(exc, "connection_error")
-            return None
+            raise BackendUnavailable(f"Anthropic API unreachable: {exc}") from exc
         except self._anthropic.AnthropicError as exc:
             self._record_exception(exc, "anthropic_error")
             return None
@@ -149,6 +152,9 @@ class AnthropicClient:
                 if self._value(block, "type") == "tool_use" and self._value(block, "name") == "structured_output":
                     return json.dumps(self._value(block, "input"), ensure_ascii=False)
             return None
+        except self._anthropic.APIConnectionError as exc:
+            self._record_exception(exc, "connection_error")
+            raise BackendUnavailable(f"Anthropic API unreachable: {exc}") from exc
         except Exception as exc:
             self._record_exception(exc, "structured_error")
             return None

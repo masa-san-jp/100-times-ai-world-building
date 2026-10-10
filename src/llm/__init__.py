@@ -3,8 +3,15 @@
 from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 from pathlib import Path
 
-from .anthropic_client import AnthropicClient
-from .fake import DeterministicFakeBackend, FakeLLMBackend
+
+
+class BackendUnavailable(RuntimeError):
+    """The LLM backend stopped responding; retrying the same call is pointless."""
+
+
+# Defined before the concrete backends are imported so they can raise it.
+from .anthropic_client import AnthropicClient  # noqa: E402
+from .fake import DeterministicFakeBackend, FakeLLMBackend  # noqa: E402
 
 
 @runtime_checkable
@@ -48,6 +55,7 @@ class LLMBackend(Protocol):
 
 
 __all__ = [
+    "BackendUnavailable",
     "LLMBackend",
     "AnthropicClient",
     "FakeLLMBackend",
