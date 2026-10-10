@@ -71,8 +71,9 @@ def value_in_text(value, text):
 
 
 class EntityBuilder:
-    def __init__(self, backend, cfg=None, prompts=None, rules=None):
+    def __init__(self, backend, cfg=None, prompts=None, rules=None, judge_backend=None):
         self.backend = backend
+        self.judge_backend = judge_backend if judge_backend is not None else backend
         self.cfg = cfg or {}
         build = self.cfg.get("build", {})
         self.max_step_attempts = build.get("max_step_attempts", 4)
@@ -141,7 +142,8 @@ class EntityBuilder:
 
         def generate(step, slot, correction=""):
             nonlocal calls
-            result = generate_structured(self.backend, prompt(step, slot, correction),
+            result = generate_structured(self.judge_backend if step == "review" else self.backend,
+                prompt(step, slot, correction),
                 step_schema(step, **schema_args,
                             kind=plan[slot] if step == "fact_element" else None, contract=contract), task=step,
                 system_prompt=self.prompts["common"]["system"], max_attempts=self.structured_attempts,
@@ -255,7 +257,7 @@ class EntityBuilder:
 
         def term_checks(term):
             nonlocal calls
-            result = real_world_check(self.backend, [term], language=language,
+            result = real_world_check(self.judge_backend, [term], language=language,
                 max_attempts=self.structured_attempts, max_conversions=self.structured_conversions)
             calls += result.attempts + result.conversions
             entry = self.metrics["steps"].setdefault("real_world_check",

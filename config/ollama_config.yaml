@@ -56,6 +56,10 @@ generation:
 # Engine settings
 # ----------------------------------------
 engine:
+  # Model for the judging tasks (real_world_check, review), on the same
+  # backend type as generation (override with --judge-model). Empty = the
+  # generation model.
+  judge_model: ""
   structured:
     max_attempts: 3
     max_conversions: 2

@@ -73,6 +73,7 @@ def make_pipeline(args, run_id=None, output_dir=None, backend=None) -> Pipeline:
         "seed": args.seed,
         "output_dir": output_dir if output_dir is not None else args.output_dir,
         "vision_model": args.vision_model,
+        "judge_model": getattr(args, "judge_model", None),
         "budget": budget_from_args(args),
     }
     chosen = backend if backend is not None else getattr(args, "backend", None)
@@ -171,6 +172,7 @@ def run_batch_generate(args, backend=None):
         "model": args.model,
         "output_dir": args.output_dir,
         "vision_model": args.vision_model,
+        "judge_model": getattr(args, "judge_model", None),
     }
     chosen = backend if backend is not None else getattr(args, "backend", None)
     if chosen is not None:
@@ -287,6 +289,11 @@ def parse_args(argv=None):
     parser.add_argument(
         "--model",
         help="Generation model (default: model.name / anthropic.model from the config)",
+    )
+    parser.add_argument(
+        "--judge-model",
+        help="Model for the judging tasks (default: engine.judge_model; "
+        "empty = the generation model)",
     )
     parser.add_argument(
         "--vision-model",

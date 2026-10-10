@@ -478,6 +478,11 @@ def _report(ctx: _Ctx, limit: int) -> str:
     out = [f"# {L('report_title')}", "",
            f"[{L('readme_title')}]({BIBLE_DIR}/README.md)", "",
            f"## {L('run_summary')}", ""]
+    models = run.get("models") or {}
+    if models.get("generation"):
+        out.append(f"- {L('generation_model')}: {models['generation']}")
+    if models.get("judge"):
+        out.append(f"- {L('judge_model')}: {models['judge']}")
     stop = run.get("stop_reason")
     out.append(f"- {L('stop_reason')}: "
                + (ctx.sub("stop_reasons", stop) if stop else L("none")))
@@ -664,8 +669,10 @@ def render_world_package(
             "iterations": stored.get("iteration", 0),
             "counters": stored.get("counters") or {},
             "structured": manifest.get("structured", {}),
-            "build": manifest.get("build", {})}
-    run = {"build": run_summary.get("build", {}), "structured": run_summary.get("structured", {}), "stop_reason": run_summary.get("stop_reason"),
+            "build": manifest.get("build", {}),
+            "models": {"generation": manifest.get("model"),
+                       "judge": manifest.get("judge_model")}}
+    run = {"models": dict(run_summary.get("models") or {}), "build": run_summary.get("build", {}), "structured": run_summary.get("structured", {}), "stop_reason": run_summary.get("stop_reason"),
            "iterations": int(run_summary.get("iterations") or 0),
            "counters": {k: int(v) for k, v in sorted(
                (run_summary.get("counters") or {}).items())}}
