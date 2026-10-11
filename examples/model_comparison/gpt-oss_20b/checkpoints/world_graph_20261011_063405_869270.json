@@ -1,0 +1,985 @@
+{
+  "contract_stage": {
+    "attempts": 16,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [],
+    "metrics": {
+      "steps": {
+        "calendar_marker": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "calendar_name": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 2,
+          "failures": 0,
+          "reasons": {}
+        },
+        "calendar_origin": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "capability": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "institution": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "society_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "technology_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "unit": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        }
+      }
+    },
+    "status": "success",
+    "steps": [
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": null,
+        "step": "calendar_name",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "calendar_origin",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "technology_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "society_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      }
+    ]
+  },
+  "entities": [
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [],
+            "reason": "地下導水路の水引きが乾燥盆地で必須であり、管理権争いが長年続いていると記載されているため",
+            "statement_ids": [
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "塩の質量",
+          "text": "塩水盆地の年平均塩の質量は5000 shgであり、塩暦の「塩路」「乾井」「水源」マーカーの下で水源監査委・塩水調整会・水源審査委員会が管理している。",
+          "unit": "shg",
+          "value": 5000
+        },
+        {
+          "kind": "proper_noun",
+          "name": "砂塩盆地",
+          "provenance": {
+            "derived_from": [],
+            "reason": "地下導水路の水引きが乾燥盆地で必須であり、管理権争いが長年続いていると記載されているため",
+            "statement_ids": [
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "砂塩盆地は内陸盆地で、塩水盆地の年平均塩の質量は5000 shgで、塩暦の塩路・乾井・水源マーカー下で水源監査委・塩水調整会・水源審査委員会が管理している。"
+        }
+      ],
+      "id": "e1",
+      "name": "塩水盆地",
+      "origin_operator": "premise",
+      "parent": null,
+      "provenance": {
+        "derived_from": [],
+        "reason": "地下導水路の水引きが乾燥盆地で必須であり、管理権争いが長年続いていると記載されているため",
+        "statement_ids": [
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "塩水盆地は内陸の乾燥盆地で、塩の採掘が主要経済活動である。降雨はほとんどなく、水は古代地下導水路から引かれる。導水路管理権を巡り採掘組合と水番家系が長期にわたり対立している。水源監査委・塩水調整会・水源審査委員会が水源と塩採掘量を調整・監査する。塩はshgで測定される。",
+      "type": "concept"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の情報を基に地域レベルの詳細を定義",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "乾塩渓谷の塩採掘量",
+          "text": "乾塩渓谷の塩採掘量は1200 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会が管理している。",
+          "unit": "shg",
+          "value": 1200
+        },
+        {
+          "kind": "proper_noun",
+          "name": "蒸気谷",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の情報を基に地域レベルの詳細を定義",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "蒸気谷は乾塩渓谷の別名で、塩暦の塩路・乾井・水源マーカーに沿い、塩水調整会が年次報告を監査する"
+        }
+      ],
+      "id": "e2",
+      "name": "乾塩渓谷",
+      "origin_operator": "zoom",
+      "parent": "e1",
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "e1の情報を基に地域レベルの詳細を定義",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "located_in"
+        },
+        {
+          "target": "e1",
+          "type": "member_of"
+        }
+      ],
+      "scale": "region",
+      "scores": {
+        "reward": 0.96875
+      },
+      "summary": "乾塩渓谷は塩水盆地の一部で、内陸盆地の乾燥環境に位置し、主に塩採掘が行われる。雨はほとんど降らず、水は古代地下導水路から引かれる。水源監査委・塩水調整会・水源審査委員会が水源と塩採掘量を調整・監査し、塩はshgで測定される。塩暦の塩路・乾井・水源マーカーに沿って管理が行われる。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "乾塩渓谷内の採掘活動と水源管理により集落が形成",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "年間塩採掘量",
+          "text": "塩雲集落の年間塩採掘量は100 shgです。",
+          "unit": "shg",
+          "value": 100
+        },
+        {
+          "kind": "proper_noun",
+          "name": "塩雲宿",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "乾塩渓谷内の採掘活動と水源管理により集落が形成",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩雲宿は塩雲集落内の宿泊施設で、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会の監査下で年間100 shgの塩を採掘する。"
+        },
+        {
+          "kind": "object",
+          "object": "塩儲蔵庫",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "乾塩渓谷内の採掘活動と水源管理により集落が形成",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩雲集落の塩儲蔵庫は塩暦の塩路・乾井・水源マーカーに沿い、塩水調整会の監査下でshg単位の塩を保管している。"
+        }
+      ],
+      "id": "e3",
+      "name": "塩雲集落",
+      "origin_operator": "zoom",
+      "parent": "e2",
+      "provenance": {
+        "derived_from": [
+          "e2"
+        ],
+        "reason": "乾塩渓谷内の採掘活動と水源管理により集落が形成",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e2",
+          "type": "located_in"
+        },
+        {
+          "target": "e1",
+          "type": "member_of"
+        }
+      ],
+      "scale": "settlement",
+      "scores": {
+        "reward": 0.9605263157894737
+      },
+      "summary": "塩雲集落は乾塩渓谷内の塩採掘集落で、年間約100 shgの塩を採掘し、乾井から水を引く。水源監査委・塩水調整会・水源審査委員会の監査下で、塩路・乾井・水源マーカーに沿った管理が行われ、塩暦の年次報告に従う。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "law_norms",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "塩採掘と水管理の単位化が必要",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "塩雲域",
+          "text": "塩雲域の年間塩採掘量は25 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会の監査下で管理されている。",
+          "unit": "shg",
+          "value": 25
+        },
+        {
+          "kind": "proper_noun",
+          "name": "塩雲区",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "塩採掘と水管理の単位化が必要",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "name: \"塩雲区\" は塩雲域内の行政区画で、年間25 shgの塩を管理し、塩暦の塩路・乾井・水源マーカーに沿い水源監査委・塩水調整会・水源審査委員会の監査下で運営される。"
+        },
+        {
+          "kind": "object",
+          "object": "塩雲倉庫",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "塩採掘と水管理の単位化が必要",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩雲倉庫は塩暦の塩路・乾井・水源マーカーに沿い、年間25 shgの塩を保管し、水源監査委・塩水調整会・水源審査委員会の監査下で管理される。"
+        }
+      ],
+      "id": "e4",
+      "name": "塩雲域",
+      "origin_operator": "zoom",
+      "parent": "e3",
+      "provenance": {
+        "derived_from": [
+          "e3"
+        ],
+        "reason": "塩採掘と水管理の単位化が必要",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e3",
+          "type": "located_in"
+        },
+        {
+          "target": "e1",
+          "type": "part_of"
+        },
+        {
+          "target": "e2",
+          "type": "part_of"
+        }
+      ],
+      "scale": "district",
+      "scores": {
+        "reward": 0.9868421052631579
+      },
+      "summary": "塩雲域は塩雲集落内の行政区画で、塩暦の塩路・乾井・水源マーカーに沿い、年間約25 shgの塩を貯蔵・輸送する。水源監査委・塩水調整会・水源審査委員会の監査下で、乾井から水を引き、塩採掘に必要な水量を調整する。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "law_norms",
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e2",
+              "e3",
+              "e4"
+            ],
+            "reason": "塩水盆地とその構成要素から派生し、塩採掘と水管理の全体像を表す",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "年間塩採掘量",
+          "text": "水源調整集団は、塩暦の塩路・乾井・水源マーカーに沿って、水源監査委・塩水調整会・水源審査委員会と連携し、年間塩採掘量5000 shgを調整する。",
+          "unit": "shg",
+          "value": 5000
+        },
+        {
+          "kind": "proper_noun",
+          "name": "水源管理組合",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e2",
+              "e3",
+              "e4"
+            ],
+            "reason": "塩水盆地とその構成要素から派生し、塩採掘と水管理の全体像を表す",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "水源管理組合は、塩暦の塩路・乾井・水源マーカーに沿って、塩採掘量をshg単位で調整し、年5000 shgを管理する。水源監査委・塩水調整会・水源審査委員会と連携する。"
+        }
+      ],
+      "id": "e5",
+      "name": "水源調整集団",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1",
+          "e2",
+          "e3",
+          "e4"
+        ],
+        "reason": "塩水盆地とその構成要素から派生し、塩採掘と水管理の全体像を表す",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e2",
+          "type": "affects"
+        },
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        },
+        {
+          "target": "e3",
+          "type": "uses"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.96875
+      },
+      "summary": "水源調整集団は、塩暦の「塩路」「乾井」「水源」マーカーに沿って、古代地下導水路から引かれる水を管理し、塩採掘量をshg単位で調整する。水源監査委・塩水調整会・水源審査委員会と連携し、採掘組合と水番家系の権利を調整する。",
+      "type": "group"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "occupations_labor",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3",
+              "e1",
+              "e2"
+            ],
+            "reason": "e6はe4内のsiteであり、e4はe3に属し、e3はe1とe2に含まれるため、これらの階層的関係により導出される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "塩密度",
+          "text": "塩雲小区の塩密度は1.2 nshで、塩暦の塩路・乾井・水源マーカーに沿い水源監査委・塩水調整会・水源審査委員会の監査下で管理される。",
+          "unit": "nsh",
+          "value": 1.2
+        },
+        {
+          "kind": "proper_noun",
+          "name": "小塩雲",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3",
+              "e1",
+              "e2"
+            ],
+            "reason": "e6はe4内のsiteであり、e4はe3に属し、e3はe1とe2に含まれるため、これらの階層的関係により導出される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "name: \"小塩雲\"は塩雲小区内のsiteで、塩密度1.2 nshを持ち、塩暦の塩路・乾井・水源マーカーに沿い水源監査委・塩水調整会・水源審査委員会の監査下で管理される。"
+        },
+        {
+          "kind": "object",
+          "object": "塩貯蔵タンク",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3",
+              "e1",
+              "e2"
+            ],
+            "reason": "e6はe4内のsiteであり、e4はe3に属し、e3はe1とe2に含まれるため、これらの階層的関係により導出される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩雲小区の塩貯蔵タンクは塩暦の塩路・乾井・水源マーカーに沿い、5 shgの塩を保管し、水源監査委・塩水調整会・水源審査委員会の監査下で管理される。"
+        },
+        {
+          "action": "水源監査委が塩貯蔵タンクの塩密度を1.2 nshで測定する",
+          "actor": "水源監査委",
+          "kind": "procedure",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3",
+              "e1",
+              "e2"
+            ],
+            "reason": "e6はe4内のsiteであり、e4はe3に属し、e3はe1とe2に含まれるため、これらの階層的関係により導出される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩暦の「塩路」「乾井」「水源」マーカーに沿い、水源監査委が塩貯蔵タンクの塩密度を1.2 nshで測定する。"
+        }
+      ],
+      "id": "e6",
+      "name": "塩雲小区",
+      "origin_operator": "zoom",
+      "parent": "e4",
+      "provenance": {
+        "derived_from": [
+          "e4",
+          "e3",
+          "e1",
+          "e2"
+        ],
+        "reason": "e6はe4内のsiteであり、e4はe3に属し、e3はe1とe2に含まれるため、これらの階層的関係により導出される。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e3",
+          "type": "located_in"
+        },
+        {
+          "target": "e1",
+          "type": "part_of"
+        },
+        {
+          "target": "e4",
+          "type": "part_of"
+        }
+      ],
+      "scale": "site",
+      "scores": {
+        "reward": 0.9772727272727273
+      },
+      "summary": "塩雲小区は塩雲域内の site で、年間約25 shg の塩を貯蔵・輸送する拠点です。水は「乾井」から「水源」へ導水路を経て引き、塩採掘に必要な水量を「水源監査委」「塩水調整会」「水源審査委員会」の監査下で調整します。管理は「塩暦」の「塩路」「乾井」「水源」マーカーに沿い、採掘組合と水番家系の合意に基づき行われます。",
+      "type": "place"
+    },
+    {
+      "id": "e7",
+      "type": "object",
+      "name": "塩雲乾塊",
+      "axes": [
+        "kinship_community",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "scale": "detail",
+      "parent": "e6",
+      "relations": [
+        {
+          "type": "located_in",
+          "target": "e6"
+        },
+        {
+          "type": "part_of",
+          "target": "e6"
+        }
+      ],
+      "summary": "塩雲小区倉庫は塩雲小区内に位置し、塩路・乾井・水源の3つに沿って配置される。容量は5 shg、塩密度は1.2 nshで管理され、水源監査委、塩水調整会、水源審査委員会の監査下で運営される。塩暦の年次報告に基づき、採掘量と水使用量を調整する。",
+      "facts": [
+        {
+          "kind": "number",
+          "text": "塩雲小区倉庫の塩貯蔵量の測定誤差は 0.1 shg で、塩暦の塩路・乾井・水源マーカー下で水源監査委・塩水調整会・水源審査委員会が監査する。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [
+              "e6",
+              "e4",
+              "e1",
+              "e3"
+            ],
+            "reason": "内陸盆地の乾燥と塩採掘、導水路管理権に関する事実が反映されています。"
+          },
+          "subject": "塩雲小区倉庫の塩貯蔵量の測定誤差",
+          "value": 0.1,
+          "unit": "shg"
+        },
+        {
+          "kind": "proper_noun",
+          "text": "晶石は塩雲乾塊の一部で、容量5 shg、塩密度1.2 nshを持ち、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会の監査下で管理される。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [
+              "e6",
+              "e4",
+              "e1",
+              "e3"
+            ],
+            "reason": "内陸盆地の乾燥と塩採掘、導水路管理権に関する事実が反映されています。"
+          },
+          "name": "晶石"
+        },
+        {
+          "kind": "object",
+          "text": "塩雲小区倉庫の塩塊は5 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会の監査下で管理される。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [
+              "e6",
+              "e4",
+              "e1",
+              "e3"
+            ],
+            "reason": "内陸盆地の乾燥と塩採掘、導水路管理権に関する事実が反映されています。"
+          },
+          "object": "塩塊"
+        },
+        {
+          "kind": "procedure",
+          "text": "水源監査委が塩暦の「塩路」「乾井」「水源」マーカーに沿い、塩雲小区倉庫の容量を測定する（5 shg）(水源監査委、塩水調整会、水源審査委員会)",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [
+              "e6",
+              "e4",
+              "e1",
+              "e3"
+            ],
+            "reason": "内陸盆地の乾燥と塩採掘、導水路管理権に関する事実が反映されています。"
+          },
+          "actor": "水源監査委",
+          "action": "容量を測定する"
+        },
+        {
+          "kind": "period",
+          "text": "塩雲小区倉庫の容量はvalue: 5 shgで、marker: \"塩路\"に沿って配置されている。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [
+              "e6",
+              "e4",
+              "e1",
+              "e3"
+            ],
+            "reason": "内陸盆地の乾燥と塩採掘、導水路管理権に関する事実が反映されています。"
+          },
+          "value": 5,
+          "marker": "塩路"
+        }
+      ],
+      "provenance": {
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "derived_from": [
+          "e6",
+          "e4",
+          "e1",
+          "e3"
+        ],
+        "reason": "内陸盆地の乾燥と塩採掘、導水路管理権に関する事実が反映されています。"
+      },
+      "scores": {
+        "reward": 0.89
+      },
+      "origin_operator": "zoom"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "塩路",
+          "乾井",
+          "水源"
+        ],
+        "name": "塩暦",
+        "origin": "塩暦は、内陸盆地で初期塩採掘開始と古代導水路開通を記念し、採掘組合と水番家系の初期協議を基に塩と水の共同管理の基盤として定められた。"
+      },
+      "society": {
+        "description": "採掘組合と水番家系(血縁)が導水路管理権を協議し、共同決定で水使用と塩採掘量を制限。各組織は自らの役割を守り、法と規範に従う。",
+        "institutions": [
+          {
+            "description": "水源管理と塩採掘量の合意を仲介し、使用権を監査する",
+            "name": "水源監査委"
+          },
+          {
+            "description": "塩採掘と水使用を調整し年次報告を監査する",
+            "name": "塩水調整会"
+          },
+          {
+            "description": "水源監査委補佐役で季節ごとに水源と塩採掘量を調査する",
+            "name": "水源審査委員会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "水源管理",
+          "乾井管理",
+          "塩採掘"
+        ],
+        "description": "古い地下導水路を利用し、乾燥盆地で水を引く技術。水量は限定的で、塩採掘に不可欠だが、管理権争いが続く",
+        "units": [
+          {
+            "quantity": "塩の質量を測る単位",
+            "symbol": "shg"
+          },
+          {
+            "quantity": "塩の質量を測定する単位",
+            "symbol": "shp"
+          },
+          {
+            "quantity": "塩の密度を測る単位",
+            "symbol": "nsh"
+          }
+        ]
+      }
+    }
+  }
+}

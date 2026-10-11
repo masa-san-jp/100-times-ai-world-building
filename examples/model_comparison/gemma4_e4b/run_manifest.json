@@ -3,18 +3,19 @@
   "layout_version": 3,
   "artifact_type": "world_output",
   "engine": "world",
-  "run_id": "h66_gemma4_e4b",
+  "run_id": "v73b_gemma4_e4b",
   "backend": "ollama",
   "model": "gemma4:e4b",
   "models": {
     "generation": "gemma4:e4b",
     "vision": "llava:latest"
   },
+  "judge_model": "qwen3.8:27b",
   "run_seed": 1,
   "seed_source": "argument",
   "config": {
-    "path": "<repo>/config/ollama_config.yaml",
-    "sha256": "3b8715cbf9dbc0fc38aebcc3d617e266f1d14edc6265b10db9d8f543bbf48abc"
+    "path": "<scratch>/ollama_config_ctx16k.yaml",
+    "sha256": "7b6f61da2ec5ef54f9b819ef3e51b2eaa8b484281d00d51fd618cd4147fdb261"
   },
   "engine_config": {
     "explore": {
@@ -88,17 +89,13 @@
         "max_consecutive_failures": 5
       },
       "coverage": {
-        "enabled": true,
-        "min_axis_entities": 1,
-        "depth": "detail",
-        "min_entities_per_scale": 2,
-        "target_mean_reward": 0.6
+        "enabled": true
       }
     },
     "operator": {},
     "generation": {
       "max_tokens": 8192,
-      "num_ctx": 32768,
+      "num_ctx": 16384,
       "think": false,
       "temperature": null
     },
@@ -109,31 +106,37 @@
   },
   "files": {
     "config/prompts/input_brief.yaml": "25524633ff740891ca78ff279157a56b3eaed44548563a947308cb9bfc395b46",
-    "config/prompts/world/contract.yaml": "fa0591a488e76e52d60c45072ad0a5420b06816eadaacd1cd3acc7ba7b0b2161",
+    "config/prompts/world/contract_items.yaml": "7f4f1c8f0b71387e80fe6db20d70fb0825c2bad42c29b00885b773115b0d2fac",
     "config/prompts/world/operators.yaml": "9880c90a1ecf5a7cb2022f6db6ad941845f1e87ae2d258b7cec09322896cea80",
-    "config/prompts/world/steps.yaml": "024c7f0c23d8a5c2ddfb389ac575ae28f7c768dacbcb34fc80d79efad7b8f44e",
+    "config/prompts/world/real_world_check.yaml": "86bd5dd97693c29d5cbe12f2a9abc5a3d892f1b0ca7bc2dabd0d59b09bc62fb3",
+    "config/prompts/world/restatement_check.yaml": "3d21bdab14d0ea91a3336d0fa0334ca532256a62763e2cc9d40ed07609486657",
+    "config/prompts/world/steps.yaml": "dea899b8d1eb0953ec423f4656a3e17e8847d42704197470bd1871a1e8d09c8e",
     "config/prompts/world_axes.yaml": "e6a3443148d5f6ada97daa06aaec0e30f189a7a3e1ddc14657bfe4ad39211e55",
     "config/schemas/image_description.json": "e7dfda4d5d92a41cfd3d3ea2059ef3267602109fb5fa864e44dcad3759dc0791",
     "config/schemas/input_brief.json": "6740c1dbf9f064a5d7a0895f71793bc8ea78c117b51c3b8c30b6cad28af708b7",
     "config/schemas/steps/axes.json": "3ec6eb61bf6c2741d1ee537d1d8868c46a91b625d7b38bfb6f9537ee7c655ca5",
-    "config/schemas/steps/fact.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
-    "config/schemas/steps/fact_check.json": "b3c18eb241c77cbcbd4d571f755231f3ed24fbb70b1fbf2b125f5360d2fdc546",
+    "config/schemas/steps/fact_element.json": "84d2b97612ab693e84a4bf8b9870cbf30602fd669f90b7c7dee0fd88d1769bd6",
+    "config/schemas/steps/fact_text.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
     "config/schemas/steps/grounding.json": "8729109bd691a2db909ea05fe0481b4be8ec939d6b6bb7e2719e8b7a7d48a7eb",
     "config/schemas/steps/name.json": "f10757aa050a745a5bcd8c4d7b3372eefd993b22f06587bd139a2e1c549264d2",
+    "config/schemas/steps/real_world_check.json": "6f71154ce6a5832ce8b35440a949f0bd645a81b84974b1d0c2825ee634949904",
     "config/schemas/steps/relations.json": "11df31f3d19573bf355cfaa27025de75ee1427f4c69ab838472a6f97d29708b7",
-    "config/schemas/steps/review.json": "4c8e7efe1e8fdcb82e19d501866d2a544a40b557d257bdf68d0ce20ce7e1c421",
+    "config/schemas/steps/restatement_check.json": "a08b1c52ac1b200bb484700b95376108f59660cf977a8b3745f49280034978ef",
+    "config/schemas/steps/review.json": "ac2ce3ce0bc5f808a5e2c7a9c252f46226652b19c93ccb56b2f315bdc581c72d",
     "config/schemas/steps/summary.json": "587e86b0b9bb906b32a4551f8df8819bbd3e5e55a88c666ab8377d7f3f7c8df1",
     "config/schemas/steps/type.json": "c32aaaf81bcc4523f392b3685937a902010b07f679b341003ca9c803da042489",
     "config/schemas/world_axes.json": "d3908416634d7ee04f2a3bb0f51a660545bdc7cb1ec1a12cc4188364923030e1",
     "config/schemas/world_contract.json": "35ecbb952de8509e768ded0b2868c8daafe73c6e30e125abaa67541868d9cb37",
-    "config/world/criteria.yaml": "13d806497517a59c649d083136854fb5e2120644f36999107329e7e456b4048a",
+    "config/world/contract.yaml": "050a25b6dd6735d1bf426f5705801dccb2ce01d054a634b924951d878f73564b",
+    "config/world/criteria.yaml": "f875fa72ea8e5ffe6e85715b1114b273e877f30e0141f6a2ac71a52e7d70fbf8",
     "config/world/domains.yaml": "b5650ae80af6b396e40b5ce22a782cc64a4e73e4afe17a2d2b0ddf576a4168eb",
-    "config/world/explore.yaml": "48e7f923938dcacf68e2169035645eb6120518745dcbb048b55757ded43c10ca",
-    "config/world/language_rules.yaml": "786784e1a320bf003476d608f5b3d4b2fdb9802ab02543aa2bb3e51e11fe200f",
+    "config/world/explore.yaml": "26a8e94c34f5748003299c9989ffa54d5bee5cfdebc6121202a6fdd2f7a577e6",
+    "config/world/language_rules.yaml": "c5122a7e8612566ac04cba5b8fd1547688be8057bc57ddf0db5839b931f76391",
     "config/world/languages.yaml": "d13991e024990f241f4c6fe10262a76a243698812ff42e8c3299b1049bcda4f7",
     "config/world/quality.yaml": "d7864814a22eeb9cc2096277d18934a85d3d4377453a6ea3c02cc4f880732e25",
-    "config/world/render_labels.yaml": "d4ca5f36b22dcd177457c261f6b90e0e6c185f9eff9f9565619f8a577fa8519c",
-    "config/world/reward.yaml": "fe92b86483c166a30e26c6ec346a9b634347d8bffd5c9be4d19b89d150625253"
+    "config/world/render_labels.yaml": "2d0776cd3a28d88a911073202b4fce580b9e4b3e63125de36f474f92e06effa9",
+    "config/world/reward.yaml": "fe92b86483c166a30e26c6ec346a9b634347d8bffd5c9be4d19b89d150625253",
+    "config/world/world_criteria.yaml": "013882e8aafa171e2a9e884d53618185e8236aa41f4910e453a625184f308537"
   },
   "paths": {
     "input": "input",
@@ -141,17 +144,17 @@
     "checkpoints": "checkpoints",
     "final": "final"
   },
-  "created_at": "2026-10-07T13:38:25+00:00",
+  "created_at": "2026-10-10T09:28:49+00:00",
   "status": "completed",
-  "updated_at": "2026-10-07T15:04:34+00:00",
+  "updated_at": "2026-10-10T12:13:43+00:00",
   "budget": {
     "requested": {
       "max_iterations": 12,
-      "max_wall_seconds": 7200.0
+      "max_wall_seconds": 18000.0
     },
     "effective": {
       "max_iterations": 12,
-      "max_wall_seconds": 7200.0,
+      "max_wall_seconds": 18000.0,
       "max_generation_calls": null
     }
   },
@@ -161,37 +164,311 @@
     "characters": 81,
     "images": []
   },
-  "started_at": "2026-10-07T13:38:25+00:00",
-  "pid": 53920,
+  "started_at": "2026-10-10T09:28:49+00:00",
+  "pid": 19772,
   "world_contract": {
     "status": "success",
-    "attempts": 2,
+    "attempts": 19,
     "checks_enabled": true,
     "disabled_checks": [],
     "errors": [
       {
+        "item": "calendar_name",
+        "slot": null,
         "attempt": 1,
         "errors": [
           "the JSON object must be str, bytes or bytearray, not NoneType"
         ]
       },
       {
+        "item": "calendar_marker",
+        "slot": 2,
+        "attempt": 1,
+        "errors": [
+          "duplicate: 水番潮 already appears in calendar.markers"
+        ]
+      },
+      {
+        "item": "calendar_marker",
+        "slot": 2,
         "attempt": 2,
-        "errors": []
+        "errors": [
+          "duplicate: 導水干期 already appears in calendar.markers"
+        ]
       }
-    ]
+    ],
+    "steps": [
+      {
+        "step": "calendar_name",
+        "slot": null,
+        "attempts": 2,
+        "calls": 3,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$",
+              "expected": "valid JSON object",
+              "actual": null,
+              "message": "the JSON object must be str, bytes or bytearray, not NoneType"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "calendar_origin",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 2,
+        "attempts": 3,
+        "calls": 6,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "水番潮",
+              "message": "duplicate: 水番潮 already appears in calendar.markers"
+            }
+          ],
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "導水干期",
+              "message": "duplicate: 導水干期 already appears in calendar.markers"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "technology_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "society_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_name": {
+          "calls": 3,
+          "attempts": {
+            "2": 1
+          },
+          "reasons": {
+            "the JSON object must be str, bytes or bytearray, not NoneType": 1
+          },
+          "failures": 0
+        },
+        "calendar_origin": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "calendar_marker": {
+          "calls": 10,
+          "attempts": {
+            "1": 2,
+            "3": 1
+          },
+          "reasons": {
+            "duplicate: 水番潮 already appears in calendar.markers": 1,
+            "duplicate: 導水干期 already appears in calendar.markers": 1
+          },
+          "failures": 0
+        },
+        "technology_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "capability": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "unit": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "society_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "institution": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        }
+      }
+    }
   },
   "phases": {
     "world_explore": {
       "status": "completed",
-      "started_at": "2026-10-07T13:39:21+00:00",
-      "finished_at": "2026-10-07T15:04:34+00:00"
+      "started_at": "2026-10-10T09:52:57+00:00",
+      "finished_at": "2026-10-10T12:13:42+00:00"
     }
   },
   "build": {
     "steps": {
       "type": {
-        "calls": 12,
+        "calls": 13,
         "attempts": {
           "1": 12
         },
@@ -199,7 +476,7 @@
         "failures": 0
       },
       "grounding": {
-        "calls": 15,
+        "calls": 12,
         "attempts": {
           "1": 12
         },
@@ -214,6 +491,14 @@
         "reasons": {},
         "failures": 0
       },
+      "real_world_check": {
+        "calls": 20,
+        "attempts": {
+          "1": 20
+        },
+        "reasons": {},
+        "failures": 0
+      },
       "axes": {
         "calls": 12,
         "attempts": {
@@ -223,86 +508,187 @@
         "failures": 0
       },
       "summary": {
-        "calls": 18,
+        "calls": 13,
         "attempts": {
-          "1": 8,
-          "2": 3,
-          "4": 1
-        },
-        "reasons": {
-          "informative": {
-            "character 3-gram overlap must be <= 0.6": 3
-          },
-          "objective": {
-            "quoted speech in the summary; move quotations into facts": 3
-          },
-          "no_story": {
-            "quoted speech in the summary; move quotations into facts": 3
-          }
-        },
-        "failures": 0
-      },
-      "fact": {
-        "calls": 60,
-        "attempts": {
-          "1": 8,
-          "2": 7,
-          "3": 2,
-          "4": 8
-        },
-        "reasons": {
-          "informative": {
-            "character 3-gram overlap must be <= 0.6": 42
-          },
-          "specific": {
-            "number requires its value and non-time measurement unit in the fact text": 1
-          }
-        },
-        "failures": 7
-      },
-      "fact_check": {
-        "calls": 30,
-        "attempts": {
-          "1": 30
+          "1": 11,
+          "2": 1
         },
         "reasons": {},
         "failures": 0
       },
+      "fact_element": {
+        "calls": 42,
+        "attempts": {
+          "1": 10,
+          "3": 2,
+          "2": 11,
+          "4": 1
+        },
+        "reasons": {
+          "new_information": {
+            "(value, unit) pair (1, 塩石) with a near subject ('採掘された塩の純度') already appears in an existing fact": 2,
+            "(value, unit) pair (1, 水滴) with a near subject ('導水路から汲み上げられた水の体積') already appears in an existing fact": 1,
+            "(value, unit) pair (1, 塩水尺) with a near subject ('導水路の水位差') already appears in an existing fact": 1
+          }
+        },
+        "failures": 0
+      },
+      "fact_text": {
+        "calls": 44,
+        "attempts": {
+          "1": 10,
+          "3": 6,
+          "2": 8
+        },
+        "reasons": {
+          "new_information": {
+            "fact text restates an existing fact: '採掘された塩の純度の測定値は1塩石で、これは塩盆地における塩の採掘活動の基礎的な指標である。'": 1,
+            "fact text restates an existing fact: '塩月暦に基づく「水番潮」の基準点では、採掘された塩の純度は最低1塩石以上である必要がある。'": 2,
+            "fact text duplicates an existing fact: '塩月暦に基づく「水番潮」の基準点では、採掘された塩の純度は最低1塩石以上である必要がある。'": 1,
+            "fact text restates an existing fact: '塩の汲み場において、導水路の水位差は「塩水尺」を用いて計測され、この計測は「塩月暦」の「水番潮」の基準点と関連付けられている。'": 1,
+            "fact text restates an existing fact: '塩月暦の「水番潮」の基準に基づき、導水路の水位差は「塩水尺」を用いて1の測定値で計測される。'": 7,
+            "fact text duplicates an existing fact: '塩月暦の「水番潮」の基準に基づき、導水路の水位差は「塩水尺」を用いて1の測定値で計測される。'": 1,
+            "fact text restates an existing fact: '「石塩採掘坑口」には、導水路管理評議会が監視する「水門石」が設置されており、この石は塩月暦の「水番潮」の基準に基づき、導水路の水位差を「塩水尺」を用いて計測する起点となる。'": 1,
+            "fact text duplicates an existing fact: '玄武の水路口には、「水番潮の監視弁」が設置され、その開閉は「水番血統評議会」の承認に基づき、導水路管理評議会が監視する「塩水尺」による計測と連動している。'": 1,
+            "fact text restates an existing fact: '北壁水門石周辺の導水路の水位差は、塩月暦の「水番潮」の基準に基づき、「塩水尺」を用いて計測され、その管理は導水路管理評議会が行う。'": 3,
+            "fact text restates an existing fact: '「水番血統評議会」の規範に基づき、導水路管理評議会は、「塩月暦」の「水番潮」の基準点において、導水路の水位の差の計測を「塩水尺」を用いて1の単位で行う。'": 2,
+            "fact text duplicates an existing fact: '「水番血統評議会」の規範に基づき、導水路管理評議会は、「塩月暦」の「水番潮」の基準点において、導水路の水位の差の計測を「塩水尺」を用いて1の単位で行う。'": 1
+          },
+          "no_outside_premises": {
+            "units and calendar markers must belong to the contract": 1
+          },
+          "detail": {
+            "number requires its value and non-time measurement unit in the fact text": 2,
+            "fact text must contain actor and action": 3
+          }
+        },
+        "failures": 6
+      },
+      "restatement_check": {
+        "calls": 39,
+        "attempts": {
+          "1": 39
+        },
+        "reasons": {
+          "new_information": {
+            "fact text restates an existing fact: '採掘された塩の純度の測定値は1塩石で、これは塩盆地における塩の採掘活動の基礎的な指標である。'": 1,
+            "fact text restates an existing fact: '塩月暦に基づく「水番潮」の基準点では、採掘された塩の純度は最低1塩石以上である必要がある。'": 2,
+            "fact text restates an existing fact: '塩の汲み場において、導水路の水位差は「塩水尺」を用いて計測され、この計測は「塩月暦」の「水番潮」の基準点と関連付けられている。'": 1,
+            "fact text restates an existing fact: '塩月暦の「水番潮」の基準に基づき、導水路の水位差は「塩水尺」を用いて1の測定値で計測される。'": 7,
+            "fact text restates an existing fact: '「石塩採掘坑口」には、導水路管理評議会が監視する「水門石」が設置されており、この石は塩月暦の「水番潮」の基準に基づき、導水路の水位差を「塩水尺」を用いて計測する起点となる。'": 1,
+            "fact text restates an existing fact: '北壁水門石周辺の導水路の水位差は、塩月暦の「水番潮」の基準に基づき、「塩水尺」を用いて計測され、その管理は導水路管理評議会が行う。'": 3,
+            "fact text restates an existing fact: '「水番血統評議会」の規範に基づき、導水路管理評議会は、「塩月暦」の「水番潮」の基準点において、導水路の水位の差の計測を「塩水尺」を用いて1の単位で行う。'": 2
+          }
+        },
+        "failures": 17
+      },
       "review": {
-        "calls": 5,
+        "calls": 9,
+        "attempts": {
+          "1": 3,
+          "2": 3
+        },
+        "reasons": {
+          "consistent": {
+            "「塩月暦における『水番潮』の基準値は、最低でも1塩石以上の純度が求められる」という記述は、時間の指標（水番潮）と物質的属性（純度）を混同しており、入力されたブリーフステートメント（s1, s2, s3）や世界契約の定義（水番潮は水量変動と結びついた暦の指標、塩石は純度の単位）と因果関係・論理的整合性において矛盾している。": 1,
+            "facts[1]は「乾水淵の取水地点」を参照していますが、この名称は入力されたe2（塩涸谷）や世界契約（world_contract）の定義された実体・制度・単位の中に存在しません。e2のfactsには「水門石」が記載されていますが、「乾水淵」は未定義の名前であり、既存の事実体系と整合性がありません。": 1,
+            "「塩石」の純度評価と「塩水尺」を用いた水位差の計測値（1）を直接関連付けているが、提供された契約（world_contract）および入力文脈では、「塩石」は純度の単位、「塩水尺」は水位差の計測具/単位として別個に定義されており、両者の数値的等価性や直接的な因果関係は定義されていない。; 対立構造を「e6」と参照しているが、e6はFILLS ALREADY DECIDEDに示される出力実体（本レビューの対象）そのものであり、原因となる入力実体e4やe3を指すべきである。自己参照または循環的な因果関係の記述として論理的に不整合である。": 1
+          }
+        },
+        "failures": 0
+      },
+      "relations": {
+        "calls": 6,
         "attempts": {
           "1": 5
         },
         "reasons": {},
         "failures": 0
-      },
-      "relations": {
-        "calls": 5,
-        "attempts": {
-          "1": 4
-        },
-        "reasons": {},
-        "failures": 0
       }
     },
-    "accepted": 5,
-    "failed": 7,
+    "accepted": 6,
+    "failed": 6,
     "failures_by_step": {
-      "fact": 7
+      "fact_text": 6
     }
   },
   "world_explore": {
     "iteration": 12,
     "counters": {
-      "generation_calls": 169,
-      "accepted": 5,
-      "rejected": 7,
+      "generation_calls": 222,
+      "accepted": 6,
+      "rejected": 6,
       "no_candidates": 0,
-      "rewrites": 41,
+      "rewrites": 42,
       "errors": 0
     },
     "stop_reason": "max_iterations",
-    "elapsed_seconds": 800.392
+    "world_status": {
+      "criteria": {
+        "faithful": {
+          "value": 1.0,
+          "threshold": 1.0,
+          "met": true
+        },
+        "breadth.axes": {
+          "value": 0.1875,
+          "threshold": 1.0,
+          "met": false
+        },
+        "breadth.perspective": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "depth.relations": {
+          "value": 0.5,
+          "threshold": 0.3,
+          "met": true
+        },
+        "depth.history": {
+          "value": 0,
+          "threshold": 1,
+          "met": false
+        },
+        "scale.world": {
+          "value": 2,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.region": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.settlement": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.district": {
+          "value": 2,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.site": {
+          "value": 0,
+          "threshold": 1,
+          "met": false
+        },
+        "scale.detail": {
+          "value": 0,
+          "threshold": 1,
+          "met": false
+        },
+        "scale.chain": {
+          "value": false,
+          "threshold": true,
+          "met": false
+        }
+      },
+      "met": false
+    },
+    "elapsed_seconds": 8445.291
   },
   "structured": {
     "input_brief": {
@@ -311,10 +697,11 @@
         "1": 1
       },
       "failures": 0,
-      "elapsed": 12.119395500048995,
+      "elapsed": 23.15880033420399,
       "modes": {
         "constrained": 1
       },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -330,10 +717,11 @@
         "1": 1
       },
       "failures": 0,
-      "elapsed": 23.679269208107144,
+      "elapsed": 140.0448190830648,
       "modes": {
         "constrained": 1
       },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -343,17 +731,179 @@
         "schema_failures": 0
       }
     },
-    "world_contract": {
+    "real_world_check": {
+      "calls": 35,
+      "attempts": {
+        "1": 35
+      },
+      "failures": 0,
+      "elapsed": 2319.3255803785287,
+      "modes": {
+        "constrained": 35
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "contract/calendar_name": {
       "calls": 1,
       "attempts": {
         "2": 1
       },
       "failures": 0,
-      "elapsed": 20.18754562502727,
+      "elapsed": 348.2883439171128,
       "modes": {
         "constrained": 1,
         "unconstrained": 1
       },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "contract/calendar_origin": {
+      "calls": 1,
+      "attempts": {
+        "1": 1
+      },
+      "failures": 0,
+      "elapsed": 29.088104832917452,
+      "modes": {
+        "unconstrained": 1
+      },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "contract/calendar_marker": {
+      "calls": 3,
+      "attempts": {
+        "1": 2,
+        "3": 1
+      },
+      "failures": 0,
+      "elapsed": 322.73940391652286,
+      "modes": {
+        "unconstrained": 5
+      },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "contract/technology_description": {
+      "calls": 1,
+      "attempts": {
+        "1": 1
+      },
+      "failures": 0,
+      "elapsed": 12.251177541911602,
+      "modes": {
+        "unconstrained": 1
+      },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "contract/capability": {
+      "calls": 3,
+      "attempts": {
+        "1": 3
+      },
+      "failures": 0,
+      "elapsed": 166.73341216612607,
+      "modes": {
+        "unconstrained": 3
+      },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "contract/unit": {
+      "calls": 3,
+      "attempts": {
+        "1": 3
+      },
+      "failures": 0,
+      "elapsed": 190.3453821260482,
+      "modes": {
+        "unconstrained": 3
+      },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "contract/society_description": {
+      "calls": 1,
+      "attempts": {
+        "1": 1
+      },
+      "failures": 0,
+      "elapsed": 11.338122708722949,
+      "modes": {
+        "unconstrained": 1
+      },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "contract/institution": {
+      "calls": 3,
+      "attempts": {
+        "1": 3
+      },
+      "failures": 0,
+      "elapsed": 203.04854925023392,
+      "modes": {
+        "unconstrained": 3
+      },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -369,10 +919,31 @@
         "1": 12
       },
       "failures": 0,
-      "elapsed": 74.15493041742593,
+      "elapsed": 286.1562061267905,
+      "modes": {
+        "unconstrained": 13
+      },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 1,
+        "succeeded": 1,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "grounding": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 306.4682361688465,
       "modes": {
         "unconstrained": 12
       },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -382,36 +953,17 @@
         "schema_failures": 0
       }
     },
-    "grounding": {
-      "calls": 12,
-      "attempts": {
-        "2": 1,
-        "1": 11
-      },
-      "failures": 0,
-      "elapsed": 60.416983374394476,
-      "modes": {
-        "unconstrained": 15
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 2,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 2
-      }
-    },
     "name": {
       "calls": 12,
       "attempts": {
         "1": 12
       },
       "failures": 0,
-      "elapsed": 22.55487654171884,
+      "elapsed": 100.60801853938028,
       "modes": {
         "unconstrained": 12
       },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -427,10 +979,11 @@
         "1": 12
       },
       "failures": 0,
-      "elapsed": 32.69378099963069,
+      "elapsed": 213.77537595666945,
       "modes": {
         "unconstrained": 12
       },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -441,15 +994,16 @@
       }
     },
     "summary": {
-      "calls": 18,
+      "calls": 13,
       "attempts": {
-        "1": 18
+        "1": 13
       },
       "failures": 0,
-      "elapsed": 127.92240691743791,
+      "elapsed": 529.965465540532,
       "modes": {
-        "unconstrained": 18
+        "unconstrained": 13
       },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -459,16 +1013,17 @@
         "schema_failures": 0
       }
     },
-    "fact": {
-      "calls": 60,
+    "fact_element": {
+      "calls": 42,
       "attempts": {
-        "1": 60
+        "1": 42
       },
       "failures": 0,
-      "elapsed": 256.2383480439894,
+      "elapsed": 777.2184492060915,
       "modes": {
-        "unconstrained": 60
+        "unconstrained": 42
       },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -478,16 +1033,37 @@
         "schema_failures": 0
       }
     },
-    "fact_check": {
-      "calls": 30,
+    "fact_text": {
+      "calls": 44,
       "attempts": {
-        "1": 30
+        "1": 44
       },
       "failures": 0,
-      "elapsed": 181.89345916593447,
+      "elapsed": 816.2414189996198,
       "modes": {
-        "unconstrained": 30
+        "unconstrained": 44
       },
+      "model": "gemma4:e4b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "restatement_check": {
+      "calls": 39,
+      "attempts": {
+        "1": 39
+      },
+      "failures": 0,
+      "elapsed": 2740.4511740435846,
+      "modes": {
+        "constrained": 39
+      },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -498,15 +1074,16 @@
       }
     },
     "review": {
-      "calls": 5,
+      "calls": 9,
       "attempts": {
-        "1": 5
+        "1": 9
       },
       "failures": 0,
-      "elapsed": 17.336515832692385,
+      "elapsed": 1114.8661087504588,
       "modes": {
-        "unconstrained": 5
+        "constrained": 9
       },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -517,15 +1094,16 @@
       }
     },
     "relations": {
-      "calls": 4,
+      "calls": 5,
       "attempts": {
-        "1": 4
+        "1": 5
       },
       "failures": 0,
-      "elapsed": 24.08148950058967,
+      "elapsed": 308.003842249047,
       "modes": {
-        "unconstrained": 5
+        "unconstrained": 6
       },
+      "model": "gemma4:e4b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -536,15 +1114,15 @@
       }
     }
   },
-  "finished_at": "2026-10-07T15:04:34+00:00",
+  "finished_at": "2026-10-10T12:13:42+00:00",
   "stop_reason": "max_iterations",
   "iterations": 12,
   "counters": {
-    "generation_calls": 169,
-    "accepted": 5,
-    "rejected": 7,
+    "generation_calls": 222,
+    "accepted": 6,
+    "rejected": 6,
     "no_candidates": 0,
-    "rewrites": 41,
+    "rewrites": 42,
     "errors": 0
   },
   "quality_report": {

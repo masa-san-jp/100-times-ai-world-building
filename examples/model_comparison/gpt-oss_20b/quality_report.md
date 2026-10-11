@@ -7,7 +7,7 @@
 
 - graph: **PASS**
 - axis_coverage: **WARN**
-- scale_depth: **WARN**
+- scale_depth: **PASS**
 - reward_distribution: **PASS**
 - genericity: **PASS**
 - provenance: **PASS**
@@ -16,57 +16,57 @@
 
 ## 1. Graph
 
-- Entities: 5
+- Entities: 13
 - Validation errors: 0
 
 ## 2. Axis coverage
 
 - Axes: 16 (each should own at least 1 entities)
-- Uncovered: ecology, laws_of_nature, technology_tools, language_writing, education_knowledge, arts_media, external_relations
+- Uncovered: laws_of_nature, belief_thought, language_writing, education_knowledge, arts_media, external_relations
 
 | axis | weight share | entities | entity share |
 | --- | --- | --- | --- |
-| 地理と気候 | 10.8% | 1 | 7.1% |
-| 生態 | 8.1% | 0 | 0.0% |
-| 自然の法則と法則外の理 | 0.7% | 0 | 0.0% |
-| 技術と道具 | 8.1% | 0 | 0.0% |
-| 資源と経済 | 12.2% | 3 | 21.4% |
-| 政治と権力 | 10.8% | 3 | 21.4% |
-| 法と規範 | 10.8% | 2 | 14.3% |
-| 信仰と思想 | 0.7% | 1 | 7.1% |
-| 言語と文字 | 0.7% | 0 | 0.0% |
-| 血縁と共同体 | 9.5% | 1 | 7.1% |
-| 日々の暮らし | 9.5% | 1 | 7.1% |
-| 職業と労働 | 9.5% | 1 | 7.1% |
-| 教育と知識 | 0.7% | 0 | 0.0% |
-| 芸術・娯楽・メディア | 0.7% | 0 | 0.0% |
-| 歴史 | 6.8% | 1 | 7.1% |
-| 外部との関係 | 0.7% | 0 | 0.0% |
+| 地理と気候 | 13.4% | 7 | 17.9% |
+| 生態 | 6.0% | 1 | 2.6% |
+| 自然の法則と法則外の理 | 0.8% | 0 | 0.0% |
+| 技術と道具 | 11.9% | 6 | 15.4% |
+| 資源と経済 | 12.7% | 8 | 20.5% |
+| 政治と権力 | 13.4% | 9 | 23.1% |
+| 法と規範 | 10.4% | 4 | 10.3% |
+| 信仰と思想 | 0.8% | 0 | 0.0% |
+| 言語と文字 | 0.8% | 0 | 0.0% |
+| 血縁と共同体 | 9.0% | 1 | 2.6% |
+| 日々の暮らし | 7.5% | 1 | 2.6% |
+| 職業と労働 | 10.4% | 1 | 2.6% |
+| 教育と知識 | 0.8% | 0 | 0.0% |
+| 芸術・娯楽・メディア | 0.8% | 0 | 0.0% |
+| 歴史 | 0.8% | 1 | 2.6% |
+| 外部との関係 | 0.8% | 0 | 0.0% |
 
 ## 3. Scale depth
 
-- Deepest scale reached: world (target: detail)
-- Scales below the minimum: region, settlement, district, site, detail
+- Deepest scale reached: detail (target: detail)
+- Scales below the minimum: none
 
 | scale | entities |
 | --- | --- |
-| world | 5 |
-| region | 0 |
-| settlement | 0 |
-| district | 0 |
-| site | 0 |
-| detail | 0 |
+| world | 6 |
+| region | 1 |
+| settlement | 1 |
+| district | 1 |
+| site | 1 |
+| detail | 3 |
 
 ## 4. Reward distribution
 
-- Reward: mean 0.962, min 0.827, max 1.000 over 5 entities
+- Reward: mean 0.963, min 0.890, max 1.000 over 13 entities
 - Low-reward entities: 0
 - Unscored entities: 0
 - 0.0 - 0.2: 0
 - 0.2 - 0.4: 0
 - 0.4 - 0.6: 0
 - 0.6 - 0.8: 0
-- 0.8 - 1.0: 5
+- 0.8 - 1.0: 13
 
 ## 5. Genericity
 
@@ -87,4 +87,4 @@
 
 - Run status: completed
 - Stop reason: max_iterations
-- Iterations: 12 (accepted 5 of 12 logged)
+- Iterations: 18 (accepted 13 of 18 logged)

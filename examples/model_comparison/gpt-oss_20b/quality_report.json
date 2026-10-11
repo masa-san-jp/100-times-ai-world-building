@@ -18,7 +18,7 @@
   "checks": {
     "graph": {
       "status": "pass",
-      "entity_count": 5,
+      "entity_count": 13,
       "errors": [],
       "error_count": 0
     },
@@ -27,9 +27,8 @@
       "axis_count": 16,
       "min_axis_entities": 1,
       "uncovered_axes": [
-        "ecology",
         "laws_of_nature",
-        "technology_tools",
+        "belief_thought",
         "language_writing",
         "education_knowledge",
         "arts_media",
@@ -39,104 +38,104 @@
         {
           "id": "geography_climate",
           "name": "地理と気候",
-          "weight": 0.8,
-          "weight_share": 0.1081,
-          "entities": 1,
-          "entity_share": 0.0714
+          "weight": 0.9,
+          "weight_share": 0.1343,
+          "entities": 7,
+          "entity_share": 0.1795
         },
         {
           "id": "ecology",
           "name": "生態",
-          "weight": 0.6,
-          "weight_share": 0.0811,
-          "entities": 0,
-          "entity_share": 0.0
+          "weight": 0.4,
+          "weight_share": 0.0597,
+          "entities": 1,
+          "entity_share": 0.0256
         },
         {
           "id": "laws_of_nature",
           "name": "自然の法則と法則外の理",
           "weight": 0.05,
-          "weight_share": 0.0068,
+          "weight_share": 0.0075,
           "entities": 0,
           "entity_share": 0.0
         },
         {
           "id": "technology_tools",
           "name": "技術と道具",
-          "weight": 0.6,
-          "weight_share": 0.0811,
-          "entities": 0,
-          "entity_share": 0.0
+          "weight": 0.8,
+          "weight_share": 0.1194,
+          "entities": 6,
+          "entity_share": 0.1538
         },
         {
           "id": "resources_economy",
           "name": "資源と経済",
-          "weight": 0.9,
-          "weight_share": 0.1216,
-          "entities": 3,
-          "entity_share": 0.2143
+          "weight": 0.85,
+          "weight_share": 0.1269,
+          "entities": 8,
+          "entity_share": 0.2051
         },
         {
           "id": "politics_power",
           "name": "政治と権力",
-          "weight": 0.8,
-          "weight_share": 0.1081,
-          "entities": 3,
-          "entity_share": 0.2143
+          "weight": 0.9,
+          "weight_share": 0.1343,
+          "entities": 9,
+          "entity_share": 0.2308
         },
         {
           "id": "law_norms",
           "name": "法と規範",
-          "weight": 0.8,
-          "weight_share": 0.1081,
-          "entities": 2,
-          "entity_share": 0.1429
+          "weight": 0.7,
+          "weight_share": 0.1045,
+          "entities": 4,
+          "entity_share": 0.1026
         },
         {
           "id": "belief_thought",
           "name": "信仰と思想",
           "weight": 0.05,
-          "weight_share": 0.0068,
-          "entities": 1,
-          "entity_share": 0.0714
+          "weight_share": 0.0075,
+          "entities": 0,
+          "entity_share": 0.0
         },
         {
           "id": "language_writing",
           "name": "言語と文字",
           "weight": 0.05,
-          "weight_share": 0.0068,
+          "weight_share": 0.0075,
           "entities": 0,
           "entity_share": 0.0
         },
         {
           "id": "kinship_community",
           "name": "血縁と共同体",
-          "weight": 0.7,
-          "weight_share": 0.0946,
+          "weight": 0.6,
+          "weight_share": 0.0896,
           "entities": 1,
-          "entity_share": 0.0714
+          "entity_share": 0.0256
         },
         {
           "id": "daily_life",
           "name": "日々の暮らし",
-          "weight": 0.7,
-          "weight_share": 0.0946,
+          "weight": 0.5,
+          "weight_share": 0.0746,
           "entities": 1,
-          "entity_share": 0.0714
+          "entity_share": 0.0256
         },
         {
           "id": "occupations_labor",
           "name": "職業と労働",
           "weight": 0.7,
-          "weight_share": 0.0946,
+          "weight_share": 0.1045,
           "entities": 1,
-          "entity_share": 0.0714
+          "entity_share": 0.0256
         },
         {
           "id": "education_knowledge",
           "name": "教育と知識",
           "weight": 0.05,
-          "weight_share": 0.0068,
+          "weight_share": 0.0075,
           "entities": 0,
           "entity_share": 0.0
         },
@@ -144,55 +143,49 @@
           "id": "arts_media",
           "name": "芸術・娯楽・メディア",
           "weight": 0.05,
-          "weight_share": 0.0068,
+          "weight_share": 0.0075,
           "entities": 0,
           "entity_share": 0.0
         },
         {
           "id": "history",
           "name": "歴史",
-          "weight": 0.5,
-          "weight_share": 0.0676,
+          "weight": 0.05,
+          "weight_share": 0.0075,
           "entities": 1,
-          "entity_share": 0.0714
+          "entity_share": 0.0256
         },
         {
           "id": "external_relations",
           "name": "外部との関係",
           "weight": 0.05,
-          "weight_share": 0.0068,
+          "weight_share": 0.0075,
           "entities": 0,
           "entity_share": 0.0
         }
       ]
     },
     "scale_depth": {
-      "status": "warn",
+      "status": "pass",
       "counts": {
-        "world": 5,
-        "region": 0,
-        "settlement": 0,
-        "district": 0,
-        "site": 0,
-        "detail": 0
+        "world": 6,
+        "region": 1,
+        "settlement": 1,
+        "district": 1,
+        "site": 1,
+        "detail": 3
       },
-      "deepest_scale": "world",
+      "deepest_scale": "detail",
       "target_scale": "detail",
       "min_entities_per_scale": 1,
-      "missing_scales": [
-        "region",
-        "settlement",
-        "district",
-        "site",
-        "detail"
-      ]
+      "missing_scales": []
     },
     "reward_distribution": {
       "status": "pass",
       "reward": {
-        "count": 5,
-        "mean": 0.9615,
-        "min": 0.8269,
+        "count": 13,
+        "mean": 0.9631,
+        "min": 0.89,
         "max": 1.0
       },
       "histogram": [
@@ -200,7 +193,7 @@
         0,
         0,
         0,
-        5
+        13
       ],
       "low_reward_entities": [],
       "unscored_entities": [],
@@ -228,13 +221,13 @@
       "status": "pass",
       "threshold": 0.8,
       "entities": {
-        "item_count": 5,
+        "item_count": 13,
         "exact_duplicate_count": 0,
         "normalized_duplicate_count": 0,
         "near_duplicate_pair_count": 0
       },
       "names": {
-        "item_count": 5,
+        "item_count": 13,
         "exact_duplicate_count": 0,
         "normalized_duplicate_count": 0,
         "near_duplicate_pair_count": 0
@@ -244,17 +237,17 @@
       "status": "pass",
       "run_status": "completed",
       "stop_reason": "max_iterations",
-      "iterations": 12,
+      "iterations": 18,
       "counters": {
-        "generation_calls": 149,
-        "accepted": 5,
-        "rejected": 7,
+        "generation_calls": 429,
+        "accepted": 13,
+        "rejected": 5,
         "no_candidates": 0,
-        "rewrites": 42,
+        "rewrites": 71,
         "errors": 0
       },
-      "logged_iterations": 12,
-      "accepted_iterations": 5,
+      "logged_iterations": 18,
+      "accepted_iterations": 13,
       "notes": []
     }
   }

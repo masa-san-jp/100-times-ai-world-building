@@ -1,0 +1,401 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "language": "ja"
+  },
+  "entities": [],
+  "world_contract": {
+    "id": "world_contract",
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "name": "塩暦",
+        "origin": "初代水番が地下導水路の水源を確保した年に起算。塩の採掘開始と水管理の権限確立を起点とし、盆地の資源経済と政治的対立の歴史を記録する基準となる。",
+        "markers": [
+          "塩起",
+          "塩紀",
+          "塩年"
+        ]
+      },
+      "technology": {
+        "description": "地下の古い導水路から塩採掘場へ水を送る灌漑と採掘支援システム。降雨に依存せず、導水路の構造と水圧管理が技術的上限を規定する。",
+        "capabilities": [
+          "導水路水圧制御",
+          "塩採掘支援",
+          "塩面洗掘"
+        ],
+        "units": [
+          {
+            "symbol": "塩担",
+            "quantity": "採掘された塩の重量を測る標準単位"
+          },
+          {
+            "symbol": "水尺",
+            "quantity": "地下導水路の水位差を測る単位"
+          },
+          {
+            "symbol": "塩斗",
+            "quantity": "塩の体積を測る単位"
+          }
+        ]
+      },
+      "society": {
+        "description": "採掘組合と水番の家系が導水路管理権を巡り対立し、塩の生産と水配分の権限、義務、紛争処理の規範を定める共同体構造。",
+        "institutions": [
+          {
+            "name": "水番家系",
+            "description": "地下導水路の管理権を世襲し、水配分と塩採掘の秩序を維持する血縁的行政組織。"
+          },
+          {
+            "name": "採掘組合",
+            "description": "塩の採掘と水配分を巡り水番家系と対立する組合組織"
+          },
+          {
+            "name": "塩秤所",
+            "description": "塩の重量と水圧を基準に採掘量と水配分を計測・記録する中立機関。"
+          }
+        ]
+      }
+    },
+    "provenance": {
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes"
+    }
+  },
+  "contract_stage": {
+    "status": "success",
+    "attempts": 21,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "item": "calendar_name",
+        "slot": null,
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ]
+      },
+      {
+        "item": "calendar_marker",
+        "slot": 1,
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩起 already appears in calendar.markers"
+        ]
+      },
+      {
+        "item": "calendar_marker",
+        "slot": 2,
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩紀 already appears in calendar.markers"
+        ]
+      },
+      {
+        "item": "unit",
+        "slot": 2,
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩担 already appears in technology.units"
+        ]
+      },
+      {
+        "item": "institution",
+        "slot": 2,
+        "attempt": 1,
+        "errors": [
+          "duplicate: 水番家系 already appears in society.institutions"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "step": "calendar_name",
+        "slot": null,
+        "attempts": 2,
+        "calls": 3,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$",
+              "expected": "valid JSON object",
+              "actual": null,
+              "message": "the JSON object must be str, bytes or bytearray, not NoneType"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "calendar_origin",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 1,
+        "attempts": 2,
+        "calls": 4,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "塩起",
+              "message": "duplicate: 塩起 already appears in calendar.markers"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 2,
+        "attempts": 2,
+        "calls": 4,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "塩紀",
+              "message": "duplicate: 塩紀 already appears in calendar.markers"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "technology_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 2,
+        "attempts": 2,
+        "calls": 4,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$[\"symbol\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "塩担",
+              "message": "duplicate: 塩担 already appears in technology.units"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "society_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 2,
+        "attempts": 2,
+        "calls": 4,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$[\"name\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "水番家系",
+              "message": "duplicate: 水番家系 already appears in society.institutions"
+            }
+          ],
+          []
+        ]
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_name": {
+          "calls": 3,
+          "attempts": {
+            "2": 1
+          },
+          "reasons": {
+            "the JSON object must be str, bytes or bytearray, not NoneType": 1
+          },
+          "failures": 0
+        },
+        "calendar_origin": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "calendar_marker": {
+          "calls": 10,
+          "attempts": {
+            "1": 1,
+            "2": 2
+          },
+          "reasons": {
+            "duplicate: 塩起 already appears in calendar.markers": 1,
+            "duplicate: 塩紀 already appears in calendar.markers": 1
+          },
+          "failures": 0
+        },
+        "technology_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "capability": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "unit": {
+          "calls": 8,
+          "attempts": {
+            "1": 2,
+            "2": 1
+          },
+          "reasons": {
+            "duplicate: 塩担 already appears in technology.units": 1
+          },
+          "failures": 0
+        },
+        "society_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "institution": {
+          "calls": 8,
+          "attempts": {
+            "1": 2,
+            "2": 1
+          },
+          "reasons": {
+            "duplicate: 水番家系 already appears in society.institutions": 1
+          },
+          "failures": 0
+        }
+      }
+    }
+  }
+}

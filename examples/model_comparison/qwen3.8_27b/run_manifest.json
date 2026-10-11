@@ -3,18 +3,19 @@
   "layout_version": 3,
   "artifact_type": "world_output",
   "engine": "world",
-  "run_id": "final2_qwen3_8_27b",
+  "run_id": "v73b_qwen3_8_27b",
   "backend": "ollama",
   "model": "qwen3.8:27b",
   "models": {
     "generation": "qwen3.8:27b",
     "vision": "llava:latest"
   },
+  "judge_model": "qwen3.8:27b",
   "run_seed": 1,
   "seed_source": "argument",
   "config": {
-    "path": "<repo>/config/ollama_config.yaml",
-    "sha256": "3b8715cbf9dbc0fc38aebcc3d617e266f1d14edc6265b10db9d8f543bbf48abc"
+    "path": "<scratch>/ollama_config_ctx16k.yaml",
+    "sha256": "7b6f61da2ec5ef54f9b819ef3e51b2eaa8b484281d00d51fd618cd4147fdb261"
   },
   "engine_config": {
     "explore": {
@@ -88,17 +89,13 @@
         "max_consecutive_failures": 5
       },
       "coverage": {
-        "enabled": true,
-        "min_axis_entities": 1,
-        "depth": "detail",
-        "min_entities_per_scale": 2,
-        "target_mean_reward": 0.6
+        "enabled": true
       }
     },
     "operator": {},
     "generation": {
       "max_tokens": 8192,
-      "num_ctx": 32768,
+      "num_ctx": 16384,
       "think": false,
       "temperature": null
     },
@@ -109,31 +106,37 @@
   },
   "files": {
     "config/prompts/input_brief.yaml": "25524633ff740891ca78ff279157a56b3eaed44548563a947308cb9bfc395b46",
-    "config/prompts/world/contract.yaml": "fa0591a488e76e52d60c45072ad0a5420b06816eadaacd1cd3acc7ba7b0b2161",
+    "config/prompts/world/contract_items.yaml": "7f4f1c8f0b71387e80fe6db20d70fb0825c2bad42c29b00885b773115b0d2fac",
     "config/prompts/world/operators.yaml": "9880c90a1ecf5a7cb2022f6db6ad941845f1e87ae2d258b7cec09322896cea80",
-    "config/prompts/world/steps.yaml": "024c7f0c23d8a5c2ddfb389ac575ae28f7c768dacbcb34fc80d79efad7b8f44e",
+    "config/prompts/world/real_world_check.yaml": "86bd5dd97693c29d5cbe12f2a9abc5a3d892f1b0ca7bc2dabd0d59b09bc62fb3",
+    "config/prompts/world/restatement_check.yaml": "3d21bdab14d0ea91a3336d0fa0334ca532256a62763e2cc9d40ed07609486657",
+    "config/prompts/world/steps.yaml": "dea899b8d1eb0953ec423f4656a3e17e8847d42704197470bd1871a1e8d09c8e",
     "config/prompts/world_axes.yaml": "e6a3443148d5f6ada97daa06aaec0e30f189a7a3e1ddc14657bfe4ad39211e55",
     "config/schemas/image_description.json": "e7dfda4d5d92a41cfd3d3ea2059ef3267602109fb5fa864e44dcad3759dc0791",
     "config/schemas/input_brief.json": "6740c1dbf9f064a5d7a0895f71793bc8ea78c117b51c3b8c30b6cad28af708b7",
     "config/schemas/steps/axes.json": "3ec6eb61bf6c2741d1ee537d1d8868c46a91b625d7b38bfb6f9537ee7c655ca5",
-    "config/schemas/steps/fact.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
-    "config/schemas/steps/fact_check.json": "b3c18eb241c77cbcbd4d571f755231f3ed24fbb70b1fbf2b125f5360d2fdc546",
+    "config/schemas/steps/fact_element.json": "84d2b97612ab693e84a4bf8b9870cbf30602fd669f90b7c7dee0fd88d1769bd6",
+    "config/schemas/steps/fact_text.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
     "config/schemas/steps/grounding.json": "8729109bd691a2db909ea05fe0481b4be8ec939d6b6bb7e2719e8b7a7d48a7eb",
     "config/schemas/steps/name.json": "f10757aa050a745a5bcd8c4d7b3372eefd993b22f06587bd139a2e1c549264d2",
+    "config/schemas/steps/real_world_check.json": "6f71154ce6a5832ce8b35440a949f0bd645a81b84974b1d0c2825ee634949904",
     "config/schemas/steps/relations.json": "11df31f3d19573bf355cfaa27025de75ee1427f4c69ab838472a6f97d29708b7",
-    "config/schemas/steps/review.json": "4c8e7efe1e8fdcb82e19d501866d2a544a40b557d257bdf68d0ce20ce7e1c421",
+    "config/schemas/steps/restatement_check.json": "a08b1c52ac1b200bb484700b95376108f59660cf977a8b3745f49280034978ef",
+    "config/schemas/steps/review.json": "ac2ce3ce0bc5f808a5e2c7a9c252f46226652b19c93ccb56b2f315bdc581c72d",
     "config/schemas/steps/summary.json": "587e86b0b9bb906b32a4551f8df8819bbd3e5e55a88c666ab8377d7f3f7c8df1",
     "config/schemas/steps/type.json": "c32aaaf81bcc4523f392b3685937a902010b07f679b341003ca9c803da042489",
     "config/schemas/world_axes.json": "d3908416634d7ee04f2a3bb0f51a660545bdc7cb1ec1a12cc4188364923030e1",
     "config/schemas/world_contract.json": "35ecbb952de8509e768ded0b2868c8daafe73c6e30e125abaa67541868d9cb37",
-    "config/world/criteria.yaml": "13d806497517a59c649d083136854fb5e2120644f36999107329e7e456b4048a",
+    "config/world/contract.yaml": "050a25b6dd6735d1bf426f5705801dccb2ce01d054a634b924951d878f73564b",
+    "config/world/criteria.yaml": "f875fa72ea8e5ffe6e85715b1114b273e877f30e0141f6a2ac71a52e7d70fbf8",
     "config/world/domains.yaml": "b5650ae80af6b396e40b5ce22a782cc64a4e73e4afe17a2d2b0ddf576a4168eb",
-    "config/world/explore.yaml": "48e7f923938dcacf68e2169035645eb6120518745dcbb048b55757ded43c10ca",
-    "config/world/language_rules.yaml": "786784e1a320bf003476d608f5b3d4b2fdb9802ab02543aa2bb3e51e11fe200f",
+    "config/world/explore.yaml": "26a8e94c34f5748003299c9989ffa54d5bee5cfdebc6121202a6fdd2f7a577e6",
+    "config/world/language_rules.yaml": "c5122a7e8612566ac04cba5b8fd1547688be8057bc57ddf0db5839b931f76391",
     "config/world/languages.yaml": "d13991e024990f241f4c6fe10262a76a243698812ff42e8c3299b1049bcda4f7",
     "config/world/quality.yaml": "d7864814a22eeb9cc2096277d18934a85d3d4377453a6ea3c02cc4f880732e25",
-    "config/world/render_labels.yaml": "d4ca5f36b22dcd177457c261f6b90e0e6c185f9eff9f9565619f8a577fa8519c",
-    "config/world/reward.yaml": "fe92b86483c166a30e26c6ec346a9b634347d8bffd5c9be4d19b89d150625253"
+    "config/world/render_labels.yaml": "2d0776cd3a28d88a911073202b4fce580b9e4b3e63125de36f474f92e06effa9",
+    "config/world/reward.yaml": "fe92b86483c166a30e26c6ec346a9b634347d8bffd5c9be4d19b89d150625253",
+    "config/world/world_criteria.yaml": "013882e8aafa171e2a9e884d53618185e8236aa41f4910e453a625184f308537"
   },
   "paths": {
     "input": "input",
@@ -141,17 +144,14 @@
     "checkpoints": "checkpoints",
     "final": "final"
   },
-  "created_at": "2026-10-07T16:01:01+00:00",
+  "created_at": "2026-10-10T09:29:11+00:00",
   "status": "completed",
-  "updated_at": "2026-10-07T17:56:47+00:00",
+  "updated_at": "2026-10-10T20:46:56+00:00",
   "budget": {
-    "requested": {
-      "max_iterations": 12,
-      "max_wall_seconds": 14400.0
-    },
+    "requested": {},
     "effective": {
-      "max_iterations": 12,
-      "max_wall_seconds": 14400.0,
+      "max_iterations": 200,
+      "max_wall_seconds": null,
       "max_generation_calls": null
     }
   },
@@ -161,11 +161,10 @@
     "characters": 81,
     "images": []
   },
-  "started_at": "2026-10-07T16:01:01+00:00",
-  "pid": 7614,
+  "started_at": "2026-10-10T09:29:11+00:00",
+  "pid": 33315,
   "world_contract": {
-    "status": "success",
-    "attempts": 2,
+    "attempts": 21,
     "checks_enabled": true,
     "disabled_checks": [],
     "errors": [
@@ -173,217 +172,617 @@
         "attempt": 1,
         "errors": [
           "the JSON object must be str, bytes or bytearray, not NoneType"
+        ],
+        "item": "calendar_name",
+        "slot": null
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩起 already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 1
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩紀 already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩担 already appears in technology.units"
+        ],
+        "item": "unit",
+        "slot": 2
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 水番家系 already appears in society.institutions"
+        ],
+        "item": "institution",
+        "slot": 2
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_marker": {
+          "attempts": {
+            "1": 1,
+            "2": 2
+          },
+          "calls": 10,
+          "failures": 0,
+          "reasons": {
+            "duplicate: 塩紀 already appears in calendar.markers": 1,
+            "duplicate: 塩起 already appears in calendar.markers": 1
+          }
+        },
+        "calendar_name": {
+          "attempts": {
+            "2": 1
+          },
+          "calls": 3,
+          "failures": 0,
+          "reasons": {
+            "the JSON object must be str, bytes or bytearray, not NoneType": 1
+          }
+        },
+        "calendar_origin": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "capability": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "institution": {
+          "attempts": {
+            "1": 2,
+            "2": 1
+          },
+          "calls": 8,
+          "failures": 0,
+          "reasons": {
+            "duplicate: 水番家系 already appears in society.institutions": 1
+          }
+        },
+        "society_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "technology_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "unit": {
+          "attempts": {
+            "1": 2,
+            "2": 1
+          },
+          "calls": 8,
+          "failures": 0,
+          "reasons": {
+            "duplicate: 塩担 already appears in technology.units": 1
+          }
+        }
+      }
+    },
+    "status": "success",
+    "steps": [
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 3,
+        "slot": null,
+        "step": "calendar_name",
+        "violations": [
+          [
+            {
+              "actual": null,
+              "expected": "valid JSON object",
+              "message": "the JSON object must be str, bytes or bytearray, not NoneType",
+              "path": "$"
+            }
+          ],
+          []
         ]
       },
       {
-        "attempt": 2,
-        "errors": []
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "calendar_origin",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 1,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "塩起",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 塩起 already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 2,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "塩紀",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 塩紀 already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "technology_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 2,
+        "step": "unit",
+        "violations": [
+          [
+            {
+              "actual": "塩担",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 塩担 already appears in technology.units",
+              "path": "$[\"symbol\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "society_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 2,
+        "step": "institution",
+        "violations": [
+          [
+            {
+              "actual": "水番家系",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 水番家系 already appears in society.institutions",
+              "path": "$[\"name\"]"
+            }
+          ],
+          []
+        ]
       }
     ]
   },
   "phases": {
     "world_explore": {
       "status": "completed",
-      "started_at": "2026-10-07T16:10:35+00:00",
-      "finished_at": "2026-10-07T17:56:47+00:00"
+      "started_at": "2026-10-10T10:21:24+00:00",
+      "finished_at": "2026-10-10T20:46:55+00:00"
     }
   },
   "build": {
     "steps": {
       "type": {
-        "calls": 12,
+        "calls": 28,
         "attempts": {
-          "1": 12
+          "1": 28
         },
         "reasons": {},
         "failures": 0
       },
       "grounding": {
-        "calls": 12,
+        "calls": 31,
         "attempts": {
-          "1": 12
+          "1": 31
         },
         "reasons": {},
         "failures": 0
       },
       "name": {
-        "calls": 14,
+        "calls": 34,
         "attempts": {
-          "1": 10,
-          "2": 2
+          "1": 28,
+          "2": 3
         },
         "reasons": {
-          "distinct": {
+          "new_information": {
             "name must differ from existing names after normalization": 2
           }
         },
         "failures": 0
       },
-      "axes": {
-        "calls": 12,
+      "real_world_check": {
+        "calls": 84,
         "attempts": {
-          "1": 12
+          "1": 84
+        },
+        "reasons": {
+          "no_outside_premises": {
+            "白塩窪: 青森県にある実際の湿地（白塩沼）の一部であり、実在の地名であるため。": 1
+          }
+        },
+        "failures": 1
+      },
+      "axes": {
+        "calls": 31,
+        "attempts": {
+          "1": 31
         },
         "reasons": {},
         "failures": 0
       },
       "summary": {
-        "calls": 15,
+        "calls": 33,
         "attempts": {
-          "1": 10,
-          "2": 1,
-          "3": 1
-        },
-        "reasons": {
-          "informative": {
-            "character 3-gram overlap must be <= 0.6": 3
-          }
-        },
-        "failures": 0
-      },
-      "fact": {
-        "calls": 58,
-        "attempts": {
-          "1": 19,
-          "2": 12,
-          "4": 3,
-          "3": 1
-        },
-        "reasons": {
-          "informative": {
-            "character 3-gram overlap must be <= 0.6": 23
-          },
-          "specific": {
-            "提出された文は、地下導水路の区間が紛争審議会の裁定対象であるという関係性を述べているが、「塩採掘集落」という固有名称（proper_noun）と特定の固有名称（例：特定の地名、人名、特定の施設名など）との直接的な結びつきを明示する具体的な固有名詞的事実（proper_noun fact）ではない。固有名称的事実とは、対象エンティティそのものの固有の名称や、それに関連する固有の識別子（例：特定の坑道名、特定の区画名など）を含む事実を指し、ここでは「塩採掘集落」が固有名詞として機能しているものの、それと結びつく別の固有名称（例えば「○○坑道」や「○○区間」のような固有の名称）が欠如しており、単なる制度的関係の記述にとどまっているため、条件を満たさない。": 1,
-            "対象の文は「給水栓」という物理的装置の存在と、それを用いた利用行為を記述しているが、文脈内の定義された技術能力（流量制御、塩分濃度測定、水保存、坑道維持）や関連エンティティ（e5: 分岐点流量制御閥）において、「給水栓」という独立した物理的装置は定義されていない。契約で定義された物理的装置は「分岐点流量制御閥」のみであり、未定義の物体に関する事実は契約に準拠しない。": 1,
-            "対象エンティティは「分岐点導水路埋設本体」であり、親エンティティは「分岐管理区間(e4)」、関連エンティティとして「塩採掘集落(e3)」が定義されている。提供されたファクトは「塩採掘集落(e3)の分岐点に埋設されている」と記述しているが、e5（分岐点流量制御閥）がe4内に位置し、e4がe3内に位置する構造から、正確な物理的埋設場所は「分岐管理区間(e4)の導水路分岐点」である。e3は集落全体のスケールであり、具体的にはe4内の区間が埋設場所として適切であるため、場所の記述が不正確である。": 1,
-            "対象の事実記述は、規範が「物理的拘束条件として機能する」と述べており、これは規範の実効性や作用機序に関する記述である。一方、指示は「物理的項目（物）について、このエンティティ（規範）の使用、所有、位置、または取り扱いに関する1つの事実」を求めている。記述には、規範が具体的どの物理的項目を所有・使用・位置づけるか、あるいはどのように取り扱うかという直接的な関係が明確に示されていないため、条件に合致しない。": 1,
-            "対象の文は、分岐点流量制御閥(e5)の弁が水番家系により操作され、最大5水量の流出が維持されるという実行プロセスや状態を記述しており、単一の物理的事物(e5)自体の静的属性(使用、所有、位置、取り扱い)を直接的に規定するobject factとしては形式が不一致である。": 1
-          }
-        },
-        "failures": 3
-      },
-      "fact_check": {
-        "calls": 40,
-        "attempts": {
-          "1": 40
-        },
-        "reasons": {
-          "specific": {
-            "提出された文は、地下導水路の区間が紛争審議会の裁定対象であるという関係性を述べているが、「塩採掘集落」という固有名称（proper_noun）と特定の固有名称（例：特定の地名、人名、特定の施設名など）との直接的な結びつきを明示する具体的な固有名詞的事実（proper_noun fact）ではない。固有名称的事実とは、対象エンティティそのものの固有の名称や、それに関連する固有の識別子（例：特定の坑道名、特定の区画名など）を含む事実を指し、ここでは「塩採掘集落」が固有名詞として機能しているものの、それと結びつく別の固有名称（例えば「○○坑道」や「○○区間」のような固有の名称）が欠如しており、単なる制度的関係の記述にとどまっているため、条件を満たさない。": 1,
-            "対象の文は「給水栓」という物理的装置の存在と、それを用いた利用行為を記述しているが、文脈内の定義された技術能力（流量制御、塩分濃度測定、水保存、坑道維持）や関連エンティティ（e5: 分岐点流量制御閥）において、「給水栓」という独立した物理的装置は定義されていない。契約で定義された物理的装置は「分岐点流量制御閥」のみであり、未定義の物体に関する事実は契約に準拠しない。": 1,
-            "対象エンティティは「分岐点導水路埋設本体」であり、親エンティティは「分岐管理区間(e4)」、関連エンティティとして「塩採掘集落(e3)」が定義されている。提供されたファクトは「塩採掘集落(e3)の分岐点に埋設されている」と記述しているが、e5（分岐点流量制御閥）がe4内に位置し、e4がe3内に位置する構造から、正確な物理的埋設場所は「分岐管理区間(e4)の導水路分岐点」である。e3は集落全体のスケールであり、具体的にはe4内の区間が埋設場所として適切であるため、場所の記述が不正確である。": 1,
-            "対象の事実記述は、規範が「物理的拘束条件として機能する」と述べており、これは規範の実効性や作用機序に関する記述である。一方、指示は「物理的項目（物）について、このエンティティ（規範）の使用、所有、位置、または取り扱いに関する1つの事実」を求めている。記述には、規範が具体的どの物理的項目を所有・使用・位置づけるか、あるいはどのように取り扱うかという直接的な関係が明確に示されていないため、条件に合致しない。": 1,
-            "対象の文は、分岐点流量制御閥(e5)の弁が水番家系により操作され、最大5水量の流出が維持されるという実行プロセスや状態を記述しており、単一の物理的事物(e5)自体の静的属性(使用、所有、位置、取り扱い)を直接的に規定するobject factとしては形式が不一致である。": 1
-          }
-        },
-        "failures": 5
-      },
-      "review": {
-        "calls": 9,
-        "attempts": {
-          "1": 9
+          "2": 2,
+          "1": 29
         },
         "reasons": {},
+        "failures": 0
+      },
+      "fact_element": {
+        "calls": 140,
+        "attempts": {
+          "4": 10,
+          "2": 15,
+          "1": 46,
+          "3": 8
+        },
+        "reasons": {
+          "new_information": {
+            "name must be new in the input, context and contract; already present: '西側洗掘面'": 1,
+            "(value, unit) pair (1, 水尺) with a near subject ('西側洗掘槽の基準水位差') already appears in an existing fact": 1,
+            "(value, unit) pair (1, 水尺) with a near subject ('塩面洗掘時の基準水位差') already appears in an existing fact": 12,
+            "name must be new in the input, context and contract; already present: '水番家系'": 1,
+            "name must be new in the input, context and contract; already present: '塩秤所'": 1,
+            "name must be new in the input, context and contract; already present: '水番'": 1,
+            "(value, unit) pair (0.5, 水尺) with a near subject ('塩面洗掘時の許容水位差変動幅') already appears in an existing fact": 7,
+            "name must be new in the input, context and contract; already present: '水圧管理庫'": 1,
+            "name must be new in the input, context and contract; already present: '初代水番'": 3,
+            "name must be new in the input, context and contract; already present: '塩起水源確保'": 1,
+            "name must be new in the input, context and contract; already present: '塩面洗掘'": 1,
+            "(value, unit) pair (1, 水尺) with a near subject ('基準水位差') already appears in an existing fact": 1,
+            "(value, unit) pair (0.5, 水尺) with a near subject ('許容水位差変動幅') already appears in an existing fact": 1,
+            "(value, unit) pair (1, 水尺) with a near subject ('塩面洗掘の基準水位差') already appears in an existing fact": 2,
+            "name must be new in the input, context and contract; already present: '深層水圧制御施設'": 1,
+            "name must be new in the input, context and contract; already present: '乾塩盆地'": 1,
+            "name must be new in the input, context and contract; already present: '硝塩窪'": 1,
+            "(value, unit) pair (1, 水尺) with a near subject ('塩田区導水路運用組合が塩面洗掘に使用する基準水位差') already appears in an existing fact": 1
+          },
+          "no_outside_premises": {
+            "白塩窪: 青森県にある実際の湿地（白塩沼）の一部であり、実在の地名であるため。": 1
+          }
+        },
+        "failures": 2
+      },
+      "fact_text": {
+        "calls": 111,
+        "attempts": {
+          "4": 4,
+          "2": 12,
+          "1": 57,
+          "3": 3,
+          "5": 1
+        },
+        "reasons": {
+          "new_information": {
+            "fact text restates an existing fact: '白塩盆地は、年間塩採掘量が1塩担に固定された乾燥した内陸の盆地である。'": 1,
+            "fact text restates an existing fact: '塩田区における塩面洗掘時の基準水位差は1水尺である。'": 1,
+            "fact text restates an existing fact: '西側採掘面は、塩面集落内に位置する塩面洗掘の作業区域である。'": 1,
+            "fact text duplicates an existing fact: '西側洗掘面には、導水路配水栓からの水圧を調整する水圧制御弁が1基設置されている。'": 4,
+            "fact text restates an existing fact: '洗掘槽は、西側洗掘面内に設置されている塩面洗掘の作業施設である。'": 1,
+            "fact text restates an existing fact: '西側洗掘面には、導水路配水栓からの水圧を調整する水圧制御弁が1基設置されている。'": 1,
+            "fact text restates an existing fact: '洗掘面水圧調整作業組が維持する基準水位差は1水尺である。'": 1,
+            "fact text restates an existing fact: '洗掘面水圧調整作業組は、水圧制御弁操作具を用いて基準水位差1水尺を維持する。'": 1,
+            "fact text restates an existing fact: '基準水尺洗掘法では、水圧制御弁を介して導水路配水栓からの水圧を調整し、洗掘槽の水位差を1水尺に固定する。'": 1,
+            "fact text duplicates an existing fact: '塩秤所が洗掘槽の水位差を水尺で測定し、塩担・塩斗の計測値を記録する。'": 2,
+            "fact text restates an existing fact: '塩起水源定式化録に定める基準水位差は1水尺である。'": 1,
+            "fact text restates an existing fact: '水番家系が導水路水圧制御の基準値として採用する水位差は1水尺である。'": 1,
+            "fact text restates an existing fact: '水圧管理庫は、導水路統制所が塩面洗掘時の水位差1水尺と許容変動幅0.5水尺を維持するために設置した水圧制御施設である。'": 1,
+            "fact text duplicates an existing fact: '水圧管理庫は、導水路統制所が塩面洗掘時の水位差1水尺と許容変動幅0.5水尺を維持するために設置した水圧制御施設である。'": 1,
+            "fact text duplicates an existing fact: '塩起の水源確保時に確立された塩面洗掘の基準水位差は1水尺である。'": 4,
+            "fact text restates an existing fact: '塩起水源確保時に定めた塩面洗掘の許容水位差変動幅は0.5水尺である。'": 2,
+            "fact text restates an existing fact: '深層水圧制御施設は、塩盆地の地下導水路における水圧管理庫の圧力調整機能を担う技術的設備である。'": 1,
+            "fact text restates an existing fact: '塩面洗掘時の許容水位差変動幅は0.5水尺である。'": 1
+          }
+        },
+        "failures": 1
+      },
+      "restatement_check": {
+        "calls": 99,
+        "attempts": {
+          "1": 99
+        },
+        "reasons": {
+          "new_information": {
+            "fact text restates an existing fact: '白塩盆地は、年間塩採掘量が1塩担に固定された乾燥した内陸の盆地である。'": 1,
+            "fact text restates an existing fact: '塩田区における塩面洗掘時の基準水位差は1水尺である。'": 1,
+            "fact text restates an existing fact: '西側採掘面は、塩面集落内に位置する塩面洗掘の作業区域である。'": 1,
+            "fact text restates an existing fact: '洗掘槽は、西側洗掘面内に設置されている塩面洗掘の作業施設である。'": 1,
+            "fact text restates an existing fact: '西側洗掘面には、導水路配水栓からの水圧を調整する水圧制御弁が1基設置されている。'": 1,
+            "fact text restates an existing fact: '洗掘面水圧調整作業組が維持する基準水位差は1水尺である。'": 1,
+            "fact text restates an existing fact: '洗掘面水圧調整作業組は、水圧制御弁操作具を用いて基準水位差1水尺を維持する。'": 1,
+            "fact text restates an existing fact: '基準水尺洗掘法では、水圧制御弁を介して導水路配水栓からの水圧を調整し、洗掘槽の水位差を1水尺に固定する。'": 1,
+            "fact text restates an existing fact: '塩起水源定式化録に定める基準水位差は1水尺である。'": 1,
+            "fact text restates an existing fact: '水番家系が導水路水圧制御の基準値として採用する水位差は1水尺である。'": 1,
+            "fact text restates an existing fact: '水圧管理庫は、導水路統制所が塩面洗掘時の水位差1水尺と許容変動幅0.5水尺を維持するために設置した水圧制御施設である。'": 1,
+            "fact text restates an existing fact: '塩起水源確保時に定めた塩面洗掘の許容水位差変動幅は0.5水尺である。'": 2,
+            "fact text restates an existing fact: '深層水圧制御施設は、塩盆地の地下導水路における水圧管理庫の圧力調整機能を担う技術的設備である。'": 1,
+            "fact text restates an existing fact: '塩面洗掘時の許容水位差変動幅は0.5水尺である。'": 1
+          }
+        },
+        "failures": 15
+      },
+      "review": {
+        "calls": 35,
+        "attempts": {
+          "3": 2,
+          "1": 23,
+          "2": 3
+        },
+        "reasons": {
+          "consistent": {
+            "入力文書（簡潔な記述）には年間塩採掘量が「1塩担」であるという数値的根拠が存在しない。これは推測または捏造された事実であり、入力との整合性を欠いている。": 1,
+            "入力文書（s1-s4）には年間塩採掘量が「1塩担」であるという数値的根拠が含まれていない。また、世界契約の技術単位定義において「塩担」は重量の標準単位として定義されているが、盆地全体の年間産出量がその最小単位に等しいという事実は前提として示されていないため、契約や入力と矛盾する架空の数値として扱われる。; 「年間塩採掘量が1塩担に固定された」という記述は、入力文書や世界契約に存在しない制約条件であり、事実と矛盾する。; サマリー内に「塩担単位での産出量」という表現が含まれているが、これは前述の通り、入力や契約に根拠のない特定の数値・スケールを前提としているため、整合性がない。": 1,
+            "World contractの技術単位定義において、「塩斗」は塩の体積を測る単位であり、作業区域の数（個数）を計測する単位として定義されていない。また、e2の事実では北塩面という作業区域が1つのみ言及されており、3つの作業区域が存在する根拠が入力内にない。": 1,
+            "親エンティティe3の事実では導水路配水栓が3基設置されているとされているが、e4のfacts[2]では西側塩面区に配水栓が1基設置されると記述している。入力ステートメントには区画ごとの配水栓数の割り当てが示されていないため、この具体的数値は入力由来の事実と整合しない。": 1,
+            "親エンティティe3（塩面集落）の概要および事実では「導水路配水栓は3基設置されている」と定義されているが、子エンティティe4（西側塩面区）のfacts[2]では「導水路配水栓が1基設置されている」と記述されている。集落全体で3基であるという事実と、特定の区画で1基であるという事実の間に、残りの2基の帰属先や分配ロジックの明確な根拠が提示されておらず、物理的なインフラ構成として矛盾が生じている可能性がある。": 1,
+            "対象エンティティe15の名前は「水圧管理庫」であり、既存の関連エンティティe13（導水路統制所）の事実定義と一致している。しかし、facts[1]における固有名词の定義が「深層水圧制御施設」となっており、e15の本体名と不一致である。また、e13の事実定義では「水圧管理庫」と明記されており、e15が同じ施設を指すとすれば名称の統一が必要である。; 固有名词の定義が「深層水圧制御施設」となっており、エンティティ名「水圧管理庫」と矛盾している。既存の関連エンティティe13のfacts[1]では「水圧管理庫」が定義されており、e15がe13の姉妹エンティティとして同一の機能を指す場合、名称は一致すべきである。": 1,
+            "入力文書（s1-s4, world_contract, local_context）には「導水路運用組合」という名称の集団は存在しません。定義されている組織は「採掘組合」および「水番家系」のみであり、新しい組織名を独自に作成することは既存の事実構造と矛盾します。; サマリー内で「導水路運用組合」を主体として記述していますが、この名称は入力文書に存在しません。また、採掘組合が水番家系と対立する構造の中、特定の技術的労働集団として独立した存在を定義する根拠が入力内にありません。": 1
+          },
+          "no_outside_premises": {
+            "「水圧調整師」という職務名は世界契約や入力文書に定義されていません。契約で定められた技術的能力（導水路水圧制御など）や組織（採掘組合、水番家系）の範囲外に、具体的な役職名を新規に作成しており、契約の範囲から逸脱しています。": 1
+          }
+        },
         "failures": 0
       },
       "relations": {
-        "calls": 8,
+        "calls": 27,
         "attempts": {
-          "1": 8
+          "1": 27
         },
         "reasons": {},
         "failures": 0
       }
     },
-    "accepted": 9,
+    "accepted": 28,
     "failed": 3,
     "failures_by_step": {
-      "fact": 3
+      "fact_element": 2,
+      "fact_text": 1
     }
   },
   "world_explore": {
-    "iteration": 12,
+    "iteration": 31,
     "counters": {
-      "generation_calls": 180,
-      "accepted": 9,
+      "generation_calls": 653,
+      "accepted": 28,
       "rejected": 3,
       "no_candidates": 0,
-      "rewrites": 28,
+      "rewrites": 107,
       "errors": 0
     },
-    "stop_reason": "max_iterations",
-    "elapsed_seconds": 6371.62
+    "stop_reason": "coverage_met",
+    "world_status": {
+      "criteria": {
+        "faithful": {
+          "value": 1.0,
+          "threshold": 1.0,
+          "met": true
+        },
+        "breadth.axes": {
+          "value": 1.0,
+          "threshold": 1.0,
+          "met": true
+        },
+        "breadth.perspective": {
+          "value": 6,
+          "threshold": 1,
+          "met": true
+        },
+        "depth.relations": {
+          "value": 0.46153846153846156,
+          "threshold": 0.3,
+          "met": true
+        },
+        "depth.history": {
+          "value": 2,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.world": {
+          "value": 15,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.region": {
+          "value": 4,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.settlement": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.district": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.site": {
+          "value": 3,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.detail": {
+          "value": 4,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.chain": {
+          "value": true,
+          "threshold": true,
+          "met": true
+        }
+      },
+      "met": true
+    },
+    "elapsed_seconds": 29146.484
   },
+  "finished_at": "2026-10-10T20:46:56+00:00",
   "structured": {
-    "input_brief": {
-      "calls": 1,
-      "attempts": {
-        "1": 1
-      },
-      "failures": 0,
-      "elapsed": 66.8860754580237,
-      "modes": {
-        "constrained": 1
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "world_axes": {
-      "calls": 1,
-      "attempts": {
-        "1": 1
-      },
-      "failures": 0,
-      "elapsed": 372.9298991248943,
-      "modes": {
-        "constrained": 1
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "world_contract": {
-      "calls": 1,
-      "attempts": {
-        "2": 1
-      },
-      "failures": 0,
-      "elapsed": 134.80246262485161,
-      "modes": {
-        "constrained": 1,
-        "unconstrained": 1
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
     "type": {
-      "calls": 12,
+      "calls": 22,
       "attempts": {
-        "1": 12
+        "1": 22
       },
       "failures": 0,
-      "elapsed": 500.5978204146959,
+      "elapsed": 1492.3195640840568,
       "modes": {
-        "unconstrained": 12
+        "constrained": 22
       },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -394,15 +793,16 @@
       }
     },
     "grounding": {
-      "calls": 12,
+      "calls": 25,
       "attempts": {
-        "1": 12
+        "1": 25
       },
       "failures": 0,
-      "elapsed": 532.285062040668,
+      "elapsed": 1640.721084958408,
       "modes": {
-        "unconstrained": 12
+        "constrained": 25
       },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -413,15 +813,36 @@
       }
     },
     "name": {
-      "calls": 14,
+      "calls": 28,
       "attempts": {
-        "1": 14
+        "1": 28
       },
       "failures": 0,
-      "elapsed": 273.9585307096131,
+      "elapsed": 940.9384764572605,
       "modes": {
-        "unconstrained": 14
+        "constrained": 28
       },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "real_world_check": {
+      "calls": 69,
+      "attempts": {
+        "1": 69
+      },
+      "failures": 0,
+      "elapsed": 1897.5632470403798,
+      "modes": {
+        "constrained": 69
+      },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -432,15 +853,16 @@
       }
     },
     "axes": {
-      "calls": 12,
+      "calls": 25,
       "attempts": {
-        "1": 12
+        "1": 25
       },
       "failures": 0,
-      "elapsed": 274.1752412500791,
+      "elapsed": 872.0454635848291,
       "modes": {
-        "unconstrained": 12
+        "constrained": 25
       },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -451,15 +873,16 @@
       }
     },
     "summary": {
-      "calls": 15,
+      "calls": 26,
       "attempts": {
-        "1": 15
+        "1": 26
       },
       "failures": 0,
-      "elapsed": 803.0530319996178,
+      "elapsed": 1721.8074462069198,
       "modes": {
-        "unconstrained": 15
+        "constrained": 26
       },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -469,16 +892,17 @@
         "schema_failures": 0
       }
     },
-    "fact": {
-      "calls": 58,
+    "fact_element": {
+      "calls": 112,
       "attempts": {
-        "1": 58
+        "1": 112
       },
       "failures": 0,
-      "elapsed": 1682.489233918488,
+      "elapsed": 4121.409525083844,
       "modes": {
-        "unconstrained": 58
+        "constrained": 112
       },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -488,16 +912,17 @@
         "schema_failures": 0
       }
     },
-    "fact_check": {
-      "calls": 40,
+    "fact_text": {
+      "calls": 81,
       "attempts": {
-        "1": 40
+        "1": 81
       },
       "failures": 0,
-      "elapsed": 1835.6356427925639,
+      "elapsed": 2696.5243975427,
       "modes": {
-        "unconstrained": 40
+        "constrained": 81
       },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -507,16 +932,17 @@
         "schema_failures": 0
       }
     },
-    "review": {
-      "calls": 9,
+    "restatement_check": {
+      "calls": 73,
       "attempts": {
-        "1": 9
+        "1": 73
       },
       "failures": 0,
-      "elapsed": 241.53763970639557,
+      "elapsed": 2438.7233449127525,
       "modes": {
-        "unconstrained": 9
+        "constrained": 73
       },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -527,15 +953,36 @@
       }
     },
     "relations": {
-      "calls": 8,
+      "calls": 22,
       "attempts": {
-        "1": 8
+        "1": 22
       },
       "failures": 0,
-      "elapsed": 225.90683358395472,
+      "elapsed": 826.8716127090156,
       "modes": {
-        "unconstrained": 8
+        "constrained": 22
       },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "review": {
+      "calls": 24,
+      "attempts": {
+        "1": 24
+      },
+      "failures": 0,
+      "elapsed": 1140.0627321247011,
+      "modes": {
+        "constrained": 24
+      },
+      "model": "qwen3.8:27b",
       "placeholder_violations": 0,
       "schema_echo": 0,
       "conversions": {
@@ -546,15 +993,14 @@
       }
     }
   },
-  "finished_at": "2026-10-07T17:56:47+00:00",
-  "stop_reason": "max_iterations",
-  "iterations": 12,
+  "stop_reason": "coverage_met",
+  "iterations": 31,
   "counters": {
-    "generation_calls": 180,
-    "accepted": 9,
+    "generation_calls": 653,
+    "accepted": 28,
     "rejected": 3,
     "no_candidates": 0,
-    "rewrites": 28,
+    "rewrites": 107,
     "errors": 0
   },
   "quality_report": {
