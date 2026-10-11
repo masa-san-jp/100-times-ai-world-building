@@ -357,6 +357,22 @@ def evaluate_frontier(
     return items
 
 
+def focus_items(
+    items: Sequence[Mapping[str, Any]], status: Mapping[str, Any],
+) -> Sequence[Mapping[str, Any]]:
+    """Narrow items to those that fill unmet world criteria.
+
+    Returns items itself when every criterion is met or nothing qualifies.
+    """
+    if status.get("met"):
+        return items
+    kinds = {"world_gap"}
+    if not status["criteria"].get("breadth.axes", {}).get("met", True):
+        kinds.add("axis_gap")
+    focused = [i for i in items if i["kind"] in kinds]
+    return focused or items
+
+
 def candidate_pairs(
     items: Sequence[Mapping[str, Any]], cfg: Mapping[str, Any],
 ) -> List[Tuple[Dict[str, Any], str]]:
@@ -857,9 +873,22 @@ class ExplorationLoop:
             self.manifest.set_phase_status(CHECKPOINT_PHASE, status)
 
     # -- one iteration
+    def _focus(self, graph, items):
+        """Return (focused items, whether focusing applies); items are marked."""
+        focused = items
+        if self.cfg["selection"].get("focus_unmet", True):
+            focused = focus_items(items, self._world_status(graph))
+        active = focused is not items
+        for item in items:
+            item["focused"] = False
+        for item in focused:
+            item["focused"] = active
+        return focused, active
+
     def _iterate(self, graph: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
         by_axis = bool(self.cfg["selection"].get("arm_by_axis", False))
-        pairs = candidate_pairs(evaluate_frontier(graph, self.axes, self.cfg), self.cfg)
+        items = evaluate_frontier(graph, self.axes, self.cfg)
+        pairs = candidate_pairs(self._focus(graph, items)[0], self.cfg)
         if not pairs:
             return graph, False
         options = [(arm_key(op, item, by_axis), pair_prior(item, op, self.cfg))
@@ -951,7 +980,8 @@ class ExplorationLoop:
         records.append({
             "type": "iteration", "iteration": it, "arm": arm,
             "operator": operator, "target": target,
-            "frontier": {k: item[k] for k in ("kind", "axis", "deficit")},
+            "frontier": {**{k: item[k] for k in ("kind", "axis", "deficit")},
+                         "focused": bool(item.get("focused"))},
             "context": context, "outcome": "error" if error else "accepted" if accepted else "discarded",
             "accepted_id": result.entity["id"] if accepted else None,
             "arm_reward": round(reward, 4),
@@ -977,12 +1007,20 @@ class ExplorationLoop:
         Budget or backend failure in any worker discards the whole batch (re-raised).
         """
         by_axis = bool(self.cfg["selection"].get("arm_by_axis", False))
-        pairs = candidate_pairs(evaluate_frontier(graph, self.axes, self.cfg), self.cfg)
+        items = evaluate_frontier(graph, self.axes, self.cfg)
+        focused, active = self._focus(graph, items)
         chosen = []
-        while pairs and len(chosen) < size:
-            options = [(arm_key(op, item, by_axis), pair_prior(item, op, self.cfg))
-                       for item, op in pairs]
-            chosen.append(pairs.pop(self.bandit.select(options)))
+        # Focused candidates first; any remainder is filled from the others.
+        groups = [candidate_pairs(focused, self.cfg)]
+        if active:
+            ids = {id(i) for i in focused}
+            groups.append(candidate_pairs(
+                [i for i in items if id(i) not in ids], self.cfg))
+        for pairs in groups:
+            while pairs and len(chosen) < size:
+                options = [(arm_key(op, item, by_axis), pair_prior(item, op, self.cfg))
+                           for item, op in pairs]
+                chosen.append(pairs.pop(self.bandit.select(options)))
         if not chosen:
             return graph, 0, None
         contract = world_premises(graph)
@@ -1214,7 +1252,7 @@ __all__ = [
     "Bandit", "BackendWaitExhausted", "BudgetExhausted",
     "EXIT_CODE_BACKEND_UNAVAILABLE", "ExplorationLoop", "ExplorationResult",
     "BREADTH_OPERATORS", "PREFERENCES_RELATIVE_PATH", "STOP_REASONS", "arm_key", "axis_consumption",
-    "axis_shares", "candidate_pairs", "evaluate_frontier",
+    "axis_shares", "candidate_pairs", "focus_items", "evaluate_frontier",
     "extract_preference_pairs", "item_prior", "load_explore_config",
     "operator_consumption", "pair_prior", "scale_needs",
     "read_preference_log", "run_world_engine",

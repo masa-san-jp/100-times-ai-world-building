@@ -12,7 +12,7 @@ import pytest
 from src.llm.fake import FakeLLMBackend
 from src.world.explore import (
     Bandit, ExplorationLoop, STOP_REASONS, arm_key, candidate_pairs,
-    evaluate_frontier, extract_preference_pairs,
+    evaluate_frontier, extract_preference_pairs, focus_items,
     load_explore_config, read_preference_log, run_world_engine,
 )
 from src.world.graph import make_entity, new_graph, validate_graph
@@ -238,6 +238,73 @@ def test_world_status_requires_axes_scales_and_world_metrics():
     assert not st["criteria"]["breadth.axes"]["met"]
     assert not st["criteria"]["scale.settlement"]["met"]
     assert not st["criteria"]["faithful"]["met"]
+
+
+# ------------------------------------------------------------------ focusing
+
+def _item(kind, target="e1"):
+    item = {"kind": kind, "target": target, "axis": None, "deficit": 0.5,
+            "axis_share": 0.0}
+    if kind == "world_gap":
+        item["operator"] = "cause"
+    return item
+
+
+def _status(**met):
+    criteria = {k: {"met": v} for k, v in met.items()}
+    return {"met": all(met.values()), "criteria": criteria}
+
+
+def test_focus_items_keeps_only_world_gap_when_unmet():
+    items = [_item("unexpanded"), _item("world_gap"), _item("axis_gap"), _item("thin")]
+    out = focus_items(items, _status(**{"breadth.axes": True, "scale.chain": False}))
+    assert [i["kind"] for i in out] == ["world_gap"]
+
+
+def test_focus_items_adds_axis_gap_when_breadth_axes_unmet():
+    items = [_item("unexpanded"), _item("world_gap"), _item("axis_gap")]
+    out = focus_items(items, _status(**{"breadth.axes": False}))
+    assert [i["kind"] for i in out] == ["world_gap", "axis_gap"]
+
+
+def test_focus_items_returns_all_without_focus_candidates_or_when_met():
+    items = [_item("unexpanded"), _item("thin")]
+    assert focus_items(items, _status(**{"breadth.axes": True, "x": False})) is items
+    gap = [_item("world_gap")]
+    assert focus_items(gap + items, _status(a=True)) == gap + items
+    empty = [_item("empty")]
+    assert focus_items(empty, _status(a=False)) is empty
+
+
+def _capture_batch(tmp_path, items, size, **selection):
+    config = cfg(selection=selection)
+    lp = loop(tmp_path, config=config)
+    seen = []
+    import src.world.explore as ex
+    orig = ex.evaluate_frontier
+    ex.evaluate_frontier = lambda *a, **k: [dict(i) for i in items]
+    lp._settle = lambda graph, it, arm, op, target, item, *a, **k: (
+        seen.append((item["kind"], item["focused"])) or graph)
+    try:
+        lp._iterate_batch(small_graph(), size)
+    finally:
+        ex.evaluate_frontier = orig
+    return seen
+
+
+def test_batch_fills_remainder_from_other_candidates(tmp_path):
+    items = [_item("world_gap", "e1"), _item("unexpanded", "e4"),
+             _item("thin", "e3"), _item("uncaused", "e2")]
+    seen = _capture_batch(tmp_path, items, 3)
+    assert len(seen) == 3
+    assert seen[0] == ("world_gap", True)
+    assert all(kind != "world_gap" and not focused for kind, focused in seen[1:])
+
+
+def test_batch_focus_unmet_false_ignores_focus(tmp_path):
+    items = [_item("world_gap", "e1"), _item("unexpanded", "e4")]
+    seen = _capture_batch(tmp_path, items, 2, focus_unmet=False)
+    assert all(not focused for _, focused in seen)
 
 
 # ------------------------------------------------------------------- bandit
