@@ -1,12 +1,4 @@
 # Parameters for retained deterministic checks. Adoption uses step checks.
-novelty:
-  ngram_size: 3
-  similarity_floor: 0.4
-  duplicate_measure_penalty: 0.3
-  duplicate_measure_cap: 0.45
-  duplicate_phrase_penalty: 0.3
-  duplicate_phrase_min_ngrams: 3
-  duplicate_phrase_share: 0.18
 specificity:
   min_fact_kinds: 3
   min_proper_noun_facts: 1

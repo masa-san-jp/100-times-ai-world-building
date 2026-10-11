@@ -1,4 +1,12 @@
-# Provisional achievement conditions; calibrate using actual runs.
+# World-level achievement conditions. The exploration stops with
+# "coverage_met" once all of them hold.
+#
+# Calibrated against the comparison runs in #73 (seed 1, judge fixed):
+# every condition was reached within one run (31 iterations), and the
+# conditions still separated smaller from larger generators within the same
+# budget (breadth.axes 0.19 / 0.38 / 1.0; depth.history 0 / 1 / 2). The
+# values express the goal, not a model's ability, so they are not lowered
+# to let a model pass; a model that falls short shows it as a shortfall.
 faithful:
   threshold: 1.0
 breadth:

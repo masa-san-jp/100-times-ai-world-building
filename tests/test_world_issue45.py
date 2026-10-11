@@ -11,7 +11,7 @@ from src.world.explore import (
 from src.world.graph import make_entity, new_graph
 from src.world.reward import load_reward_config
 from src.world.verify import (
-    load_language_rules, verify_consistency, verify_novelty,
+    load_language_rules, verify_consistency,
     verify_specificity,
 )
 from tests.test_world_explore import AXES, BRIEF, make_backend
@@ -118,29 +118,3 @@ def test_consistency_rejects_broad_place_child_of_institution():
     ))
     assert verify_consistency(
         allowed, graph, params=REWARD["consistency"]).score == 1.0
-
-
-def test_novelty_detects_repeated_measurement_and_phrase():
-    graph = new_graph("en")
-    graph["entities"] = [make_entity(
-        "e1", "institution", "Output Registry", "region",
-        summary="The registry records output at the north station and "
-                "keeps the signed daily sheet.",
-        facts=[
-            {"kind": "number", "text": "daily output 3,000 tons"},
-            {"kind": "object", "text": "signed daily sheet"},
-        ], provenance=PROV,
-    )]
-    candidate = _candidate(make_entity(
-        "e9", "institution", "South Depot", "region",
-        summary="The depot records output at the south station and keeps "
-                "the signed daily sheet for inspection.",
-        facts=[
-            {"kind": "number", "text": "processed load 3,000 tons"},
-            {"kind": "object", "text": "inspection seal"},
-        ], provenance=PROV,
-    ))
-    result = verify_novelty(candidate, graph, params=REWARD["novelty"])
-    codes = {d.code for d in result.deductions}
-    assert {"duplicate_measure", "duplicate_phrase"} <= codes
-    assert result.score < 1.0

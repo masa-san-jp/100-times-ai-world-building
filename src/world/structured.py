@@ -1,5 +1,6 @@
 """Generate, validate and repair every structured model response."""
 
+import hashlib
 import json
 import re
 import time
@@ -155,6 +156,13 @@ def _fidelity_violations(data, schema, source):
     return violations
 
 
+def _schema_id(schema):
+    if isinstance(schema, dict) and schema.get("$id"):
+        return str(schema["$id"])
+    canonical = json.dumps(schema, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha1(canonical.encode("utf-8")).hexdigest()[:12]
+
+
 def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
                         images=None, max_attempts, max_conversions=2, content_validator=None,
                         allow_conversion=True):
@@ -167,7 +175,8 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
     client = client_instance(backend)
     if "_structured_modes" not in vars(client):
         client._structured_modes = {}
-    key = (getattr(client, "backend_name", type(client).__name__), getattr(client, "model", None))
+    key = (getattr(client, "backend_name", type(client).__name__), getattr(client, "model", None),
+           _schema_id(schema))
     forced = getattr(client, "schema_always_constrained", False) is True
     constrained = forced or client._structured_modes.get(key, True)
     original = prompt + "\n\nOUTPUT SCHEMA:\n" + json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
@@ -207,7 +216,7 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
         if not parseable and constrained and not forced:
             constrained = False
             client._structured_modes[key] = False
-            logger.info("Structured output switched to unconstrained for backend={} model={}", *key)
+            logger.info("Structured output switched to unconstrained for backend={} model={} schema={}", *key)
         return raw, parsed, violations, parseable, content_invalid
 
     for attempt in range(1, max_attempts + 1):

@@ -17,7 +17,7 @@ from typing import (
 import yaml
 
 from .textsim import (
-    character_ngrams, echo_coverage, is_cjk_text, jaccard, ngrams_of,
+    character_ngrams, echo_coverage, is_cjk_text, jaccard,
     normalize_item,
 )
 from .graph import SCALES, SCALE_RANK, get_entity, local_context, new_graph, make_entity
@@ -155,10 +155,6 @@ def embedding_similarity(embed: Callable[[str], Sequence[float]]) -> Similarity:
         nb = sum(y * y for y in vb) ** 0.5
         return _clamp(dot / (na * nb)) if na and nb else 0.0
     return sim
-
-
-def _penalty_from_similarity(sim: float, floor: float) -> float:
-    return _clamp((sim - floor) / (1.0 - floor)) if floor < 1 else 0.0
 
 
 # ---------------------------------------------------------------- reference
@@ -435,37 +431,6 @@ def verify_specificity(
 
 
 _NUM = re.compile(r"\d+")
-_MEASURE_TOKEN = re.compile(
-    r"(?<![0-9A-Za-z])([0-9][0-9,]*(?:\.[0-9]+)?)[ \t]*"
-    r"(%|‰|°|[A-Za-z]+|[\u3040-\u30ff\u3400-\u9fff]{1,8})?"
-)
-
-
-def _measure_tokens(text: Any) -> set:
-    """Return normalized number+unit tokens suitable for repeat detection."""
-    normalized = unicodedata.normalize("NFKC", str(text or ""))
-    out = set()
-    for match in _MEASURE_TOKEN.finditer(normalized):
-        suffix = normalize_item(match.group(2) or "")
-        # A bare number is commonly a reference index or a count. Requiring a
-        # unit keeps this check focused on repeated measured values.
-        if suffix:
-            value = match.group(1).replace(",", "")
-            out.add(f"{value}:{suffix}")
-    return out
-
-
-def _entity_measure_occurrences(entity: Mapping[str, Any]) -> Dict[str, set]:
-    """Map a measured token to the normalized fields in which it occurs."""
-    texts = [entity.get("name", ""), entity.get("summary", "")]
-    texts += [f.get("text", "") for f in entity.get("facts") or []
-              if isinstance(f, Mapping)]
-    out: Dict[str, set] = {}
-    for text in texts:
-        normalized = normalize_item(text)
-        for token in _measure_tokens(text):
-            out.setdefault(token, set()).add(normalized)
-    return out
 
 
 def _ancestors(graph: Mapping[str, Any], eid: Optional[str]) -> List[str]:
@@ -727,84 +692,3 @@ def verify_objectivity(
         add("question", "rhetorical question in an explanatory text")
     return VerifierResult("objectivity", _score(d), d)
 
-
-def verify_novelty(
-    candidate: Mapping[str, Any], graph: Mapping[str, Any],
-    similarity: Optional[Similarity] = None,
-    params: Optional[Mapping[str, Any]] = None,
-) -> VerifierResult:
-    p = params or {}
-    sim = similarity or (lambda a, b: ngram_similarity(a, b, int(p.get("ngram_size", 3))))
-    floor = float(p.get("similarity_floor", 0.4))
-    entity = candidate["entity"]
-    text = entity_text(entity)
-    best, best_id = 0.0, None
-    for other in graph.get("entities", []):
-        if other.get("id") == entity.get("id"):
-            continue
-        s = sim(text, entity_text(other))
-        a, b = entity.get("summary"), other.get("summary")
-        if a and b:  # a renamed copy still repeats the explanation
-            s = max(s, sim(str(a), str(b)))
-        if normalize_item(other.get("name", "")) == normalize_item(entity.get("name", "")):
-            s = 1.0
-        if s > best:
-            best, best_id = s, other.get("id")
-    penalty = _penalty_from_similarity(best, floor)
-    d: List[Deduction] = []
-    if penalty > 0:
-        d.append(Deduction(
-            "novelty", "summary", "duplicate",
-            f"substantially duplicates existing entity {best_id}",
-            penalty, {"similarity": round(best, 4), "entity": best_id}))
-    # Detect repeated measurements even when the surrounding explanations are
-    # different, e.g. two entities both claiming the same output quantity.
-    own_measures = _entity_measure_occurrences(entity)
-    measure_penalty = 0.0
-    measure_cap = float(p.get("duplicate_measure_cap", 0.45))
-    each_measure = float(p.get("duplicate_measure_penalty", 0.3))
-    for other in graph.get("entities", []):
-        if other.get("id") == entity.get("id"):
-            continue
-        other_measures = _entity_measure_occurrences(other)
-        shared = sorted(
-            token for token in own_measures.keys() & other_measures.keys()
-            # An identical field is a copied detail, not evidence that two
-            # independently described entities reused a value.
-            if not own_measures[token] & other_measures[token])
-        if not shared:
-            continue
-        amount = min(each_measure, max(0.0, measure_cap - measure_penalty))
-        if amount <= 0:
-            break
-        measure_penalty += amount
-        d.append(Deduction(
-            "novelty", "facts", "duplicate_measure",
-            "reuses a measured value already assigned to another entity",
-            amount, {"entity": other.get("id"), "tokens": shared[:5]}))
-    penalty += measure_penalty
-
-    # Long shared character n-grams catch repeated wording that is not close
-    # enough for whole-entity Jaccard to flag it. The threshold is configured
-    # in characters, so it works for both spaced and CJK input.
-    phrase_size = int(p.get("duplicate_phrase_ngram_size", 8))
-    phrase_min = int(p.get("duplicate_phrase_min_ngrams", 3))
-    phrase_share = float(p.get("duplicate_phrase_share", 0.18))
-    own_phrases = ngrams_of(entity.get("summary", ""), phrase_size)
-    phrase_each = float(p.get("duplicate_phrase_penalty", 0.3))
-    if own_phrases:
-        for other in graph.get("entities", []):
-            if other.get("id") == entity.get("id"):
-                continue
-            shared = own_phrases & ngrams_of(other.get("summary", ""), phrase_size)
-            if len(shared) < phrase_min or len(shared) / len(own_phrases) < phrase_share:
-                continue
-            penalty += phrase_each
-            d.append(Deduction(
-                "novelty", "summary", "duplicate_phrase",
-                "reuses a long phrase from another entity",
-                phrase_each, {"entity": other.get("id"),
-                              "shared_ngrams": len(shared)}))
-            break
-    penalty = _clamp(penalty)
-    return VerifierResult("novelty", 1.0 - penalty, d)
