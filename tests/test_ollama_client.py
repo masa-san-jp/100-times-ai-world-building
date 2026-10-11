@@ -186,7 +186,8 @@ class TestOllamaClient:
         assert seeds == [100, 101]
 
     @patch('requests.post')
-    def test_generate_retry_on_timeout(self, mock_post):
+    @patch.object(OllamaClient, 'is_alive', return_value=True)
+    def test_generate_retry_on_timeout(self, mock_alive, mock_post):
         """Test retry mechanism on timeout"""
         client = OllamaClient(max_retries=2, retry_delay=0)
 
@@ -227,7 +228,8 @@ class TestOllamaClient:
         assert mock_post.call_count == 2
 
     @patch('requests.post')
-    def test_generate_all_retries_fail(self, mock_post):
+    @patch.object(OllamaClient, 'is_alive', return_value=True)
+    def test_generate_all_retries_fail(self, mock_alive, mock_post):
         """Test that None is returned when all retries are exhausted"""
         client = OllamaClient(max_retries=2, retry_delay=0)
 
