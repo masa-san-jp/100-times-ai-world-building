@@ -124,12 +124,15 @@ class Pipeline:
             overrides=engine_cfg.get("explore") or {})
         self.operator_config = _operator_config(engine_cfg.get("operator") or {})
         self.generation_defaults = dict(self.config.get("generation") or {})
-        self.budget_requested = {
+        explicit_budget = {
             k: v for k, v in (budget or {}).items()
             if k in BUDGET_KEYS and v is not None}
         unknown = sorted(set(budget or {}) - set(BUDGET_KEYS))
         if unknown:
             raise ValueError(f"Unknown budget keys: {unknown}")
+        # Filled in below once the stored manifest is known: a resumed run
+        # keeps the budget it started with unless a key is given explicitly.
+        self.budget_requested = dict(explicit_budget)
         self.budget = {
             **{k: self.explore_config["budget"].get(k) for k in BUDGET_KEYS},
             **self.budget_requested}
@@ -221,9 +224,26 @@ class Pipeline:
                 models=dict(self.model_names))
         if self.manifest.data.get("judge_model") != self.judge_model:
             self.manifest.update(judge_model=self.judge_model)
-        self.manifest.update(budget={
+        stored_budget = stored.get("budget") if isinstance(
+            stored.get("budget"), dict) else {}
+        resume_overrides = list(stored_budget.get("resume_overrides") or [])
+        if stored and isinstance(stored_budget.get("requested"), dict):
+            self.budget_requested = {
+                k: v for k, v in stored_budget["requested"].items()
+                if k in BUDGET_KEYS and v is not None}
+            self.budget = {
+                **{k: self.explore_config["budget"].get(k)
+                   for k in BUDGET_KEYS},
+                **self.budget_requested, **explicit_budget}
+            if explicit_budget:
+                resume_overrides.append(
+                    {"at": utc_now(), "overrides": dict(explicit_budget)})
+        budget_record = {
             "requested": dict(self.budget_requested),
-            "effective": dict(self.budget)})
+            "effective": dict(self.budget)}
+        if resume_overrides:
+            budget_record["resume_overrides"] = resume_overrides
+        self.manifest.update(budget=budget_record)
         logger.info(
             f"Pipeline initialized (run_id={self.run_id}, "
             f"run_seed={self.run_seed}, model={self.model})")

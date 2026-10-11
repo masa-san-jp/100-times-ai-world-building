@@ -10,7 +10,9 @@ from src.llm.fake import FakeLLMBackend
 from src.world.criteria import real_world_check
 from src.world.explore import run_world_engine
 from src.world.schemas import load_schema, step_schema
-from src.world.structured import CONVERT_PROMPT_PATH, generate_structured, metrics_markdown
+from src.world.structured import (
+    CONVERT_PROMPT_PATH, _schema_id, generate_structured, metrics_markdown,
+)
 from tests.test_world_explore import RAW, cfg, make_backend
 
 
@@ -242,7 +244,24 @@ def test_constraint_learning_from_conversion_uses_same_client_and_model_key(forc
     backend.model = "another synthetic model"
     convert(backend)
     assert [c["constrained"] for c in backend.schema_calls] == [True, True, forced, forced, True]
-    assert backend._structured_modes == ({} if forced else {("fake", "fake"): False})
+    assert backend._structured_modes == ({} if forced else {("fake", "fake", _schema_id(DESCRIPTION)): False})
+
+
+def test_constraint_switch_is_recorded_per_schema():
+    backend = FakeLLMBackend(["", {"description": "ok"}, {"label": "a", "value": 1},
+                              {"description": "again"}])
+    convert(backend, max_attempts=2)
+    convert(backend, MEASUREMENT)
+    convert(backend)
+    assert [c["constrained"] for c in backend.schema_calls] == [True, False, True, False]
+    assert set(backend._structured_modes) == {("fake", "fake", _schema_id(DESCRIPTION))}
+
+
+def test_schema_id_prefers_dollar_id_else_hash_of_normalized_json():
+    assert _schema_id({"$id": "urn:x", "type": "object"}) == "urn:x"
+    first = _schema_id({"type": "object", "properties": {}})
+    assert first == _schema_id({"properties": {}, "type": "object"})
+    assert len(first) == 12 and first != _schema_id({"type": "array"})
 
 
 def test_conversion_metrics_persist_in_manifest_report_and_resume(tmp_path):

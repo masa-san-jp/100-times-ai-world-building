@@ -188,6 +188,40 @@ def test_interrupted_run_is_recorded_and_can_be_resumed(tmp_path):
     assert ok.stop_reason == "max_iterations"
 
 
+def _manifest(tmp_path, run_id):
+    return json.loads((tmp_path / f"world_{run_id}" / "run_manifest.json").read_text("utf-8"))
+
+
+def test_resume_inherits_the_starting_budget(tmp_path):
+    p = make(tmp_path, run_id="b1", backend=make_backend(fail_after=6),
+             budget={"max_iterations": 2})
+    with pytest.raises(KeyboardInterrupt):
+        p.run(RAW)
+    again = Pipeline(config_path=str(CONFIG), output_dir=tmp_path, run_id="b1",
+                     backend=make_backend())
+    assert again.budget["max_iterations"] == 2
+    result = again.resume()
+    assert result.iterations == 2 and result.stop_reason == "max_iterations"
+    budget = _manifest(tmp_path, "b1")["budget"]
+    assert budget["requested"] == {"max_iterations": 2}
+    assert "resume_overrides" not in budget
+
+
+def test_resume_override_replaces_only_the_given_key_and_is_recorded(tmp_path):
+    make(tmp_path, run_id="b2", budget={"max_iterations": 2, "max_generation_calls": 5000}).run(RAW)
+    again = Pipeline(config_path=str(CONFIG), output_dir=tmp_path, run_id="b2",
+                     backend=make_backend(), budget={"max_iterations": 3})
+    result = again.resume()
+    assert result.iterations == 3
+    budget = _manifest(tmp_path, "b2")["budget"]
+    assert budget["requested"] == {"max_iterations": 2, "max_generation_calls": 5000}
+    assert budget["effective"]["max_iterations"] == 3
+    assert budget["effective"]["max_generation_calls"] == 5000
+    assert len(budget["resume_overrides"]) == 1
+    entry = budget["resume_overrides"][0]
+    assert entry["overrides"] == {"max_iterations": 3} and entry["at"]
+
+
 def test_each_new_run_gets_its_own_package(tmp_path):
     a, b = make(tmp_path), make(tmp_path)
     assert a.run_id != b.run_id

@@ -92,6 +92,17 @@ class TestOllamaClient:
         assert mock_post.call_count == 1
 
     @patch('requests.post')
+    def test_grammar_error_400_is_not_retried(self, mock_post):
+        body = "Failed to initialize samplers: failed to parse grammar"
+        response = Mock(status_code=400, text=body)
+        response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "400", response=response)
+        mock_post.return_value = response
+        client = OllamaClient(max_retries=3, retry_delay=0)
+        assert client.generate("Test", format={"type": "object"}) is None
+        assert mock_post.call_count == 1
+
+    @patch('requests.post')
     def test_generate_forwards_top_level_think(self, mock_post):
         client = OllamaClient()
         mock_response = Mock()

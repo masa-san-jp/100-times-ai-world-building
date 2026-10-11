@@ -270,6 +270,14 @@ class OllamaClient(LLMBackend):
                     raise BackendUnavailable(
                         f"Ollama at {self.base_url} does not respond to /api/tags") from e
             except requests.exceptions.RequestException as e:
+                failed = getattr(e, "response", None)
+                body = getattr(failed, "text", "") or ""
+                if getattr(failed, "status_code", None) == 400 and "grammar" in body:
+                    # The same request would fail the same way, so do not retry.
+                    logger.warning(
+                        "Ollama could not convert the schema into a grammar: "
+                        f"{body[:200]}")
+                    return None
                 logger.error(f"Request error: {e}")
             except json.JSONDecodeError as e:
                 logger.error(f"JSON decode error: {e}")

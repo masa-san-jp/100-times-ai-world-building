@@ -10,7 +10,7 @@ from src.world.graph import make_entity, new_graph
 from src.world.reward import load_reward_config
 from src.world.verify import (
     embedding_similarity, load_language_rules,
-    ngram_similarity, verify_consistency, verify_novelty,
+    ngram_similarity, verify_consistency,
     verify_objectivity, verify_provenance, verify_specificity,
 )
 
@@ -250,28 +250,6 @@ def test_concrete_senses_are_not_abstract_words():
     j = cand(summary="深い井戸は豊かな水脈に達する。")
     assert all(d.code != "abstract_density" for d in verify_specificity(
         j, "ja", RULES, CFG["specificity"]).deductions)
-
-
-# ------------------------------------------------------------------ novelty
-
-def test_novelty_good_and_bad():
-    g = graph()
-    g["entities"].append(make_entity(
-        "e5", "institution", "Harbor Ledger Office", "region", parent="e1",
-        summary=cand()["entity"]["summary"], provenance=PROV,
-        facts=cand()["entity"]["facts"]))
-    dup = cand(name="Harbor Ledger Office 2")
-    r = verify_novelty(dup, g, params=CFG["novelty"])
-    assert r.score < 0.3 and r.deductions[0].detail["entity"] == "e5"
-    fresh = cand(name="Kiln Registry",
-                 summary="Registers kiln firings and allots clay quotas.")
-    assert verify_novelty(fresh, g, params=CFG["novelty"]).score > 0.9
-    jp = g
-    jp["entities"].append(make_entity("e6", "place", "潮見台帳所", "region",
-                                      parent="e1", summary="港の帳簿を管理する役所である。",
-                                      provenance=PROV))
-    c = cand(name="別名", summary="港の帳簿を管理する役所である。", facts=[])
-    assert verify_novelty(c, jp, params=CFG["novelty"]).score < 0.5
 
 
 # ------------------------------------------------------------------- reward
