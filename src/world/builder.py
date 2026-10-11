@@ -434,6 +434,63 @@ class EntityBuilder:
         return finish(False)
 
 
+def recheck_against_graph(entity, graph, *, brief, raw_input, contract, judge_backend, language,
+                          new_entity_ids=(), structured_attempts=3, structured_conversions=2,
+                          metrics=None):
+    """Re-run the graph-dependent checks on a built entity; return the failed ones.
+
+    Each failure is {"step": "commit", "slot": None, "reason": ...}. Restatement is judged
+    only against the facts of entities in new_entity_ids (committed after the entity's build began).
+    """
+    failures = []
+
+    def fail(reason):
+        failures.append({"step": "commit", "slot": None, "reason": reason})
+
+    entities = graph["entities"]
+    if not normalize_item(entity["name"]) or any(
+            normalize_item(entity["name"]) == normalize_item(e["name"]) for e in entities):
+        fail("new_information: name must differ from existing names after normalization")
+    existing = [f["text"] for e in entities for f in e.get("facts", [])]
+    for fact in entity.get("facts", []):
+        if fact.get("kind") == "proper_noun" and not new_name(
+                fact.get("name", ""), raw_input, brief, [], entities, contract):
+            fail(f"new_information: name must be new in the input, context and contract; "
+                 f"already present: {fact.get('name')!r}")
+        if fact.get("kind") == "number" and measurement_present(
+                fact.get("value"), fact.get("unit"), fact.get("subject", ""), [], entities):
+            fail(f"new_information: (value, unit) pair ({fact.get('value')}, {fact.get('unit')}) "
+                 f"with a near subject ({fact.get('subject')!r}) already appears in an existing fact")
+        repeated = duplicate_fact(fact["text"], existing)
+        if repeated is not None:
+            fail(f"new_information: fact text duplicates an existing fact: {repeated!r}")
+    fresh = [f["text"] for e in entities if e["id"] in set(new_entity_ids) for f in e.get("facts", [])]
+    for fact in entity.get("facts", []):
+        candidates = restatement_candidates(fact["text"], fresh)
+        if not candidates:
+            continue
+        result = restatement_check(judge_backend, fact["text"], candidates, language=language,
+                                   max_attempts=structured_attempts, max_conversions=structured_conversions)
+        if metrics is not None:
+            entry = metrics["steps"].setdefault("restatement_check",
+                {"calls": 0, "attempts": {}, "reasons": {}, "failures": 0})
+            entry["calls"] += result.attempts + result.conversions
+            entry["attempts"][str(result.attempts)] = entry["attempts"].get(str(result.attempts), 0) + 1
+        if result.data is None:
+            reason = "schema: " + json.dumps(result.violations[-1], ensure_ascii=False)
+        elif result.data["restates"] != "none":
+            reason = "fact text restates an existing fact: " + repr(
+                candidates[int(result.data["restates"][1:]) - 1])
+        else:
+            continue
+        fail("new_information: " + reason)
+        if metrics is not None:
+            entry["failures"] += 1
+            reasons = entry["reasons"].setdefault("new_information", {})
+            reasons[reason] = reasons.get(reason, 0) + 1
+    return failures
+
+
 def build_metrics_markdown(metrics):
     lines = ["## Entity building", "", f"- Accepted entities: {metrics.get('accepted', 0)}",
              f"- Failed entities: {metrics.get('failed', 0)}",
