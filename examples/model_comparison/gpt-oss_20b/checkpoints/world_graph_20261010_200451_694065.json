@@ -1,0 +1,307 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "language": "ja"
+  },
+  "entities": [],
+  "world_contract": {
+    "id": "world_contract",
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "name": "塩暦",
+        "origin": "塩暦は、内陸盆地で初期塩採掘開始と古代導水路開通を記念し、採掘組合と水番家系の初期協議を基に塩と水の共同管理の基盤として定められた。",
+        "markers": [
+          "塩路",
+          "乾井",
+          "水源"
+        ]
+      },
+      "technology": {
+        "description": "古い地下導水路を利用し、乾燥盆地で水を引く技術。水量は限定的で、塩採掘に不可欠だが、管理権争いが続く",
+        "capabilities": [
+          "水源管理",
+          "乾井管理",
+          "塩採掘"
+        ],
+        "units": [
+          {
+            "symbol": "shg",
+            "quantity": "塩の質量を測る単位"
+          },
+          {
+            "symbol": "shp",
+            "quantity": "塩の質量を測定する単位"
+          },
+          {
+            "symbol": "nsh",
+            "quantity": "塩の密度を測る単位"
+          }
+        ]
+      },
+      "society": {
+        "description": "採掘組合と水番家系(血縁)が導水路管理権を協議し、共同決定で水使用と塩採掘量を制限。各組織は自らの役割を守り、法と規範に従う。",
+        "institutions": [
+          {
+            "name": "水源監査委",
+            "description": "水源管理と塩採掘量の合意を仲介し、使用権を監査する"
+          },
+          {
+            "name": "塩水調整会",
+            "description": "塩採掘と水使用を調整し年次報告を監査する"
+          },
+          {
+            "name": "水源審査委員会",
+            "description": "水源監査委補佐役で季節ごとに水源と塩採掘量を調査する"
+          }
+        ]
+      }
+    },
+    "provenance": {
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes"
+    }
+  },
+  "contract_stage": {
+    "status": "success",
+    "attempts": 16,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [],
+    "steps": [
+      {
+        "step": "calendar_name",
+        "slot": null,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_origin",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "technology_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "society_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_name": {
+          "calls": 2,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "calendar_origin": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "calendar_marker": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "technology_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "capability": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "unit": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "society_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "institution": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        }
+      }
+    }
+  }
+}

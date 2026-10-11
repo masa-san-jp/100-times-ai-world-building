@@ -1,0 +1,442 @@
+{
+  "contract_stage": {
+    "attempts": 16,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [],
+    "metrics": {
+      "steps": {
+        "calendar_marker": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "calendar_name": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 2,
+          "failures": 0,
+          "reasons": {}
+        },
+        "calendar_origin": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "capability": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "institution": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "society_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "technology_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "unit": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        }
+      }
+    },
+    "status": "success",
+    "steps": [
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": null,
+        "step": "calendar_name",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "calendar_origin",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "technology_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "society_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      }
+    ]
+  },
+  "entities": [
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [],
+            "reason": "地下導水路の水引きが乾燥盆地で必須であり、管理権争いが長年続いていると記載されているため",
+            "statement_ids": [
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "塩の質量",
+          "text": "塩水盆地の年平均塩の質量は5000 shgであり、塩暦の「塩路」「乾井」「水源」マーカーの下で水源監査委・塩水調整会・水源審査委員会が管理している。",
+          "unit": "shg",
+          "value": 5000
+        },
+        {
+          "kind": "proper_noun",
+          "name": "砂塩盆地",
+          "provenance": {
+            "derived_from": [],
+            "reason": "地下導水路の水引きが乾燥盆地で必須であり、管理権争いが長年続いていると記載されているため",
+            "statement_ids": [
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "砂塩盆地は内陸盆地で、塩水盆地の年平均塩の質量は5000 shgで、塩暦の塩路・乾井・水源マーカー下で水源監査委・塩水調整会・水源審査委員会が管理している。"
+        }
+      ],
+      "id": "e1",
+      "name": "塩水盆地",
+      "origin_operator": "premise",
+      "parent": null,
+      "provenance": {
+        "derived_from": [],
+        "reason": "地下導水路の水引きが乾燥盆地で必須であり、管理権争いが長年続いていると記載されているため",
+        "statement_ids": [
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "塩水盆地は内陸の乾燥盆地で、塩の採掘が主要経済活動である。降雨はほとんどなく、水は古代地下導水路から引かれる。導水路管理権を巡り採掘組合と水番家系が長期にわたり対立している。水源監査委・塩水調整会・水源審査委員会が水源と塩採掘量を調整・監査する。塩はshgで測定される。",
+      "type": "concept"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の情報を基に地域レベルの詳細を定義",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "乾塩渓谷の塩採掘量",
+          "text": "乾塩渓谷の塩採掘量は1200 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会が管理している。",
+          "unit": "shg",
+          "value": 1200
+        },
+        {
+          "kind": "proper_noun",
+          "name": "蒸気谷",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の情報を基に地域レベルの詳細を定義",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "蒸気谷は乾塩渓谷の別名で、塩暦の塩路・乾井・水源マーカーに沿い、塩水調整会が年次報告を監査する"
+        }
+      ],
+      "id": "e2",
+      "name": "乾塩渓谷",
+      "origin_operator": "zoom",
+      "parent": "e1",
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "e1の情報を基に地域レベルの詳細を定義",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "located_in"
+        },
+        {
+          "target": "e1",
+          "type": "member_of"
+        }
+      ],
+      "scale": "region",
+      "scores": {
+        "reward": 0.96875
+      },
+      "summary": "乾塩渓谷は塩水盆地の一部で、内陸盆地の乾燥環境に位置し、主に塩採掘が行われる。雨はほとんど降らず、水は古代地下導水路から引かれる。水源監査委・塩水調整会・水源審査委員会が水源と塩採掘量を調整・監査し、塩はshgで測定される。塩暦の塩路・乾井・水源マーカーに沿って管理が行われる。",
+      "type": "place"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "塩路",
+          "乾井",
+          "水源"
+        ],
+        "name": "塩暦",
+        "origin": "塩暦は、内陸盆地で初期塩採掘開始と古代導水路開通を記念し、採掘組合と水番家系の初期協議を基に塩と水の共同管理の基盤として定められた。"
+      },
+      "society": {
+        "description": "採掘組合と水番家系(血縁)が導水路管理権を協議し、共同決定で水使用と塩採掘量を制限。各組織は自らの役割を守り、法と規範に従う。",
+        "institutions": [
+          {
+            "description": "水源管理と塩採掘量の合意を仲介し、使用権を監査する",
+            "name": "水源監査委"
+          },
+          {
+            "description": "塩採掘と水使用を調整し年次報告を監査する",
+            "name": "塩水調整会"
+          },
+          {
+            "description": "水源監査委補佐役で季節ごとに水源と塩採掘量を調査する",
+            "name": "水源審査委員会"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "水源管理",
+          "乾井管理",
+          "塩採掘"
+        ],
+        "description": "古い地下導水路を利用し、乾燥盆地で水を引く技術。水量は限定的で、塩採掘に不可欠だが、管理権争いが続く",
+        "units": [
+          {
+            "quantity": "塩の質量を測る単位",
+            "symbol": "shg"
+          },
+          {
+            "quantity": "塩の質量を測定する単位",
+            "symbol": "shp"
+          },
+          {
+            "quantity": "塩の密度を測る単位",
+            "symbol": "nsh"
+          }
+        ]
+      }
+    }
+  }
+}

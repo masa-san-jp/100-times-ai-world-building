@@ -1,0 +1,2407 @@
+{
+  "contract_stage": {
+    "attempts": 21,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ],
+        "item": "calendar_name",
+        "slot": null
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩起 already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 1
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩紀 already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 塩担 already appears in technology.units"
+        ],
+        "item": "unit",
+        "slot": 2
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 水番家系 already appears in society.institutions"
+        ],
+        "item": "institution",
+        "slot": 2
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_marker": {
+          "attempts": {
+            "1": 1,
+            "2": 2
+          },
+          "calls": 10,
+          "failures": 0,
+          "reasons": {
+            "duplicate: 塩紀 already appears in calendar.markers": 1,
+            "duplicate: 塩起 already appears in calendar.markers": 1
+          }
+        },
+        "calendar_name": {
+          "attempts": {
+            "2": 1
+          },
+          "calls": 3,
+          "failures": 0,
+          "reasons": {
+            "the JSON object must be str, bytes or bytearray, not NoneType": 1
+          }
+        },
+        "calendar_origin": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "capability": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "institution": {
+          "attempts": {
+            "1": 2,
+            "2": 1
+          },
+          "calls": 8,
+          "failures": 0,
+          "reasons": {
+            "duplicate: 水番家系 already appears in society.institutions": 1
+          }
+        },
+        "society_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "technology_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "unit": {
+          "attempts": {
+            "1": 2,
+            "2": 1
+          },
+          "calls": 8,
+          "failures": 0,
+          "reasons": {
+            "duplicate: 塩担 already appears in technology.units": 1
+          }
+        }
+      }
+    },
+    "status": "success",
+    "steps": [
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 3,
+        "slot": null,
+        "step": "calendar_name",
+        "violations": [
+          [
+            {
+              "actual": null,
+              "expected": "valid JSON object",
+              "message": "the JSON object must be str, bytes or bytearray, not NoneType",
+              "path": "$"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "calendar_origin",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 1,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "塩起",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 塩起 already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 2,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "塩紀",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 塩紀 already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "technology_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 2,
+        "step": "unit",
+        "violations": [
+          [
+            {
+              "actual": "塩担",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 塩担 already appears in technology.units",
+              "path": "$[\"symbol\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "society_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 2,
+        "step": "institution",
+        "violations": [
+          [
+            {
+              "actual": "水番家系",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 水番家系 already appears in society.institutions",
+              "path": "$[\"name\"]"
+            }
+          ],
+          []
+        ]
+      }
+    ]
+  },
+  "entities": [
+    {
+      "axes": [
+        "geography_climate",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [],
+            "reason": "内陸の盆地が塩採掘で成り立ち、降雨がほとんどなく、水は地下の古い導水路から引かれるという地理的・資源的・技術的条件を統合して定義される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "塩秤所が基準とする塩面洗掘の水位差",
+          "text": "塩秤所が基準とする塩面洗掘の水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "乾塩盆地",
+          "provenance": {
+            "derived_from": [],
+            "reason": "内陸の盆地が塩採掘で成り立ち、降雨がほとんどなく、水は地下の古い導水路から引かれるという地理的・資源的・技術的条件を統合して定義される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "乾塩盆地は、降雨がほとんどなく、地下の古い導水路から水を引くことで塩の採掘で成り立っている乾燥した内陸の盆地である。"
+        }
+      ],
+      "id": "e1",
+      "name": "塩盆地",
+      "origin_operator": "premise",
+      "parent": null,
+      "provenance": {
+        "derived_from": [],
+        "reason": "内陸の盆地が塩採掘で成り立ち、降雨がほとんどなく、水は地下の古い導水路から引かれるという地理的・資源的・技術的条件を統合して定義される。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [],
+      "scale": "world",
+      "scores": {
+        "reward": 0.8103448275862069
+      },
+      "summary": "塩盆地は、降雨が極めて少ない乾燥した内陸の盆地であり、地下水資源への依存が経済活動の基盤を規定している。塩の採掘は地下の古い導水路から供給される水に支えられており、塩担で測られる産出量と水尺で測られる水位差のバランスによって制限される。この環境下では、水番家系と採掘組合が導水路の管理権を巡り対立し、塩秤所が中立に計測・記録を行うことで秩序が維持される。塩暦の起算点である水源確保以降、資源分配の規範が共同体の構造を形成してきた。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "history",
+        "politics_power"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e9",
+              "e3"
+            ],
+            "reason": "西側洗掘槽(e7)は西側洗掘面(e5)に属し、基準水尺洗掘法(e9)に基づき塩面集落(e3)の導水路から給水される。塩の採掘(s1)と地下導水路からの給水(s3)が経済基盤を形成し、導水路管理権を巡る対立(s4)がその歴史的背景を構成するため、これらを統合してe10の歴史的事件として導出する。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "基準水位差",
+          "text": "初代水番水源確保の儀において、西側洗掘槽の基準水位差は1水尺に固定された。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "塩起水源定式化",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e9",
+              "e3"
+            ],
+            "reason": "西側洗掘槽(e7)は西側洗掘面(e5)に属し、基準水尺洗掘法(e9)に基づき塩面集落(e3)の導水路から給水される。塩の採掘(s1)と地下導水路からの給水(s3)が経済基盤を形成し、導水路管理権を巡る対立(s4)がその歴史的背景を構成するため、これらを統合してe10の歴史的事件として導出する。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩起水源定式化は、初代水番水源確保の儀において定式化された基準である。"
+        },
+        {
+          "kind": "object",
+          "object": "水圧制御弁",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e9",
+              "e3"
+            ],
+            "reason": "西側洗掘槽(e7)は西側洗掘面(e5)に属し、基準水尺洗掘法(e9)に基づき塩面集落(e3)の導水路から給水される。塩の採掘(s1)と地下導水路からの給水(s3)が経済基盤を形成し、導水路管理権を巡る対立(s4)がその歴史的背景を構成するため、これらを統合してe10の歴史的事件として導出する。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "初代水番水源確保の儀において、水圧制御弁を介した基準水位差1水尺の維持が技術的基準として定式化された。"
+        },
+        {
+          "action": "水圧制御弁を介して基準水位差1水尺の計測基準を定式化する",
+          "actor": "塩秤所",
+          "kind": "procedure",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e9",
+              "e3"
+            ],
+            "reason": "西側洗掘槽(e7)は西側洗掘面(e5)に属し、基準水尺洗掘法(e9)に基づき塩面集落(e3)の導水路から給水される。塩の採掘(s1)と地下導水路からの給水(s3)が経済基盤を形成し、導水路管理権を巡る対立(s4)がその歴史的背景を構成するため、これらを統合してe10の歴史的事件として導出する。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩秤所が水圧制御弁を介して基準水位差1水尺の計測基準を定式化する。"
+        },
+        {
+          "kind": "period",
+          "marker": "塩起",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e9",
+              "e3"
+            ],
+            "reason": "西側洗掘槽(e7)は西側洗掘面(e5)に属し、基準水尺洗掘法(e9)に基づき塩面集落(e3)の導水路から給水される。塩の採掘(s1)と地下導水路からの給水(s3)が経済基盤を形成し、導水路管理権を巡る対立(s4)がその歴史的背景を構成するため、これらを統合してe10の歴史的事件として導出する。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩起に、基準水位差が1水尺に固定された。",
+          "value": 1
+        }
+      ],
+      "id": "e10",
+      "name": "初代水番水源確保の儀",
+      "origin_operator": "history",
+      "parent": "e5",
+      "provenance": {
+        "derived_from": [
+          "e7",
+          "e5",
+          "e9",
+          "e3"
+        ],
+        "reason": "西側洗掘槽(e7)は西側洗掘面(e5)に属し、基準水尺洗掘法(e9)に基づき塩面集落(e3)の導水路から給水される。塩の採掘(s1)と地下導水路からの給水(s3)が経済基盤を形成し、導水路管理権を巡る対立(s4)がその歴史的背景を構成するため、これらを統合してe10の歴史的事件として導出する。",
+        "statement_ids": [
+          "s1",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e5",
+          "type": "affects"
+        },
+        {
+          "target": "e7",
+          "type": "affects"
+        },
+        {
+          "target": "e9",
+          "type": "affects"
+        }
+      ],
+      "scale": "detail",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "初代水番水源確保の儀は、塩暦の塩起に位置づけられ、地下導水路の水源確保と塩採掘開始の権限確立を起点とする歴史的出来事である。降雨が極めて少ない盆地環境において、水番家系が導水路管理権を世襲し、採掘組合との対立構造が形成された。この儀礼を契機に、塩秤所が中立機関として塩担・塩斗・水尺による計測基準を定式化し、西側洗掘槽(e7)を含む塩面洗掘の技術的・制度的基盤が確立した。水圧制御弁を用いた基準水位差1水尺の維持は、この起源事象が現代の労働と資源配分に及ぼす構造的制約として機能し、塩紀以降の生産活動と権力関係の連続性を担保している。",
+      "type": "event"
+    },
+    {
+      "axes": [
+        "law_norms",
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e10",
+              "e5",
+              "e7",
+              "e9"
+            ],
+            "reason": "文書は塩暦の塩起に位置づけられた初代水番水源確保の儀(e10)における基準水尺洗掘法(e9)の定式化、西側洗掘面(e5)および西側洗掘槽(e7)に関する技術的・制度的基準の記録であり、塩採掘(s1)、乾燥環境(s2)、導水路依存(s3)、権限対立(s4)の文脈を反映する。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "塩起水源定式化録に定める基準水位差",
+          "text": "塩起水源定式化録に定める基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "塩起水圧制式録",
+          "provenance": {
+            "derived_from": [
+              "e10",
+              "e5",
+              "e7",
+              "e9"
+            ],
+            "reason": "文書は塩暦の塩起に位置づけられた初代水番水源確保の儀(e10)における基準水尺洗掘法(e9)の定式化、西側洗掘面(e5)および西側洗掘槽(e7)に関する技術的・制度的基準の記録であり、塩採掘(s1)、乾燥環境(s2)、導水路依存(s3)、権限対立(s4)の文脈を反映する。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩起水圧制式録は、塩秤所が基準水位差の管理を定式化するために作成した記録である。"
+        },
+        {
+          "kind": "object",
+          "object": "水圧制御弁",
+          "provenance": {
+            "derived_from": [
+              "e10",
+              "e5",
+              "e7",
+              "e9"
+            ],
+            "reason": "文書は塩暦の塩起に位置づけられた初代水番水源確保の儀(e10)における基準水尺洗掘法(e9)の定式化、西側洗掘面(e5)および西側洗掘槽(e7)に関する技術的・制度的基準の記録であり、塩採掘(s1)、乾燥環境(s2)、導水路依存(s3)、権限対立(s4)の文脈を反映する。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩起水源定式化録は、水圧制御弁の操作手順を定める。"
+        },
+        {
+          "action": "水圧制御弁を操作し、基準水位差1水尺を維持する手順を定式化する。",
+          "actor": "塩秤所",
+          "kind": "procedure",
+          "provenance": {
+            "derived_from": [
+              "e10",
+              "e5",
+              "e7",
+              "e9"
+            ],
+            "reason": "文書は塩暦の塩起に位置づけられた初代水番水源確保の儀(e10)における基準水尺洗掘法(e9)の定式化、西側洗掘面(e5)および西側洗掘槽(e7)に関する技術的・制度的基準の記録であり、塩採掘(s1)、乾燥環境(s2)、導水路依存(s3)、権限対立(s4)の文脈を反映する。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩秤所が水圧制御弁を操作し、基準水位差1水尺を維持する手順を定式化する。"
+        },
+        {
+          "kind": "period",
+          "marker": "塩年",
+          "provenance": {
+            "derived_from": [
+              "e10",
+              "e5",
+              "e7",
+              "e9"
+            ],
+            "reason": "文書は塩暦の塩起に位置づけられた初代水番水源確保の儀(e10)における基準水尺洗掘法(e9)の定式化、西側洗掘面(e5)および西側洗掘槽(e7)に関する技術的・制度的基準の記録であり、塩採掘(s1)、乾燥環境(s2)、導水路依存(s3)、権限対立(s4)の文脈を反映する。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩起水源定式化録の制定は、塩暦の塩年において基準水位差1水尺の維持を定式化した。",
+          "value": 1
+        }
+      ],
+      "id": "e11",
+      "name": "塩起水源定式化録",
+      "origin_operator": "document",
+      "parent": "e5",
+      "provenance": {
+        "derived_from": [
+          "e10",
+          "e5",
+          "e7",
+          "e9"
+        ],
+        "reason": "文書は塩暦の塩起に位置づけられた初代水番水源確保の儀(e10)における基準水尺洗掘法(e9)の定式化、西側洗掘面(e5)および西側洗掘槽(e7)に関する技術的・制度的基準の記録であり、塩採掘(s1)、乾燥環境(s2)、導水路依存(s3)、権限対立(s4)の文脈を反映する。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e10",
+          "type": "derived_from"
+        },
+        {
+          "target": "e7",
+          "type": "governs"
+        },
+        {
+          "target": "e10",
+          "type": "related_to"
+        },
+        {
+          "target": "e9",
+          "type": "uses"
+        }
+      ],
+      "scale": "detail",
+      "scores": {
+        "reward": 0.9680851063829787
+      },
+      "summary": "塩起水源定式化録は、塩暦の塩起に制定された技術・行政記録文書であり、地下導水路の水源確保に伴う塩採掘の基準を固定する。水番家系が管理権を世襲する一方で、採掘組合との権限対立を背景に、塩秤所が中立機関として計測を監理する構造を明記する。内容は、基準水尺洗掘法に基づく水圧制御弁の操作手順、西側洗掘槽の基準水位差1水尺の維持、および塩担・塩斗による重量・体積計測の定式化からなる。降雨が極めて少ない盆地環境下で、限られた水資源と塩の生産を巡る秩序を制度的に規定する一次資料として機能する。",
+      "type": "document"
+    },
+    {
+      "axes": [
+        "kinship_community",
+        "law_norms",
+        "politics_power"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩盆地 (e1) の経済基盤 (s1) と水資源の供給構造 (s3) を支える主体として、管理権を巡る対立 (s4) に位置する血縁集団が、既存の組織体とは異なる立場で盆地に関与しているため抽出した。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "導水路水圧制御の基準値",
+          "text": "水番家系が導水路水圧制御の基準値として採用する水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "塩番",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "塩盆地 (e1) の経済基盤 (s1) と水資源の供給構造 (s3) を支える主体として、管理権を巡る対立 (s4) に位置する血縁集団が、既存の組織体とは異なる立場で盆地に関与しているため抽出した。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩番は、塩盆地における地下導水路の管理権を世襲する水番家系の構成員を指す。"
+        }
+      ],
+      "id": "e12",
+      "name": "水番家系",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "塩盆地 (e1) の経済基盤 (s1) と水資源の供給構造 (s3) を支える主体として、管理権を巡る対立 (s4) に位置する血縁集団が、既存の組織体とは異なる立場で盆地に関与しているため抽出した。",
+        "statement_ids": [
+          "s1",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e2",
+          "type": "affects"
+        },
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.9375
+      },
+      "summary": "水番家系は、塩盆地 (e1) における地下導水路の管理権を世襲する血縁的行政組織である。降雨が極めて少ない乾燥環境下で、限られた水資源の配分と塩採掘の秩序を維持する役割を担う。技術面では、導水路水圧制御を通じて塩面洗掘時の基準水位差1水尺を管理し、生産活動の上限を規定する。政治・規範面では、採掘組合との長期的な対立構造の中で、水配分の権限と義務の境界を定義する規範的権限を有する。塩秤所が中立に計測・記録する塩担や水尺の基準値に対し、家系は運用面での最終的な判断と紛争処理の規範を担い、塩暦の塩年単位で継承される行政的慣行を通じて盆地の資源経済と共同体構造を形成している。",
+      "type": "group"
+    },
+    {
+      "axes": [
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e12"
+            ],
+            "reason": "s3とs4において、地下導水路の存在と、それに対する水番家系（e12）の管理権が記述されているため、e12が管理対象とする導水路インフラを新しい機関として導出する。",
+            "statement_ids": [
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "塩面洗掘時の許容水位差変動幅",
+          "text": "塩面洗掘時の許容水位差変動幅は0.5水尺である。",
+          "unit": "水尺",
+          "value": 0.5
+        },
+        {
+          "kind": "proper_noun",
+          "name": "水圧管理庫",
+          "provenance": {
+            "derived_from": [
+              "e12"
+            ],
+            "reason": "s3とs4において、地下導水路の存在と、それに対する水番家系（e12）の管理権が記述されているため、e12が管理対象とする導水路インフラを新しい機関として導出する。",
+            "statement_ids": [
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "水圧管理庫は、導水路統制所が塩面洗掘時の水位差1水尺と許容変動幅0.5水尺を維持するために設置した水圧制御施設である。"
+        }
+      ],
+      "id": "e13",
+      "name": "導水路統制所",
+      "origin_operator": "cause",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e12"
+        ],
+        "reason": "s3とs4において、地下導水路の存在と、それに対する水番家系（e12）の管理権が記述されているため、e12が管理対象とする導水路インフラを新しい機関として導出する。",
+        "statement_ids": [
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e2",
+          "type": "affects"
+        },
+        {
+          "target": "e12",
+          "type": "causes"
+        },
+        {
+          "target": "e1",
+          "type": "located_in"
+        },
+        {
+          "target": "e12",
+          "type": "uses"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.9375
+      },
+      "summary": "導水路統制所は、塩盆地の乾燥化と地下水源への依存という制約から生じた機関である。降雨がほぼない環境下では、地下導水路の水位差1水尺を維持し、塩面洗掘時の水圧を制御することが技術上の必須条件となる。この物理的限界を管理し、塩担で測られる産出量と水の配分を調整する役割が、水番家系と採掘組合の対立を制度的に拘束する要因として機能している。",
+      "type": "institution"
+    },
+    {
+      "axes": [
+        "daily_life",
+        "geography_climate",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の乾燥した気候条件（s2）と地下水への依存（s3）という物理的制約が、限られた資源の管理という概念の成立を必然的に導く。",
+            "statement_ids": [
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "水資源配分制約の基準水位差",
+          "text": "水資源配分制約の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "水尺基準",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の乾燥した気候条件（s2）と地下水への依存（s3）という物理的制約が、限られた資源の管理という概念の成立を必然的に導く。",
+            "statement_ids": [
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "水資源配分制約における水尺基準は、塩盆地の地下水依存と塩担の産出量調整を規定する技術的制約である。"
+        }
+      ],
+      "id": "e14",
+      "name": "水資源配分制約",
+      "origin_operator": "cause",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "e1の乾燥した気候条件（s2）と地下水への依存（s3）という物理的制約が、限られた資源の管理という概念の成立を必然的に導く。",
+        "statement_ids": [
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e12",
+          "type": "affects"
+        },
+        {
+          "target": "e13",
+          "type": "affects"
+        },
+        {
+          "target": "e1",
+          "type": "causes"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.96875
+      },
+      "summary": "水資源配分制約とは、降雨が極めて少ない内陸盆地という地理的・気候的条件（s2）と、地下の古い導水路からのみ水を得る技術的依存（s3）から生じる物理的限界である。この環境下では、塩面洗掘における基準水位差1水尺と許容変動幅0.5水尺の維持が技術上の必須条件となり、水圧管理庫による制御が産出量（塩担）と水配分の上限を規定する。導水路統制所がこれらの数値を管理し、塩秤所が計測・記録を行うことで、水番家系と採掘組合の対立が制度的に拘束される。塩暦の塩起以降、限られた資源の効率的な配分と紛争処理の規範が、塩盆地の経済基盤と共同体構造を形成する根本的な要因となっている。",
+      "type": "concept"
+    },
+    {
+      "axes": [
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e13",
+              "e12"
+            ],
+            "reason": "e13（導水路統制所）は、s3に示される地下導水路への依存と、s4に示される水番家系（e12）との管理権対立という制約から生じた機関である。したがって、これらの記述と関連エンティティがe15の根拠となる。",
+            "statement_ids": [
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "許容水位差変動幅",
+          "text": "水圧管理庫が維持する許容水位差変動幅は0.5水尺である。",
+          "unit": "水尺",
+          "value": 0.5
+        },
+        {
+          "kind": "proper_noun",
+          "name": "深層水圧制御施設",
+          "provenance": {
+            "derived_from": [
+              "e13",
+              "e12"
+            ],
+            "reason": "e13（導水路統制所）は、s3に示される地下導水路への依存と、s4に示される水番家系（e12）との管理権対立という制約から生じた機関である。したがって、これらの記述と関連エンティティがe15の根拠となる。",
+            "statement_ids": [
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "深層水圧制御施設は、塩盆地の地下導水路における水圧管理庫の圧力調整機能を担う技術的設備である。"
+        }
+      ],
+      "id": "e15",
+      "name": "水圧管理庫",
+      "origin_operator": "expand",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e13",
+          "e12"
+        ],
+        "reason": "e13（導水路統制所）は、s3に示される地下導水路への依存と、s4に示される水番家系（e12）との管理権対立という制約から生じた機関である。したがって、これらの記述と関連エンティティがe15の根拠となる。",
+        "statement_ids": [
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e12",
+          "type": "affects"
+        },
+        {
+          "target": "e2",
+          "type": "located_in"
+        },
+        {
+          "target": "e14",
+          "type": "uses"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.859375
+      },
+      "summary": "水圧管理庫は、地下導水路の水位差1水尺と許容変動幅0.5水尺を維持するため、塩面洗掘時の水圧を制御する技術的施設である。降雨がほぼない乾燥環境下では、この圧力調整が塩担による産出量と水配分の物理的上限を規定する。導水路統制所が運用し、塩秤所が計測基準を中立に記録することで、水番家系と採掘組合の管理権対立が制度的に拘束される。塩暦の塩年単位で運用履歴が管理され、盆地の資源経済の安定性を支える基盤施設として機能している。",
+      "type": "institution"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e12",
+              "e13",
+              "e14"
+            ],
+            "reason": "塩盆地の乾燥気候(s2)と地下導水路への依存(s3)が水資源配分制約(e14)を生み、導水路統制所(e13)による技術的制約が水番家系(e12)と採掘組合の対立(s4)という現存する政治的構造を形成した。",
+            "statement_ids": [
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "塩起の水源確保時に確立された塩面洗掘の基準水位差",
+          "text": "塩起の水源確保時に確立された塩面洗掘の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "塩起水源確保",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e12",
+              "e13",
+              "e14"
+            ],
+            "reason": "塩盆地の乾燥気候(s2)と地下導水路への依存(s3)が水資源配分制約(e14)を生み、導水路統制所(e13)による技術的制約が水番家系(e12)と採掘組合の対立(s4)という現存する政治的構造を形成した。",
+            "statement_ids": [
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩起水源確保は、初代水番が地下導水路の水源を確保した年に塩暦が起算される歴史的出来事である。"
+        }
+      ],
+      "id": "e16",
+      "name": "塩起の水源確保",
+      "origin_operator": "history",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1",
+          "e12",
+          "e13",
+          "e14"
+        ],
+        "reason": "塩盆地の乾燥気候(s2)と地下導水路への依存(s3)が水資源配分制約(e14)を生み、導水路統制所(e13)による技術的制約が水番家系(e12)と採掘組合の対立(s4)という現存する政治的構造を形成した。",
+        "statement_ids": [
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "affects"
+        },
+        {
+          "target": "e13",
+          "type": "affects"
+        },
+        {
+          "target": "e12",
+          "type": "causes"
+        },
+        {
+          "target": "e14",
+          "type": "causes"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.984375
+      },
+      "summary": "塩起の水源確保は、降雨が極めて少ない内陸盆地の環境下で、地下の古い導水路から水を引く技術的基盤を確立した歴史的出来事である。この水源の確保を起点として塩暦が起算され、水番家系が導水路の管理権を世襲する権力構造が形成された。塩面洗掘時の基準水位差1水尺と許容変動幅0.5水尺の維持が技術上の必須条件となり、水圧管理庫による制御が塩担で測られる産出量と水配分の上限を規定する。この物理的限界と管理権の帰属を巡り、水番家系と採掘組合の間で長期的な対立が生じ、塩秤所が中立に計測・記録を行うことで秩序が維持される現存する政治的・経済的構造の起源となった。",
+      "type": "event"
+    },
+    {
+      "axes": [
+        "kinship_community",
+        "law_norms",
+        "politics_power"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e12",
+              "e1",
+              "e13"
+            ],
+            "reason": "水番家系(e12)が塩盆地(e1)の地下導水路(e3)の管理権を世襲する事実は、導水路統制所(e13)および塩盆地の環境条件から導出される。",
+            "statement_ids": [
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "導水路管理権世襲規が定める基準水位差",
+          "text": "導水路管理権世襲規が定める基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "塩盆導水世襲令",
+          "provenance": {
+            "derived_from": [
+              "e12",
+              "e1",
+              "e13"
+            ],
+            "reason": "水番家系(e12)が塩盆地(e1)の地下導水路(e3)の管理権を世襲する事実は、導水路統制所(e13)および塩盆地の環境条件から導出される。",
+            "statement_ids": [
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩盆導水世襲令は、塩盆地の地下導水路の管理権を水番家系に世襲させることを定める規範的文書である。"
+        }
+      ],
+      "id": "e17",
+      "name": "導水路管理権世襲規",
+      "origin_operator": "document",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e12",
+          "e1",
+          "e13"
+        ],
+        "reason": "水番家系(e12)が塩盆地(e1)の地下導水路(e3)の管理権を世襲する事実は、導水路統制所(e13)および塩盆地の環境条件から導出される。",
+        "statement_ids": [
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e12",
+          "type": "related_to"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "導水路管理権世襲規は、塩盆地の地下導水路の管理権を水番家系に世襲させることを定める規範的文書である。塩起の水源確保を起点とする塩暦の記録体系に基づき、採掘組合との権限境界を法的に固定化する。本規は、導水路統制所が維持する基準水位差1水尺と許容変動幅0.5水尺の運用権限を、血縁的行政組織である水番家系に帰属させる。塩秤所による塩担や水尺の計測記録を紛争処理の根拠とし、降雨に依存しない乾燥環境下での水配分秩序と技術的制約の法的拘束力を規定する。",
+      "type": "document"
+    },
+    {
+      "axes": [
+        "kinship_community",
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e16",
+              "e12"
+            ],
+            "reason": "塩起の水源確保(e16)が塩暦の起算点となり、水番家系(e12)の権限基盤として機能していることを示す。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "塩起水源確保時に定めた塩面洗掘の許容水位差変動幅",
+          "text": "塩起水源確保時に定めた塩面洗掘の許容水位差変動幅は0.5水尺である。",
+          "unit": "水尺",
+          "value": 0.5
+        },
+        {
+          "kind": "proper_noun",
+          "name": "水源確保の技術的基盤",
+          "provenance": {
+            "derived_from": [
+              "e16",
+              "e12"
+            ],
+            "reason": "塩起の水源確保(e16)が塩暦の起算点となり、水番家系(e12)の権限基盤として機能していることを示す。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "水源確保の技術的基盤は、塩盆地の乾燥環境下で地下導水路から水を供給する灌漑システムの確立を指す。"
+        }
+      ],
+      "id": "e18",
+      "name": "塩起水源確保",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e16",
+          "e12"
+        ],
+        "reason": "塩起の水源確保(e16)が塩暦の起算点となり、水番家系(e12)の権限基盤として機能していることを示す。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e14",
+          "type": "causes"
+        },
+        {
+          "target": "e12",
+          "type": "governs"
+        },
+        {
+          "target": "e16",
+          "type": "related_to"
+        },
+        {
+          "target": "e13",
+          "type": "uses"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.84375
+      },
+      "summary": "塩起の水源確保(e16)は、塩盆地(e1)の乾燥環境下で地下導水路から塩採掘場へ水を供給する技術的基盤を確立した歴史的出来事である。この確保を起点として塩暦が起算され、水番家系(e12)が導水路の管理権を世襲する権力構造が形成された。技術面では、塩面洗掘時の基準水位差1水尺と許容変動幅0.5水尺の維持が必須条件となり、水圧管理庫による制御が塩担で測られる産出量と水配分の上限を規定する。この物理的限界と管理権の帰属を巡り、水番家系と採掘組合の間で長期的な対立が生じ、塩秤所が中立に計測・記録を行うことで秩序が維持される。",
+      "type": "group"
+    },
+    {
+      "axes": [
+        "arts_media",
+        "geography_climate",
+        "laws_of_nature"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e14",
+              "e1"
+            ],
+            "reason": "降雨がほとんど降らない内陸の盆地という地理的条件と、地下の古い導水路からのみ水を得る技術的依存という2つの制約が重なり、水資源配分制約という物理的限界が形成された。",
+            "statement_ids": [
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "塩面洗掘の基準水位差",
+          "text": "乾燥盆地の地下水源依存において、塩面洗掘の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "地下水圧依存構造",
+          "provenance": {
+            "derived_from": [
+              "e14",
+              "e1"
+            ],
+            "reason": "降雨がほとんど降らない内陸の盆地という地理的条件と、地下の古い導水路からのみ水を得る技術的依存という2つの制約が重なり、水資源配分制約という物理的限界が形成された。",
+            "statement_ids": [
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "地下水圧依存構造は、乾燥盆地の地下水源依存を規定する物理的限界状態を指す概念である。"
+        }
+      ],
+      "id": "e19",
+      "name": "乾燥盆地の地下水源依存",
+      "origin_operator": "cause",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e14",
+          "e1"
+        ],
+        "reason": "降雨がほとんど降らない内陸の盆地という地理的条件と、地下の古い導水路からのみ水を得る技術的依存という2つの制約が重なり、水資源配分制約という物理的限界が形成された。",
+        "statement_ids": [
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e13",
+          "type": "affects"
+        },
+        {
+          "target": "e1",
+          "type": "causes"
+        },
+        {
+          "target": "e14",
+          "type": "derived_from"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "乾燥盆地の地下水源依存とは、降雨が極めて少ない内陸盆地という地理的制約と、地下の古い導水路からのみ水を得る技術的依存が重なり、水資源配分制約として機能する物理的限界状態である。塩面洗掘時の基準水位差1水尺と許容変動幅0.5水尺の維持が必須となり、水圧管理庫による制御が塩担で測られる産出量と水配分の上限を規定する。導水路統制所がこれらの数値を管理し、塩秤所が計測・記録を行うことで、水番家系と採掘組合の対立が制度的に拘束される。塩暦の塩起以降、限られた資源の効率的な配分が共同体の構造を形成してきた。",
+      "type": "concept"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の定義である乾燥した内陸盆地という地理的条件と、塩採掘および地下導水路という経済・技術的構成要素から、盆地内を構成する具体的地域（e2）の存在が導出される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "塩面洗掘時の基準水位差",
+          "text": "塩田区における塩面洗掘時の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "北塩面",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の定義である乾燥した内陸盆地という地理的条件と、塩採掘および地下導水路という経済・技術的構成要素から、盆地内を構成する具体的地域（e2）の存在が導出される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "北塩面は、塩田区内に位置する塩面洗掘の作業区域である。"
+        }
+      ],
+      "id": "e2",
+      "name": "塩田区",
+      "origin_operator": "zoom",
+      "parent": "e1",
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "e1の定義である乾燥した内陸盆地という地理的条件と、塩採掘および地下導水路という経済・技術的構成要素から、盆地内を構成する具体的地域（e2）の存在が導出される。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "part_of"
+        }
+      ],
+      "scale": "region",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "塩田区は、塩盆地内の塩採掘活動が集中する地域であり、降雨が極めて少ない乾燥環境下で、地下の古い導水路から供給される水に依存して機能している。この地域では、採掘された塩の重量を塩担、水位差を水尺で計測し、塩面洗掘などの作業が行われる。水番家系が導水路の管理権を世襲し、採掘組合が水配分と生産の秩序を維持するために対立する構造が存在する。塩秤所が塩担と水尺の基準に基づいて中立に計測・記録を行い、塩暦の塩年単位で資源分配と技術運用の履歴が管理されている。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "belief_thought",
+        "occupations_labor",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e12",
+              "e13",
+              "e14",
+              "e16",
+              "e19",
+              "e2"
+            ],
+            "reason": "塩盆地 (e1) と塩田区 (e2) の環境条件、水番家系 (e12) と採掘組合の対立構造、および導水路統制所 (e13) と水資源配分制約 (e14) の技術的・制度的背景から、特定の集団の視点における経験が導出される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "導水路運用組合が塩面洗掘に使用する基準水位差",
+          "text": "導水路運用組合が塩面洗掘に使用する基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "水圧調整師",
+          "provenance": {
+            "derived_from": [
+              "e1",
+              "e12",
+              "e13",
+              "e14",
+              "e16",
+              "e19",
+              "e2"
+            ],
+            "reason": "塩盆地 (e1) と塩田区 (e2) の環境条件、水番家系 (e12) と採掘組合の対立構造、および導水路統制所 (e13) と水資源配分制約 (e14) の技術的・制度的背景から、特定の集団の視点における経験が導出される。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "水圧調整師は、塩田区水圧調整師の構成員が導水路水圧制御を担当する業務上の呼称である。"
+        }
+      ],
+      "id": "e20",
+      "name": "塩田区水圧調整師",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1",
+          "e12",
+          "e13",
+          "e14",
+          "e16",
+          "e19",
+          "e2"
+        ],
+        "reason": "塩盆地 (e1) と塩田区 (e2) の環境条件、水番家系 (e12) と採掘組合の対立構造、および導水路統制所 (e13) と水資源配分制約 (e14) の技術的・制度的背景から、特定の集団の視点における経験が導出される。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e14",
+          "type": "derived_from"
+        },
+        {
+          "target": "e2",
+          "type": "part_of"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        },
+        {
+          "target": "e13",
+          "type": "uses"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.875
+      },
+      "summary": "塩田区水圧調整師は、塩盆地の乾燥環境下で地下導水路の水圧制御と塩面洗掘を担う技術的労働集団である。水番家系が管理権を世襲し、採掘組合が対立する構造の中、塩秤所の計測に基づく塩担と水尺の基準を運用する。塩暦の塩年単位で記録される技術的実践を通じて、水資源配分制約の物理的限界を現実の作業に落とし込む役割を担う。",
+      "type": "group"
+    },
+    {
+      "id": "e21",
+      "type": "concept",
+      "name": "塩面洗掘水圧上限",
+      "axes": [
+        "laws_of_nature",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "scale": "world",
+      "parent": null,
+      "relations": [
+        {
+          "type": "causes",
+          "target": "e15"
+        }
+      ],
+      "summary": "塩面洗掘水圧上限は、降雨が極めて少ない乾燥環境（s2）と地下導水路への依存（s3）という物理的制約から導き出される技術的限界である。水圧管理庫（e15）が基準水位差1水尺と許容変動幅0.5水尺を維持することで、塩担による産出量と水配分の上限が規定される。この上限は、水番家系と採掘組合の管理権対立を塩秤所の計測基準を通じて制度的に拘束し、塩暦の塩年単位で資源経済の安定性を担保する規範的枠組みとして機能する。",
+      "facts": [
+        {
+          "kind": "number",
+          "text": "塩面洗掘水圧上限の許容水位差変動幅は0.5水尺である。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [
+              "e15",
+              "e14"
+            ],
+            "reason": "降雨がほぼない乾燥環境（s2）と地下導水路への依存（s3）という物理的制約から、水資源配分制約（e14）が生じ、塩採掘（s1）の持続可能性を担保するため、水圧管理庫（e15）という技術的施設が導水路の水位差1水尺と許容変動幅0.5水尺を維持する基盤として必然的に導出される。"
+          },
+          "subject": "塩面洗掘水圧上限の許容水位差変動幅",
+          "value": 0.5,
+          "unit": "水尺"
+        },
+        {
+          "kind": "proper_noun",
+          "text": "深層水圧制御基準は、塩面洗掘水圧上限の許容変動幅0.5水尺を規定する技術的基準である。",
+          "provenance": {
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ],
+            "derived_from": [
+              "e15",
+              "e14"
+            ],
+            "reason": "降雨がほぼない乾燥環境（s2）と地下導水路への依存（s3）という物理的制約から、水資源配分制約（e14）が生じ、塩採掘（s1）の持続可能性を担保するため、水圧管理庫（e15）という技術的施設が導水路の水位差1水尺と許容変動幅0.5水尺を維持する基盤として必然的に導出される。"
+          },
+          "name": "深層水圧制御基準"
+        }
+      ],
+      "provenance": {
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "derived_from": [
+          "e15",
+          "e14"
+        ],
+        "reason": "降雨がほぼない乾燥環境（s2）と地下導水路への依存（s3）という物理的制約から、水資源配分制約（e14）が生じ、塩採掘（s1）の持続可能性を担保するため、水圧管理庫（e15）という技術的施設が導水路の水位差1水尺と許容変動幅0.5水尺を維持する基盤として必然的に導出される。"
+      },
+      "scores": {
+        "reward": 0.953125
+      },
+      "origin_operator": "cause"
+    },
+    {
+      "axes": [
+        "occupations_labor",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "塩田区（e2）は塩の採掘で成り立ち（s1）、地下の古い導水路から水を引き（s3）、作業区域として機能するため、その内部に結集した居住地・作業拠点としてe3が導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "subject": "塩面集落の塩面洗掘時の基準水位差",
+          "text": "塩面集落の塩面洗掘時の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "西側採掘面",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "塩田区（e2）は塩の採掘で成り立ち（s1）、地下の古い導水路から水を引き（s3）、作業区域として機能するため、その内部に結集した居住地・作業拠点としてe3が導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "西側採掘面は、塩面集落内に位置する塩面洗掘の作業区域である。"
+        },
+        {
+          "kind": "object",
+          "object": "導水路配水栓",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "塩田区（e2）は塩の採掘で成り立ち（s1）、地下の古い導水路から水を引き（s3）、作業区域として機能するため、その内部に結集した居住地・作業拠点としてe3が導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "塩面集落の導水路配水栓は3基設置されている。"
+        }
+      ],
+      "id": "e3",
+      "name": "塩面集落",
+      "origin_operator": "zoom",
+      "parent": "e2",
+      "provenance": {
+        "derived_from": [
+          "e2"
+        ],
+        "reason": "塩田区（e2）は塩の採掘で成り立ち（s1）、地下の古い導水路から水を引き（s3）、作業区域として機能するため、その内部に結集した居住地・作業拠点としてe3が導出される。",
+        "statement_ids": [
+          "s1",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e2",
+          "type": "located_in"
+        }
+      ],
+      "scale": "settlement",
+      "scores": {
+        "reward": 0.9342105263157895
+      },
+      "summary": "塩面集落は、塩田区（e2）内に位置する作業拠点であり、地下の古い導水路から供給される水を利用して塩面洗掘を行う。採掘された塩の重量は塩担で、水位差は水尺で計測され、塩秤所が記録を管理する。水番家系と採掘組合が水配分を巡る権限を有し、塩暦の塩年単位で活動履歴が追跡される。降雨が極めて少ない環境下で、導水路の水圧制御が生産能力を規定する。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "occupations_labor",
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "塩面集落（e3）の概要および事実（導水路配水栓、西側採掘面、塩面洗掘作業）が、その内部に位置する作業拠点としての区画（e4）の存在を物理的・組織的に規定しているため。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "西側塩面区の基準水位差",
+          "text": "西側塩面区の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "西側洗掘面",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "塩面集落（e3）の概要および事実（導水路配水栓、西側採掘面、塩面洗掘作業）が、その内部に位置する作業拠点としての区画（e4）の存在を物理的・組織的に規定しているため。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "西側洗掘面は、西側塩面区内に位置する塩面洗掘の作業区域である。"
+        },
+        {
+          "kind": "object",
+          "object": "水圧制御弁",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "塩面集落（e3）の概要および事実（導水路配水栓、西側採掘面、塩面洗掘作業）が、その内部に位置する作業拠点としての区画（e4）の存在を物理的・組織的に規定しているため。",
+            "statement_ids": [
+              "s1",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "西側塩面区には、水圧制御弁が1基設置されている。"
+        }
+      ],
+      "id": "e4",
+      "name": "西側塩面区",
+      "origin_operator": "zoom",
+      "parent": "e3",
+      "provenance": {
+        "derived_from": [
+          "e3"
+        ],
+        "reason": "塩面集落（e3）の概要および事実（導水路配水栓、西側採掘面、塩面洗掘作業）が、その内部に位置する作業拠点としての区画（e4）の存在を物理的・組織的に規定しているため。",
+        "statement_ids": [
+          "s1",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e3",
+          "type": "part_of"
+        }
+      ],
+      "scale": "district",
+      "scores": {
+        "reward": 0.8947368421052632
+      },
+      "summary": "西側塩面区は、塩面集落（e3）内に位置する塩面洗掘の作業区画である。基準水位差1水尺で導水路配水栓から水を供給し、塩担で重量、塩斗で体積を計測する。塩秤所が記録を管理し、塩暦の塩年単位で活動を追跡する。水番家系と採掘組合が水配分権限を有し、塩面集落の3基の配水栓のうち、本区画が使用可能な配分枠と水圧制御の技術的上限が、塩田区（e2）全体の乾燥環境下での生産能力を規定する。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "occupations_labor",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3"
+            ],
+            "reason": "西側塩面区（e4）は塩面集落（e3）内に位置し、地下の古い導水路から水を引き塩の採掘を行う作業区画であるため、その内部に位置する具体的作業サイトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "subject": "西側洗掘面の基準水位差",
+          "text": "西側洗掘面の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "洗掘槽",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3"
+            ],
+            "reason": "西側塩面区（e4）は塩面集落（e3）内に位置し、地下の古い導水路から水を引き塩の採掘を行う作業区画であるため、その内部に位置する具体的作業サイトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "洗掘槽は、西側洗掘面内に設置されている塩面洗掘の作業施設である。"
+        },
+        {
+          "kind": "object",
+          "object": "水圧制御弁",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3"
+            ],
+            "reason": "西側塩面区（e4）は塩面集落（e3）内に位置し、地下の古い導水路から水を引き塩の採掘を行う作業区画であるため、その内部に位置する具体的作業サイトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "西側洗掘面には、導水路配水栓からの水圧を調整する水圧制御弁が1基設置されている。"
+        },
+        {
+          "action": "洗掘槽の水位差を水尺で測定し、塩担・塩斗の計測値を記録する。",
+          "actor": "塩秤所",
+          "kind": "procedure",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3"
+            ],
+            "reason": "西側塩面区（e4）は塩面集落（e3）内に位置し、地下の古い導水路から水を引き塩の採掘を行う作業区画であるため、その内部に位置する具体的作業サイトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "塩秤所が西側洗掘面の洗掘槽の水位差を水尺で測定し、塩担・塩斗の計測値を記録する。"
+        }
+      ],
+      "id": "e5",
+      "name": "西側洗掘面",
+      "origin_operator": "zoom",
+      "parent": "e4",
+      "provenance": {
+        "derived_from": [
+          "e4",
+          "e3"
+        ],
+        "reason": "西側塩面区（e4）は塩面集落（e3）内に位置し、地下の古い導水路から水を引き塩の採掘を行う作業区画であるため、その内部に位置する具体的作業サイトとして導出される。",
+        "statement_ids": [
+          "s1",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e4",
+          "type": "part_of"
+        },
+        {
+          "target": "e3",
+          "type": "uses"
+        }
+      ],
+      "scale": "site",
+      "scores": {
+        "reward": 0.9886363636363636
+      },
+      "summary": "西側洗掘面は西側塩面区（e4）内部に位置する塩面洗掘の具体的作業サイトであり、塩田区（e2）の乾燥環境下で生産能力を規定する基礎単位である。基準水位差1水尺で導水路配水栓から水が供給され、塩担と塩斗を用いた計測が厳密に管理される。塩秤所が記録を監理し、塩暦の塩年単位で活動が追跡される。水番家系と採掘組合の権限対立が水圧制御と配分枠を通じて、この限定的な空間での労働と資源配分を直接規定する。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "occupations_labor",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3"
+            ],
+            "reason": "e6はe5の親であるe4（西側塩面区）内に位置する隣接する作業サイトとして、e3（塩面集落）の乾燥環境と導水路供給システムという制約条件に基づいて派生されている。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "subject": "北側採掘面の基準水位差",
+          "text": "北側採掘面の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "北側採掘面",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3"
+            ],
+            "reason": "e6はe5の親であるe4（西側塩面区）内に位置する隣接する作業サイトとして、e3（塩面集落）の乾燥環境と導水路供給システムという制約条件に基づいて派生されている。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "北側採掘面は、西側塩面区内に位置する塩面洗掘の作業施設として、導水路配水栓から水圧制御弁を介して水が供給される。"
+        },
+        {
+          "kind": "object",
+          "object": "水圧制御弁",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3"
+            ],
+            "reason": "e6はe5の親であるe4（西側塩面区）内に位置する隣接する作業サイトとして、e3（塩面集落）の乾燥環境と導水路供給システムという制約条件に基づいて派生されている。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "北側採掘面には、塩秤所が塩担と水尺を基準に計測を行うための水圧制御弁が1基設置されている。"
+        },
+        {
+          "action": "北側採掘面の水位差を水尺で測定し、記録する",
+          "actor": "塩秤所",
+          "kind": "procedure",
+          "provenance": {
+            "derived_from": [
+              "e4",
+              "e3"
+            ],
+            "reason": "e6はe5の親であるe4（西側塩面区）内に位置する隣接する作業サイトとして、e3（塩面集落）の乾燥環境と導水路供給システムという制約条件に基づいて派生されている。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3",
+              "s4"
+            ]
+          },
+          "text": "塩秤所が北側採掘面の水位差を水尺で測定し、記録する。"
+        }
+      ],
+      "id": "e6",
+      "name": "北側採掘面",
+      "origin_operator": "expand",
+      "parent": "e4",
+      "provenance": {
+        "derived_from": [
+          "e4",
+          "e3"
+        ],
+        "reason": "e6はe5の親であるe4（西側塩面区）内に位置する隣接する作業サイトとして、e3（塩面集落）の乾燥環境と導水路供給システムという制約条件に基づいて派生されている。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e4",
+          "type": "part_of"
+        },
+        {
+          "target": "e3",
+          "type": "uses"
+        }
+      ],
+      "scale": "site",
+      "scores": {
+        "reward": 0.9659090909090909
+      },
+      "summary": "北側採掘面は、西側塩面区（e4）内に位置する塩面洗掘の作業サイトであり、塩田区（e2）の乾燥環境下で生産能力を規定する基礎単位である。基準水位差1水尺で導水路配水栓から水が供給され、塩担と塩斗を用いた計測が厳密に管理される。塩秤所が記録を監理し、塩暦の塩年単位で活動が追跡される。水番家系と採掘組合の権限対立が水圧制御と配分枠を通じて、この限定的な空間での労働と資源配分を直接規定している。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "occupations_labor",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e5"
+            ],
+            "reason": "e5の概要と事実において、西側洗掘面内の塩面洗掘作業施設として「洗掘槽」が明示的に定義されており、導水路からの水供給と塩の計測が行われる物理的構造物として特定されるため、e5の内部に位置するdetailスケールのオブジェクトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "subject": "西側洗掘槽の基準水位差",
+          "text": "西側洗掘槽の基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "西側洗掘槽",
+          "provenance": {
+            "derived_from": [
+              "e5"
+            ],
+            "reason": "e5の概要と事実において、西側洗掘面内の塩面洗掘作業施設として「洗掘槽」が明示的に定義されており、導水路からの水供給と塩の計測が行われる物理的構造物として特定されるため、e5の内部に位置するdetailスケールのオブジェクトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "西側洗掘槽は、塩面洗掘時の塩担と塩斗による計測値を記録するための基準面を有する物理的作業施設である。"
+        },
+        {
+          "kind": "object",
+          "object": "計測基準面",
+          "provenance": {
+            "derived_from": [
+              "e5"
+            ],
+            "reason": "e5の概要と事実において、西側洗掘面内の塩面洗掘作業施設として「洗掘槽」が明示的に定義されており、導水路からの水供給と塩の計測が行われる物理的構造物として特定されるため、e5の内部に位置するdetailスケールのオブジェクトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "西側洗掘槽には、塩担と塩斗による計測値の基準となる計測基準面が設けられている。"
+        },
+        {
+          "action": "洗掘槽の水位差を水尺で測定し、塩担・塩斗の計測値を記録する",
+          "actor": "塩秤所",
+          "kind": "procedure",
+          "provenance": {
+            "derived_from": [
+              "e5"
+            ],
+            "reason": "e5の概要と事実において、西側洗掘面内の塩面洗掘作業施設として「洗掘槽」が明示的に定義されており、導水路からの水供給と塩の計測が行われる物理的構造物として特定されるため、e5の内部に位置するdetailスケールのオブジェクトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "塩秤所が洗掘槽の水位差を水尺で測定し、塩担・塩斗の計測値を記録する。"
+        },
+        {
+          "kind": "period",
+          "marker": "塩起",
+          "provenance": {
+            "derived_from": [
+              "e5"
+            ],
+            "reason": "e5の概要と事実において、西側洗掘面内の塩面洗掘作業施設として「洗掘槽」が明示的に定義されており、導水路からの水供給と塩の計測が行われる物理的構造物として特定されるため、e5の内部に位置するdetailスケールのオブジェクトとして導出される。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "西側洗掘槽の基準水位差は1水尺であり、塩起を起点とする塩秤所の記録で維持される。",
+          "value": 1
+        }
+      ],
+      "id": "e7",
+      "name": "西側洗掘槽",
+      "origin_operator": "zoom",
+      "parent": "e5",
+      "provenance": {
+        "derived_from": [
+          "e5"
+        ],
+        "reason": "e5の概要と事実において、西側洗掘面内の塩面洗掘作業施設として「洗掘槽」が明示的に定義されており、導水路からの水供給と塩の計測が行われる物理的構造物として特定されるため、e5の内部に位置するdetailスケールのオブジェクトとして導出される。",
+        "statement_ids": [
+          "s1",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e5",
+          "type": "part_of"
+        },
+        {
+          "target": "e3",
+          "type": "uses"
+        }
+      ],
+      "scale": "detail",
+      "scores": {
+        "reward": 0.95
+      },
+      "summary": "西側洗掘槽は、西側洗掘面（e5）に設置された塩面洗掘の物理的作業施設である。導水路配水栓から供給される水が水圧制御弁を介して槽内に導入され、基準水位差1水尺を維持することで塩面の溶解と洗掘が行われる。採掘された塩の重量は塩担、体積は塩斗で計測され、塩秤所が記録を監理する。水番家系と採掘組合の対立が水圧制御と配分枠を通じて、この槽内の労働と資源配分を直接規定し、塩暦の塩年単位で活動が追跡される乾燥環境下での生産能力を規定する基礎単位である。",
+      "type": "object"
+    },
+    {
+      "axes": [
+        "occupations_labor",
+        "politics_power",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e5",
+              "e4",
+              "e3",
+              "e7"
+            ],
+            "reason": "西側洗掘面（e5）およびその親区画である西側塩面区（e4）の生産活動は、塩の採掘（s1）と導水路管理権を巡る対立（s4）に依存しており、これらの空間的・制度的文脈から、作業現場で水圧制御弁や洗掘槽（e7）を操作・維持する技術的実践集団としての位置付けが導出される。",
+            "statement_ids": [
+              "s1",
+              "s4"
+            ]
+          },
+          "subject": "洗掘面水圧調整作業組が維持する基準水位差",
+          "text": "洗掘面水圧調整作業組が維持する基準水位差は1水尺である。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "洗掘面水圧調整作業組",
+          "provenance": {
+            "derived_from": [
+              "e5",
+              "e4",
+              "e3",
+              "e7"
+            ],
+            "reason": "西側洗掘面（e5）およびその親区画である西側塩面区（e4）の生産活動は、塩の採掘（s1）と導水路管理権を巡る対立（s4）に依存しており、これらの空間的・制度的文脈から、作業現場で水圧制御弁や洗掘槽（e7）を操作・維持する技術的実践集団としての位置付けが導出される。",
+            "statement_ids": [
+              "s1",
+              "s4"
+            ]
+          },
+          "text": "洗掘面水圧調整作業組は、西側洗掘面の水圧制御弁の操作と洗掘槽の維持管理を担う技術的実践集団である。"
+        },
+        {
+          "kind": "object",
+          "object": "水圧制御弁操作具",
+          "provenance": {
+            "derived_from": [
+              "e5",
+              "e4",
+              "e3",
+              "e7"
+            ],
+            "reason": "西側洗掘面（e5）およびその親区画である西側塩面区（e4）の生産活動は、塩の採掘（s1）と導水路管理権を巡る対立（s4）に依存しており、これらの空間的・制度的文脈から、作業現場で水圧制御弁や洗掘槽（e7）を操作・維持する技術的実践集団としての位置付けが導出される。",
+            "statement_ids": [
+              "s1",
+              "s4"
+            ]
+          },
+          "text": "洗掘面水圧調整作業組は、水圧制御弁操作具を用いて基準水位差1水尺を維持する。"
+        },
+        {
+          "action": "洗掘槽の水位差を水尺で測定し塩秤所に提出する",
+          "actor": "洗掘面水圧調整作業組",
+          "kind": "procedure",
+          "provenance": {
+            "derived_from": [
+              "e5",
+              "e4",
+              "e3",
+              "e7"
+            ],
+            "reason": "西側洗掘面（e5）およびその親区画である西側塩面区（e4）の生産活動は、塩の採掘（s1）と導水路管理権を巡る対立（s4）に依存しており、これらの空間的・制度的文脈から、作業現場で水圧制御弁や洗掘槽（e7）を操作・維持する技術的実践集団としての位置付けが導出される。",
+            "statement_ids": [
+              "s1",
+              "s4"
+            ]
+          },
+          "text": "洗掘面水圧調整作業組が洗掘槽の水位差を水尺で測定し塩秤所に提出する"
+        }
+      ],
+      "id": "e8",
+      "name": "洗掘面水圧調整作業組",
+      "origin_operator": "perspective",
+      "parent": "e4",
+      "provenance": {
+        "derived_from": [
+          "e5",
+          "e4",
+          "e3",
+          "e7"
+        ],
+        "reason": "西側洗掘面（e5）およびその親区画である西側塩面区（e4）の生産活動は、塩の採掘（s1）と導水路管理権を巡る対立（s4）に依存しており、これらの空間的・制度的文脈から、作業現場で水圧制御弁や洗掘槽（e7）を操作・維持する技術的実践集団としての位置付けが導出される。",
+        "statement_ids": [
+          "s1",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e5",
+          "type": "related_to"
+        }
+      ],
+      "scale": "site",
+      "scores": {
+        "reward": 0.9545454545454546
+      },
+      "summary": "洗掘面水圧調整作業組は、西側洗掘面（e5）および西側塩面区（e4）において、導水路配水栓から供給される水の水圧制御弁を操作し、基準水位差1水尺を維持する技術的実践集団である。採掘組合の構成員が主体となり、塩面洗掘槽（e7）内の塩溶解過程を管理し、塩担・塩斗による計測データを塩秤所に提出する。水番家系との管理権対立下で、水圧制御の技術的上限を巡る実務的対応を行い、塩暦の塩年単位で作業実績を記録する。降雨が極めて少ない盆地環境（s2）下で、地下導水路（s3）の配分枠を有効活用するための現場レベルの運用規範と技術的知識を担う。",
+      "type": "group"
+    },
+    {
+      "axes": [
+        "occupations_labor",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e3"
+            ],
+            "reason": "西側洗掘槽（e7）は西側洗掘面（e5）の一部であり、塩面集落（e3）の導水路システムから水を供給される。降雨が極めて少ない（s2）環境下では、塩の採掘（s1）を継続するために地下の古い導水路（s3）からの水供給が不可欠であり、この技術的制約と資源依存性が、特定の水圧差（1水尺）で塩面を洗掘する物理的作業手順を必要とする。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "subject": "洗掘槽の基準水位差",
+          "text": "基準水尺洗掘法では、洗掘槽の基準水位差を1水尺に固定する。",
+          "unit": "水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "塩面基準洗掘法",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e3"
+            ],
+            "reason": "西側洗掘槽（e7）は西側洗掘面（e5）の一部であり、塩面集落（e3）の導水路システムから水を供給される。降雨が極めて少ない（s2）環境下では、塩の採掘（s1）を継続するために地下の古い導水路（s3）からの水供給が不可欠であり、この技術的制約と資源依存性が、特定の水圧差（1水尺）で塩面を洗掘する物理的作業手順を必要とする。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "塩面基準洗掘法は、塩秤所が基準水位差を1水尺に固定する基準水尺洗掘法として運用される標準作業手順である。"
+        },
+        {
+          "kind": "object",
+          "object": "水圧制御弁",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e3"
+            ],
+            "reason": "西側洗掘槽（e7）は西側洗掘面（e5）の一部であり、塩面集落（e3）の導水路システムから水を供給される。降雨が極めて少ない（s2）環境下では、塩の採掘（s1）を継続するために地下の古い導水路（s3）からの水供給が不可欠であり、この技術的制約と資源依存性が、特定の水圧差（1水尺）で塩面を洗掘する物理的作業手順を必要とする。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "基準水尺洗掘法では、水圧制御弁を介して導水路配水栓からの水圧を調整し、洗掘槽の水位差を1水尺に固定する。"
+        },
+        {
+          "action": "洗掘槽の水位差を水尺で測定し、塩担・塩斗の計測値を記録する。",
+          "actor": "塩秤所",
+          "kind": "procedure",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e3"
+            ],
+            "reason": "西側洗掘槽（e7）は西側洗掘面（e5）の一部であり、塩面集落（e3）の導水路システムから水を供給される。降雨が極めて少ない（s2）環境下では、塩の採掘（s1）を継続するために地下の古い導水路（s3）からの水供給が不可欠であり、この技術的制約と資源依存性が、特定の水圧差（1水尺）で塩面を洗掘する物理的作業手順を必要とする。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "塩秤所が基準水尺洗掘法に基づき洗掘槽の水位差を水尺で測定し、塩担・塩斗の計測値を記録する。"
+        },
+        {
+          "kind": "period",
+          "marker": "塩起",
+          "provenance": {
+            "derived_from": [
+              "e7",
+              "e5",
+              "e3"
+            ],
+            "reason": "西側洗掘槽（e7）は西側洗掘面（e5）の一部であり、塩面集落（e3）の導水路システムから水を供給される。降雨が極めて少ない（s2）環境下では、塩の採掘（s1）を継続するために地下の古い導水路（s3）からの水供給が不可欠であり、この技術的制約と資源依存性が、特定の水圧差（1水尺）で塩面を洗掘する物理的作業手順を必要とする。",
+            "statement_ids": [
+              "s1",
+              "s3"
+            ]
+          },
+          "text": "基準水尺洗掘法は塩起の年の初代水番による導水路確保に遡り、洗掘槽の基準水位差を1水尺に固定する手順として運用される。",
+          "value": 1
+        }
+      ],
+      "id": "e9",
+      "name": "基準水尺洗掘法",
+      "origin_operator": "cause",
+      "parent": "e5",
+      "provenance": {
+        "derived_from": [
+          "e7",
+          "e5",
+          "e3"
+        ],
+        "reason": "西側洗掘槽（e7）は西側洗掘面（e5）の一部であり、塩面集落（e3）の導水路システムから水を供給される。降雨が極めて少ない（s2）環境下では、塩の採掘（s1）を継続するために地下の古い導水路（s3）からの水供給が不可欠であり、この技術的制約と資源依存性が、特定の水圧差（1水尺）で塩面を洗掘する物理的作業手順を必要とする。",
+        "statement_ids": [
+          "s1",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e7",
+          "type": "causes"
+        },
+        {
+          "target": "e7",
+          "type": "derived_from"
+        },
+        {
+          "target": "e3",
+          "type": "governs"
+        },
+        {
+          "target": "e5",
+          "type": "uses"
+        }
+      ],
+      "scale": "detail",
+      "scores": {
+        "reward": 0.96
+      },
+      "summary": "基準水尺洗掘法は、降雨が極めて少ない盆地環境（s2）と地下導水路への依存（s3）という制約下で、塩採掘（s1）を安定化させるため確立された標準作業手順である。この手法では、導水路配水栓から供給される水の圧力を水圧制御弁で調整し、槽内の水位差を厳密に1水尺に固定することで、塩面の溶解効率と塩担・塩斗による計測精度を両立させる。水番家系と採掘組合の権限対立を背景に、塩秤所が中立性を保ちながら水尺基準の維持を監理することで、限られた水資源のもとでの生産能力と資源配分の公平性を物理的に規定する基盤機能として機能している。",
+      "type": "practice"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "塩起",
+          "塩紀",
+          "塩年"
+        ],
+        "name": "塩暦",
+        "origin": "初代水番が地下導水路の水源を確保した年に起算。塩の採掘開始と水管理の権限確立を起点とし、盆地の資源経済と政治的対立の歴史を記録する基準となる。"
+      },
+      "society": {
+        "description": "採掘組合と水番の家系が導水路管理権を巡り対立し、塩の生産と水配分の権限、義務、紛争処理の規範を定める共同体構造。",
+        "institutions": [
+          {
+            "description": "地下導水路の管理権を世襲し、水配分と塩採掘の秩序を維持する血縁的行政組織。",
+            "name": "水番家系"
+          },
+          {
+            "description": "塩の採掘と水配分を巡り水番家系と対立する組合組織",
+            "name": "採掘組合"
+          },
+          {
+            "description": "塩の重量と水圧を基準に採掘量と水配分を計測・記録する中立機関。",
+            "name": "塩秤所"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "導水路水圧制御",
+          "塩採掘支援",
+          "塩面洗掘"
+        ],
+        "description": "地下の古い導水路から塩採掘場へ水を送る灌漑と採掘支援システム。降雨に依存せず、導水路の構造と水圧管理が技術的上限を規定する。",
+        "units": [
+          {
+            "quantity": "採掘された塩の重量を測る標準単位",
+            "symbol": "塩担"
+          },
+          {
+            "quantity": "地下導水路の水位差を測る単位",
+            "symbol": "水尺"
+          },
+          {
+            "quantity": "塩の体積を測る単位",
+            "symbol": "塩斗"
+          }
+        ]
+      }
+    }
+  }
+}

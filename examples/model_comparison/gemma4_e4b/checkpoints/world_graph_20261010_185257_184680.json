@@ -1,0 +1,362 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "language": "ja"
+  },
+  "entities": [],
+  "world_contract": {
+    "id": "world_contract",
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "name": "塩月暦",
+        "origin": "塩の採掘のサイクル、特に主要な導水路の水量変動と結びつけられた、古い記憶に基づく暦。",
+        "markers": [
+          "導水干期",
+          "水番潮",
+          "塩潮期"
+        ]
+      },
+      "technology": {
+        "description": "塩の採掘に適応した単純な機械装置や、導水路の維持管理に必要な原始的な揚水・計測技術に限定される。",
+        "capabilities": [
+          "導水路流量計測",
+          "塩気深度測",
+          "塩滓精錬"
+        ],
+        "units": [
+          {
+            "symbol": "塩石",
+            "quantity": "採掘された塩の純度を測る単位。"
+          },
+          {
+            "symbol": "水滴",
+            "quantity": "導水路から汲み上げられた水の体積。"
+          },
+          {
+            "symbol": "塩水尺",
+            "quantity": "導水路の水位の差を測るための、定規状の計測具。"
+          }
+        ]
+      },
+      "society": {
+        "description": "採掘組合と水番の家系が導水路の管理権をめぐり、権力と資源の分配に関する相互の義務を巡って緊張関係を保つ共同体。",
+        "institutions": [
+          {
+            "name": "導水路管理評議会",
+            "description": "水番と採掘組合の合意に基づき、導水路の利用と水量配分を決定する審議機関。"
+          },
+          {
+            "name": "水番血統評議会",
+            "description": "水番家系が水の配分と導水路の安全管理に関する規範を定める権限を持つ。"
+          },
+          {
+            "name": "塩滓精錬所",
+            "description": "採掘された塩滓から副産物資源を抽出し、共同体の経済基盤を支える作業場。"
+          }
+        ]
+      }
+    },
+    "provenance": {
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes"
+    }
+  },
+  "contract_stage": {
+    "status": "success",
+    "attempts": 19,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "item": "calendar_name",
+        "slot": null,
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ]
+      },
+      {
+        "item": "calendar_marker",
+        "slot": 2,
+        "attempt": 1,
+        "errors": [
+          "duplicate: 水番潮 already appears in calendar.markers"
+        ]
+      },
+      {
+        "item": "calendar_marker",
+        "slot": 2,
+        "attempt": 2,
+        "errors": [
+          "duplicate: 導水干期 already appears in calendar.markers"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "step": "calendar_name",
+        "slot": null,
+        "attempts": 2,
+        "calls": 3,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$",
+              "expected": "valid JSON object",
+              "actual": null,
+              "message": "the JSON object must be str, bytes or bytearray, not NoneType"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "calendar_origin",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 2,
+        "attempts": 3,
+        "calls": 6,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "水番潮",
+              "message": "duplicate: 水番潮 already appears in calendar.markers"
+            }
+          ],
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "導水干期",
+              "message": "duplicate: 導水干期 already appears in calendar.markers"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "technology_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "society_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_name": {
+          "calls": 3,
+          "attempts": {
+            "2": 1
+          },
+          "reasons": {
+            "the JSON object must be str, bytes or bytearray, not NoneType": 1
+          },
+          "failures": 0
+        },
+        "calendar_origin": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "calendar_marker": {
+          "calls": 10,
+          "attempts": {
+            "1": 2,
+            "3": 1
+          },
+          "reasons": {
+            "duplicate: 水番潮 already appears in calendar.markers": 1,
+            "duplicate: 導水干期 already appears in calendar.markers": 1
+          },
+          "failures": 0
+        },
+        "technology_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "capability": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "unit": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "society_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "institution": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        }
+      }
+    }
+  }
+}

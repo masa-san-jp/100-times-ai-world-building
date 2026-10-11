@@ -18,7 +18,7 @@
   "checks": {
     "graph": {
       "status": "pass",
-      "entity_count": 5,
+      "entity_count": 6,
       "errors": [],
       "error_count": 0
     },
@@ -29,10 +29,8 @@
       "uncovered_axes": [
         "ecology",
         "laws_of_nature",
-        "technology_tools",
-        "law_norms",
         "belief_thought",
-        "kinship_community",
+        "language_writing",
         "daily_life",
         "occupations_labor",
         "education_knowledge",
@@ -45,23 +43,23 @@
           "id": "geography_climate",
           "name": "地理と気候",
           "weight": 0.9,
-          "weight_share": 0.15,
-          "entities": 5,
-          "entity_share": 0.3333
+          "weight_share": 0.1417,
+          "entities": 2,
+          "entity_share": 0.1111
         },
         {
           "id": "ecology",
           "name": "生態",
           "weight": 0.05,
-          "weight_share": 0.0083,
+          "weight_share": 0.0079,
           "entities": 0,
           "entity_share": 0.0
         },
         {
           "id": "laws_of_nature",
           "name": "自然の法則と法則外の理",
-          "weight": 0.8,
-          "weight_share": 0.1333,
+          "weight": 0.05,
+          "weight_share": 0.0079,
           "entities": 0,
           "entity_share": 0.0
         },
@@ -69,39 +67,39 @@
           "id": "technology_tools",
           "name": "技術と道具",
           "weight": 0.05,
-          "weight_share": 0.0083,
-          "entities": 0,
-          "entity_share": 0.0
+          "weight_share": 0.0079,
+          "entities": 1,
+          "entity_share": 0.0556
         },
         {
           "id": "resources_economy",
           "name": "資源と経済",
           "weight": 1.0,
-          "weight_share": 0.1667,
-          "entities": 5,
+          "weight_share": 0.1575,
+          "entities": 6,
           "entity_share": 0.3333
         },
         {
           "id": "politics_power",
           "name": "政治と権力",
           "weight": 1.0,
-          "weight_share": 0.1667,
-          "entities": 4,
-          "entity_share": 0.2667
+          "weight_share": 0.1575,
+          "entities": 6,
+          "entity_share": 0.3333
         },
         {
           "id": "law_norms",
           "name": "法と規範",
-          "weight": 0.05,
-          "weight_share": 0.0083,
-          "entities": 0,
-          "entity_share": 0.0
+          "weight": 0.7,
+          "weight_share": 0.1102,
+          "entities": 1,
+          "entity_share": 0.0556
         },
         {
           "id": "belief_thought",
           "name": "信仰と思想",
           "weight": 0.05,
-          "weight_share": 0.0083,
+          "weight_share": 0.0079,
           "entities": 0,
           "entity_share": 0.0
         },
@@ -109,31 +107,31 @@
           "id": "language_writing",
           "name": "言語と文字",
           "weight": 0.05,
-          "weight_share": 0.0083,
-          "entities": 1,
-          "entity_share": 0.0667
+          "weight_share": 0.0079,
+          "entities": 0,
+          "entity_share": 0.0
         },
         {
           "id": "kinship_community",
           "name": "血縁と共同体",
-          "weight": 0.9,
-          "weight_share": 0.15,
-          "entities": 0,
-          "entity_share": 0.0
+          "weight": 0.8,
+          "weight_share": 0.126,
+          "entities": 2,
+          "entity_share": 0.1111
         },
         {
           "id": "daily_life",
           "name": "日々の暮らし",
           "weight": 0.05,
-          "weight_share": 0.0083,
+          "weight_share": 0.0079,
           "entities": 0,
           "entity_share": 0.0
         },
         {
           "id": "occupations_labor",
           "name": "職業と労働",
-          "weight": 0.9,
-          "weight_share": 0.15,
+          "weight": 0.8,
+          "weight_share": 0.126,
           "entities": 0,
           "entity_share": 0.0
         },
@@ -141,7 +139,7 @@
           "id": "education_knowledge",
           "name": "教育と知識",
           "weight": 0.05,
-          "weight_share": 0.0083,
+          "weight_share": 0.0079,
           "entities": 0,
           "entity_share": 0.0
         },
@@ -149,15 +147,15 @@
           "id": "arts_media",
           "name": "芸術・娯楽・メディア",
           "weight": 0.05,
-          "weight_share": 0.0083,
+          "weight_share": 0.0079,
           "entities": 0,
           "entity_share": 0.0
         },
         {
           "id": "history",
           "name": "歴史",
-          "weight": 0.05,
-          "weight_share": 0.0083,
+          "weight": 0.7,
+          "weight_share": 0.1102,
           "entities": 0,
           "entity_share": 0.0
         },
@@ -165,7 +163,7 @@
           "id": "external_relations",
           "name": "外部との関係",
           "weight": 0.05,
-          "weight_share": 0.0083,
+          "weight_share": 0.0079,
           "entities": 0,
           "entity_share": 0.0
         }
@@ -174,7 +172,7 @@
     "scale_depth": {
       "status": "warn",
       "counts": {
-        "world": 1,
+        "world": 2,
         "region": 1,
         "settlement": 1,
         "district": 2,
@@ -192,9 +190,9 @@
     "reward_distribution": {
       "status": "pass",
       "reward": {
-        "count": 5,
-        "mean": 0.9755,
-        "min": 0.9655,
+        "count": 6,
+        "mean": 0.9502,
+        "min": 0.9219,
         "max": 1.0
       },
       "histogram": [
@@ -202,7 +200,7 @@
         0,
         0,
         0,
-        5
+        6
       ],
       "low_reward_entities": [],
       "unscored_entities": [],
@@ -230,13 +228,13 @@
       "status": "pass",
       "threshold": 0.8,
       "entities": {
-        "item_count": 5,
+        "item_count": 6,
         "exact_duplicate_count": 0,
         "normalized_duplicate_count": 0,
         "near_duplicate_pair_count": 0
       },
       "names": {
-        "item_count": 5,
+        "item_count": 6,
         "exact_duplicate_count": 0,
         "normalized_duplicate_count": 0,
         "near_duplicate_pair_count": 0
@@ -248,15 +246,15 @@
       "stop_reason": "max_iterations",
       "iterations": 12,
       "counters": {
-        "generation_calls": 169,
-        "accepted": 5,
-        "rejected": 7,
+        "generation_calls": 222,
+        "accepted": 6,
+        "rejected": 6,
         "no_candidates": 0,
-        "rewrites": 41,
+        "rewrites": 42,
         "errors": 0
       },
       "logged_iterations": 12,
-      "accepted_iterations": 5,
+      "accepted_iterations": 6,
       "notes": []
     }
   }

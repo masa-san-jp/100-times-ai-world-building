@@ -3,18 +3,19 @@
   "layout_version": 3,
   "artifact_type": "world_output",
   "engine": "world",
-  "run_id": "final2_gpt-oss_20b",
+  "run_id": "v73b_gpt-oss_20b",
   "backend": "ollama",
   "model": "gpt-oss:20b",
   "models": {
     "generation": "gpt-oss:20b",
     "vision": "llava:latest"
   },
+  "judge_model": "qwen3.8:27b",
   "run_seed": 1,
   "seed_source": "argument",
   "config": {
-    "path": "<repo>/config/ollama_config.yaml",
-    "sha256": "3b8715cbf9dbc0fc38aebcc3d617e266f1d14edc6265b10db9d8f543bbf48abc"
+    "path": "<scratch>/ollama_config_ctx16k.yaml",
+    "sha256": "7b6f61da2ec5ef54f9b819ef3e51b2eaa8b484281d00d51fd618cd4147fdb261"
   },
   "engine_config": {
     "explore": {
@@ -88,17 +89,13 @@
         "max_consecutive_failures": 5
       },
       "coverage": {
-        "enabled": true,
-        "min_axis_entities": 1,
-        "depth": "detail",
-        "min_entities_per_scale": 2,
-        "target_mean_reward": 0.6
+        "enabled": true
       }
     },
     "operator": {},
     "generation": {
       "max_tokens": 8192,
-      "num_ctx": 32768,
+      "num_ctx": 16384,
       "think": false,
       "temperature": null
     },
@@ -109,31 +106,37 @@
   },
   "files": {
     "config/prompts/input_brief.yaml": "25524633ff740891ca78ff279157a56b3eaed44548563a947308cb9bfc395b46",
-    "config/prompts/world/contract.yaml": "fa0591a488e76e52d60c45072ad0a5420b06816eadaacd1cd3acc7ba7b0b2161",
+    "config/prompts/world/contract_items.yaml": "7f4f1c8f0b71387e80fe6db20d70fb0825c2bad42c29b00885b773115b0d2fac",
     "config/prompts/world/operators.yaml": "9880c90a1ecf5a7cb2022f6db6ad941845f1e87ae2d258b7cec09322896cea80",
-    "config/prompts/world/steps.yaml": "024c7f0c23d8a5c2ddfb389ac575ae28f7c768dacbcb34fc80d79efad7b8f44e",
+    "config/prompts/world/real_world_check.yaml": "86bd5dd97693c29d5cbe12f2a9abc5a3d892f1b0ca7bc2dabd0d59b09bc62fb3",
+    "config/prompts/world/restatement_check.yaml": "3d21bdab14d0ea91a3336d0fa0334ca532256a62763e2cc9d40ed07609486657",
+    "config/prompts/world/steps.yaml": "dea899b8d1eb0953ec423f4656a3e17e8847d42704197470bd1871a1e8d09c8e",
     "config/prompts/world_axes.yaml": "e6a3443148d5f6ada97daa06aaec0e30f189a7a3e1ddc14657bfe4ad39211e55",
     "config/schemas/image_description.json": "e7dfda4d5d92a41cfd3d3ea2059ef3267602109fb5fa864e44dcad3759dc0791",
     "config/schemas/input_brief.json": "6740c1dbf9f064a5d7a0895f71793bc8ea78c117b51c3b8c30b6cad28af708b7",
     "config/schemas/steps/axes.json": "3ec6eb61bf6c2741d1ee537d1d8868c46a91b625d7b38bfb6f9537ee7c655ca5",
-    "config/schemas/steps/fact.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
-    "config/schemas/steps/fact_check.json": "b3c18eb241c77cbcbd4d571f755231f3ed24fbb70b1fbf2b125f5360d2fdc546",
+    "config/schemas/steps/fact_element.json": "84d2b97612ab693e84a4bf8b9870cbf30602fd669f90b7c7dee0fd88d1769bd6",
+    "config/schemas/steps/fact_text.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
     "config/schemas/steps/grounding.json": "8729109bd691a2db909ea05fe0481b4be8ec939d6b6bb7e2719e8b7a7d48a7eb",
     "config/schemas/steps/name.json": "f10757aa050a745a5bcd8c4d7b3372eefd993b22f06587bd139a2e1c549264d2",
+    "config/schemas/steps/real_world_check.json": "6f71154ce6a5832ce8b35440a949f0bd645a81b84974b1d0c2825ee634949904",
     "config/schemas/steps/relations.json": "11df31f3d19573bf355cfaa27025de75ee1427f4c69ab838472a6f97d29708b7",
-    "config/schemas/steps/review.json": "4c8e7efe1e8fdcb82e19d501866d2a544a40b557d257bdf68d0ce20ce7e1c421",
+    "config/schemas/steps/restatement_check.json": "a08b1c52ac1b200bb484700b95376108f59660cf977a8b3745f49280034978ef",
+    "config/schemas/steps/review.json": "ac2ce3ce0bc5f808a5e2c7a9c252f46226652b19c93ccb56b2f315bdc581c72d",
     "config/schemas/steps/summary.json": "587e86b0b9bb906b32a4551f8df8819bbd3e5e55a88c666ab8377d7f3f7c8df1",
     "config/schemas/steps/type.json": "c32aaaf81bcc4523f392b3685937a902010b07f679b341003ca9c803da042489",
     "config/schemas/world_axes.json": "d3908416634d7ee04f2a3bb0f51a660545bdc7cb1ec1a12cc4188364923030e1",
     "config/schemas/world_contract.json": "35ecbb952de8509e768ded0b2868c8daafe73c6e30e125abaa67541868d9cb37",
-    "config/world/criteria.yaml": "13d806497517a59c649d083136854fb5e2120644f36999107329e7e456b4048a",
+    "config/world/contract.yaml": "050a25b6dd6735d1bf426f5705801dccb2ce01d054a634b924951d878f73564b",
+    "config/world/criteria.yaml": "f875fa72ea8e5ffe6e85715b1114b273e877f30e0141f6a2ac71a52e7d70fbf8",
     "config/world/domains.yaml": "b5650ae80af6b396e40b5ce22a782cc64a4e73e4afe17a2d2b0ddf576a4168eb",
-    "config/world/explore.yaml": "48e7f923938dcacf68e2169035645eb6120518745dcbb048b55757ded43c10ca",
-    "config/world/language_rules.yaml": "786784e1a320bf003476d608f5b3d4b2fdb9802ab02543aa2bb3e51e11fe200f",
+    "config/world/explore.yaml": "26a8e94c34f5748003299c9989ffa54d5bee5cfdebc6121202a6fdd2f7a577e6",
+    "config/world/language_rules.yaml": "c5122a7e8612566ac04cba5b8fd1547688be8057bc57ddf0db5839b931f76391",
     "config/world/languages.yaml": "d13991e024990f241f4c6fe10262a76a243698812ff42e8c3299b1049bcda4f7",
     "config/world/quality.yaml": "d7864814a22eeb9cc2096277d18934a85d3d4377453a6ea3c02cc4f880732e25",
-    "config/world/render_labels.yaml": "d4ca5f36b22dcd177457c261f6b90e0e6c185f9eff9f9565619f8a577fa8519c",
-    "config/world/reward.yaml": "fe92b86483c166a30e26c6ec346a9b634347d8bffd5c9be4d19b89d150625253"
+    "config/world/render_labels.yaml": "2d0776cd3a28d88a911073202b4fce580b9e4b3e63125de36f474f92e06effa9",
+    "config/world/reward.yaml": "fe92b86483c166a30e26c6ec346a9b634347d8bffd5c9be4d19b89d150625253",
+    "config/world/world_criteria.yaml": "013882e8aafa171e2a9e884d53618185e8236aa41f4910e453a625184f308537"
   },
   "paths": {
     "input": "input",
@@ -141,17 +144,16 @@
     "checkpoints": "checkpoints",
     "final": "final"
   },
-  "created_at": "2026-10-07T17:56:47+00:00",
+  "created_at": "2026-10-10T09:29:31+00:00",
   "status": "completed",
-  "updated_at": "2026-10-07T19:15:38+00:00",
+  "updated_at": "2026-10-11T13:00:33+00:00",
   "budget": {
     "requested": {
-      "max_iterations": 12,
-      "max_wall_seconds": 14400.0
+      "max_iterations": 18
     },
     "effective": {
-      "max_iterations": 12,
-      "max_wall_seconds": 14400.0,
+      "max_iterations": 18,
+      "max_wall_seconds": null,
       "max_generation_calls": null
     }
   },
@@ -161,397 +163,532 @@
     "characters": 81,
     "images": []
   },
-  "started_at": "2026-10-07T17:56:47+00:00",
-  "pid": 14666,
+  "started_at": "2026-10-10T09:29:31+00:00",
+  "pid": 63117,
   "world_contract": {
-    "status": "success",
-    "attempts": 1,
+    "attempts": 16,
     "checks_enabled": true,
     "disabled_checks": [],
-    "errors": [
+    "errors": [],
+    "metrics": {
+      "steps": {
+        "calendar_marker": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "calendar_name": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 2,
+          "failures": 0,
+          "reasons": {}
+        },
+        "calendar_origin": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "capability": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "institution": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "society_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "technology_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "unit": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        }
+      }
+    },
+    "status": "success",
+    "steps": [
       {
-        "attempt": 1,
-        "errors": []
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": null,
+        "step": "calendar_name",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "calendar_origin",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "technology_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "society_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "institution",
+        "violations": [
+          []
+        ]
       }
     ]
   },
   "phases": {
     "world_explore": {
       "status": "completed",
-      "started_at": "2026-10-07T18:02:34+00:00",
-      "finished_at": "2026-10-07T19:15:38+00:00"
+      "started_at": "2026-10-10T11:04:51+00:00",
+      "finished_at": "2026-10-11T13:00:32+00:00"
     }
   },
   "build": {
     "steps": {
       "type": {
-        "calls": 12,
+        "calls": 20,
         "attempts": {
-          "1": 11
+          "1": 16
         },
         "reasons": {},
         "failures": 0
       },
       "grounding": {
-        "calls": 12,
+        "calls": 20,
         "attempts": {
-          "1": 12
+          "1": 18
         },
         "reasons": {},
         "failures": 0
       },
       "name": {
-        "calls": 14,
+        "calls": 25,
         "attempts": {
-          "1": 11,
-          "3": 1
+          "1": 13,
+          "2": 4,
+          "4": 1
         },
-        "reasons": {},
+        "reasons": {
+          "no_outside_premises": {
+            "塩井村: 日本の実在する自治体（村）の固有名詞。": 1,
+            "塩湧郡: 日本の歴史的行政区画（郡）の名称であり、実在した地名として記録されている。": 1
+          },
+          "new_information": {
+            "name must differ from existing names after normalization": 1
+          }
+        },
         "failures": 0
       },
-      "axes": {
-        "calls": 12,
+      "real_world_check": {
+        "calls": 51,
         "attempts": {
-          "1": 12
+          "1": 49,
+          "2": 1
+        },
+        "reasons": {
+          "no_outside_premises": {
+            "塩井村: 日本の実在する自治体（村）の固有名詞。": 1,
+            "塩湧郡: 日本の歴史的行政区画（郡）の名称であり、実在した地名として記録されている。": 1
+          }
+        },
+        "failures": 2
+      },
+      "axes": {
+        "calls": 18,
+        "attempts": {
+          "1": 18
         },
         "reasons": {},
         "failures": 0
       },
       "summary": {
-        "calls": 19,
+        "calls": 21,
         "attempts": {
-          "1": 7,
-          "2": 3,
-          "3": 2
+          "1": 16,
+          "2": 1,
+          "3": 1
         },
         "reasons": {
-          "informative": {
-            "character 3-gram overlap must be <= 0.6": 4
-          },
           "objective": {
             "quoted speech in the summary; move quotations into facts": 1
           },
-          "no_story": {
-            "quoted speech in the summary; move quotations into facts": 1
+          "no_outside_premises": {
+            "units and calendar markers must belong to the contract": 3
           }
         },
         "failures": 0
       },
-      "fact": {
-        "calls": 52,
+      "fact_element": {
+        "calls": 83,
         "attempts": {
-          "1": 7,
-          "4": 9,
-          "3": 1,
-          "2": 2
+          "1": 27,
+          "2": 18,
+          "3": 5
         },
         "reasons": {
-          "fits_world": {
-            "units and calendar markers must belong to the contract": 19
-          },
-          "informative": {
-            "character 3-gram overlap must be <= 0.6": 17
+          "new_information": {
+            "(value, unit) pair (5000, shg) with a near subject ('年間塩採掘量') already appears in an existing fact": 2,
+            "(value, unit) pair (2000, shg) with a near subject ('年間水使用許可量') already appears in an existing fact": 2,
+            "(value, unit) pair (5000, shg) with a near subject ('年平均塩採掘量') already appears in an existing fact": 1
           }
         },
-        "failures": 7
-      },
-      "fact_check": {
-        "calls": 15,
-        "attempts": {
-          "1": 15
-        },
-        "reasons": {},
         "failures": 0
       },
-      "review": {
-        "calls": 8,
+      "fact_text": {
+        "calls": 82,
         "attempts": {
-          "1": 5,
+          "1": 28,
+          "2": 17,
+          "5": 1,
+          "3": 3,
+          "4": 1
+        },
+        "reasons": {
+          "new_information": {
+            "fact text restates an existing fact: '塩水盆地の年平均塩の質量は5000 shgであり、塩暦の「塩路」「乾井」「水源」マーカーの下で水源監査委・塩水調整会・水源審査委員会が管理している。'": 1,
+            "fact text restates an existing fact: '塩雲集落の年間塩採掘量は100 shgです。'": 1,
+            "fact text restates an existing fact: '塩雲宿は塩雲集落内の宿泊施設で、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会の監査下で年間100 shgの塩を採掘する。'": 1,
+            "fact text restates an existing fact: '水源調整集団は、塩暦の塩路・乾井・水源マーカーに沿って、水源監査委・塩水調整会・水源審査委員会と連携し、年間塩採掘量5000 shgを調整する。'": 2,
+            "fact text restates an existing fact: '塩雲域の年間塩採掘量は25 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会の監査下で管理されている。'": 1,
+            "fact text restates an existing fact: '塩雲小区の塩貯蔵タンクは塩暦の塩路・乾井・水源マーカーに沿い、5 shgの塩を保管し、水源監査委・塩水調整会・水源審査委員会の監査下で管理される。'": 2,
+            "fact text restates an existing fact: '塩暦の「塩路」「乾井」「水源」マーカーに沿い、水源監査委が塩貯蔵タンクの塩密度を1.2 nshで測定する。'": 1,
+            "fact text duplicates an existing fact: '塩雲小区の塩密度は1.2 nshで、塩暦の塩路・乾井・水源マーカーに沿い水源監査委・塩水調整会・水源審査委員会の監査下で管理される。'": 1,
+            "fact text restates an existing fact: '水源監査委が塩暦の「塩路」「乾井」「水源」マーカーに沿い、塩雲小区倉庫の容量を測定する（5 shg）(水源監査委、塩水調整会、水源審査委員会)'": 2,
+            "fact text restates an existing fact: '塩雲乾貯は、塩暦の塩路・乾井・水源マーカーに沿い水源監査委、塩水調整会、水源審査委員会の監査下で容量 5 shg を保つ。'": 3,
+            "fact text restates an existing fact: '乾塩倉庫容量は5 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委、塩水調整会、水源審査委員会が年次報告で測定・監査する。'": 1,
+            "fact text restates an existing fact: '塩暦1125年の地下水配分証明書は、塩路・乾井・水源に沿い水源監査委、塩水調整会、水源審査委員会の監査下で、年間水使用許可量2000 shgを定めた。'": 1,
+            "fact text duplicates an existing fact: '地下水配分証書は塩暦1125年に水源監査委が発行し、塩路・乾井・水源に沿った年間塩採掘量許可5000 shgを証明する。'": 1,
+            "fact text restates an existing fact: '塩源管理集団は、塩暦の塩路・乾井・水源を基準に、年平均塩採掘量5000 shgを水源監査委・塩水調整会・水源審査委員会と連携して監査・調整する団体です。'": 1,
+            "fact text restates an existing fact: '砂塩渓谷の塩採掘量は1200 shgで、塩暦の塩路・乾井・水源に沿って水源監査委・塩水調整会・水源審査委員会が管理する。'": 1,
+            "fact text restates an existing fact: '乾塩渓谷の塩採掘量は1200 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会が管理している。'": 2
+          },
+          "no_outside_premises": {
+            "units and calendar markers must belong to the contract": 6
+          },
+          "detail": {
+            "fact text must contain actor and action": 1,
+            "fact text must contain object": 1
+          }
+        },
+        "failures": 4
+      },
+      "restatement_check": {
+        "calls": 77,
+        "attempts": {
+          "1": 77
+        },
+        "reasons": {
+          "new_information": {
+            "fact text restates an existing fact: '塩水盆地の年平均塩の質量は5000 shgであり、塩暦の「塩路」「乾井」「水源」マーカーの下で水源監査委・塩水調整会・水源審査委員会が管理している。'": 1,
+            "fact text restates an existing fact: '塩雲集落の年間塩採掘量は100 shgです。'": 1,
+            "fact text restates an existing fact: '塩雲宿は塩雲集落内の宿泊施設で、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会の監査下で年間100 shgの塩を採掘する。'": 1,
+            "fact text restates an existing fact: '水源調整集団は、塩暦の塩路・乾井・水源マーカーに沿って、水源監査委・塩水調整会・水源審査委員会と連携し、年間塩採掘量5000 shgを調整する。'": 2,
+            "fact text restates an existing fact: '塩雲域の年間塩採掘量は25 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会の監査下で管理されている。'": 1,
+            "fact text restates an existing fact: '塩雲小区の塩貯蔵タンクは塩暦の塩路・乾井・水源マーカーに沿い、5 shgの塩を保管し、水源監査委・塩水調整会・水源審査委員会の監査下で管理される。'": 2,
+            "fact text restates an existing fact: '塩暦の「塩路」「乾井」「水源」マーカーに沿い、水源監査委が塩貯蔵タンクの塩密度を1.2 nshで測定する。'": 1,
+            "fact text restates an existing fact: '水源監査委が塩暦の「塩路」「乾井」「水源」マーカーに沿い、塩雲小区倉庫の容量を測定する（5 shg）(水源監査委、塩水調整会、水源審査委員会)'": 2,
+            "fact text restates an existing fact: '塩雲乾貯は、塩暦の塩路・乾井・水源マーカーに沿い水源監査委、塩水調整会、水源審査委員会の監査下で容量 5 shg を保つ。'": 3,
+            "fact text restates an existing fact: '乾塩倉庫容量は5 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委、塩水調整会、水源審査委員会が年次報告で測定・監査する。'": 1,
+            "fact text restates an existing fact: '塩暦1125年の地下水配分証明書は、塩路・乾井・水源に沿い水源監査委、塩水調整会、水源審査委員会の監査下で、年間水使用許可量2000 shgを定めた。'": 1,
+            "fact text restates an existing fact: '塩源管理集団は、塩暦の塩路・乾井・水源を基準に、年平均塩採掘量5000 shgを水源監査委・塩水調整会・水源審査委員会と連携して監査・調整する団体です。'": 1,
+            "fact text restates an existing fact: '砂塩渓谷の塩採掘量は1200 shgで、塩暦の塩路・乾井・水源に沿って水源監査委・塩水調整会・水源審査委員会が管理する。'": 1,
+            "fact text restates an existing fact: '乾塩渓谷の塩採掘量は1200 shgで、塩暦の塩路・乾井・水源マーカーに沿い、水源監査委・塩水調整会・水源審査委員会が管理している。'": 2
+          }
+        },
+        "failures": 20
+      },
+      "review": {
+        "calls": 18,
+        "attempts": {
+          "1": 13,
+          "2": 1,
           "3": 1
         },
         "reasons": {
           "consistent": {
-            "summary states that 水源監督会 monitors water quality and supply, but no fact in the entity supports this claim.": 1,
-            "Entity name '塩砂丘域' does not correspond to the institution described in the facts, which refers to '水源監督会'.; Summary describes activities of '水源監督会', inconsistent with the entity name '塩砂丘域'.; Fact 0 discusses '水源監督会', conflicting with the entity's name '塩砂丘域'.; Fact 1 discusses '水源監督会', conflicting with the entity's name '塩砂丘域'.": 1,
-            "Salt production figure 50000 kg conflicts with world contract which reports 52000 kg.": 1
-          },
-          "fits_world": {
-            "institution 水源監督会 is not listed in the world contract, so the entity does not fit the defined world structure.": 1,
             "": 1,
             "false verdict has no issue identifying an affected field": 1,
-            "Salt production figure 50000 kg does not match the value specified in world contract (52000 kg) and thus does not fit the world contract.": 1
+            "facts[0]は年間塩採掘量許可を5000 shgとしており、facts[1]はその値を「年間塩採掘量5000 shgと年間水使用量2000 shg」の文脈で示しているが、単位の定義（shgは塩の質量）と文書の性質（水使用許可を含む）から、水使用量にも塩の質量単位であるshgが適用される点は契約上の定義と整合している。しかし、nameフィールドが「地下水配分証書」、facts[1]が「地下水配分証券」と別名を使用しており、同一文書の名称が統一されていない。また、summaryは「地下水配分証明書」と呼称しており、3つの異なる名称が混在しているため、実体としての同一性（consistency）が保たれていない。; 入力ターゲットe11のnameは「地下水配分証明書」であるが、アセンブルされたe12のnameは「地下水配分証書」、facts[1]は「地下水配分証券」となっており、同一オブジェクトの名称が不統一である。": 1,
+            "入力TARGETのe11および関連文脈ではこの文書の名称は「地下水配分証明書」と定義されているが、組み立て済みのエンティティのnameフィールドは「地下水配分承認証」となっており、入力と矛盾している。; facts[1]のproper_nounにおいて、文書の名称が「地下水配分証典」とされているが、入力文脈では「地下水配分証明書」（または別名「水源配分証書」）とされており、名称が一致しない。; facts[0]のtextにおいて、文書の名称が「地下水配分証書」とされているが、入力文脈では正式名称は「地下水配分証明書」とされており、名称が一致しない。": 1,
+            "ターゲットエンティティe11の名称は「地下水配分証明書」であるが、新エンティティe12の名称は「水源管理証明書」となっており、同一文書として扱う際に名称の不整合がある。; ターゲットe11の事実（facts）では「年間水使用許可量2000 shg」が記載されているが、e12のfacts[0]およびsummaryでは「年間塩採掘量許可 5000 shg」を証明する文書として記述されている。e11が水使用量（2000 shg）を定めた文書であるという前提と矛盾する。": 1,
+            "ターゲット实体 e2 の名称は「乾塩渓谷」であるが、組み立てられた实体の名称は「砂塩渓谷」となっており、入力文書・LOCAL CONTEXT・WORLD CONTRACT で定義された名称と矛盾している。; facts[0] のテキスト内に「砂塩渓谷」という名称が含まれており、ターゲット实体 e2 の正式名称「乾塩渓谷」と一致しない。; facts[1] のテキスト内に「砂塩渓谷域」という名称が含まれており、ターゲット实体 e2 の文脈および名称「乾塩渓谷」との整合性がない。; サマリー内で「乾塩渓谷は、古代塩水協定により...」と説明されている一方、实体の name フィールドは「砂塩渓谷」であり、同一实体内の自己矛盾が存在する。": 1
+          },
+          "no_outside_premises": {
+            "「塩雲」は内陸盆地であり、海に接していないため、「海風」という名称は地理的・気候的設定（降雨がほとんどない内陸）と矛盾し、外部の海浜環境の前提を持ち込んでいる。; 「海風倉庫」という名称が用いられているが、内陸盆地という設定と矛盾する外部の前提（海風）が含まれている。": 1
           }
         },
-        "failures": 0
+        "failures": 1
       },
       "relations": {
-        "calls": 5,
+        "calls": 14,
         "attempts": {
-          "1": 5
+          "1": 14
         },
         "reasons": {},
         "failures": 0
       }
     },
-    "accepted": 5,
-    "failed": 7,
+    "accepted": 13,
+    "failed": 5,
     "failures_by_step": {
-      "fact": 7
+      "fact_text": 4,
+      "review": 1
     }
   },
   "world_explore": {
-    "iteration": 12,
+    "iteration": 18,
     "counters": {
-      "generation_calls": 149,
-      "accepted": 5,
-      "rejected": 7,
+      "generation_calls": 429,
+      "accepted": 13,
+      "rejected": 5,
       "no_candidates": 0,
-      "rewrites": 42,
+      "rewrites": 71,
       "errors": 0
     },
     "stop_reason": "max_iterations",
-    "elapsed_seconds": 4383.914
+    "world_status": {
+      "criteria": {
+        "faithful": {
+          "value": 1.0,
+          "threshold": 1.0,
+          "met": true
+        },
+        "breadth.axes": {
+          "value": 0.375,
+          "threshold": 1.0,
+          "met": false
+        },
+        "breadth.perspective": {
+          "value": 2,
+          "threshold": 1,
+          "met": true
+        },
+        "depth.relations": {
+          "value": 0.5714285714285714,
+          "threshold": 0.3,
+          "met": true
+        },
+        "depth.history": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.world": {
+          "value": 6,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.region": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.settlement": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.district": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.site": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.detail": {
+          "value": 3,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.chain": {
+          "value": true,
+          "threshold": true,
+          "met": true
+        }
+      },
+      "met": false
+    },
+    "elapsed_seconds": 31007.918
   },
-  "structured": {
-    "input_brief": {
-      "calls": 1,
-      "attempts": {
-        "2": 1
-      },
-      "failures": 0,
-      "elapsed": 74.83268720796332,
-      "modes": {
-        "constrained": 1,
-        "unconstrained": 1
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "world_axes": {
-      "calls": 1,
-      "attempts": {
-        "1": 1
-      },
-      "failures": 0,
-      "elapsed": 94.09102520812303,
-      "modes": {
-        "unconstrained": 1
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "world_contract": {
-      "calls": 1,
-      "attempts": {
-        "1": 1
-      },
-      "failures": 0,
-      "elapsed": 177.37622441677377,
-      "modes": {
-        "unconstrained": 1
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "type": {
-      "calls": 11,
-      "attempts": {
-        "1": 11
-      },
-      "failures": 0,
-      "elapsed": 324.9310093340464,
-      "modes": {
-        "unconstrained": 12
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 1,
-        "succeeded": 1,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "grounding": {
-      "calls": 12,
-      "attempts": {
-        "1": 12
-      },
-      "failures": 0,
-      "elapsed": 380.60493391612545,
-      "modes": {
-        "unconstrained": 12
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "name": {
-      "calls": 14,
-      "attempts": {
-        "1": 14
-      },
-      "failures": 0,
-      "elapsed": 133.93584270961583,
-      "modes": {
-        "unconstrained": 14
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "axes": {
-      "calls": 12,
-      "attempts": {
-        "1": 12
-      },
-      "failures": 0,
-      "elapsed": 175.91888675000519,
-      "modes": {
-        "unconstrained": 12
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "summary": {
-      "calls": 19,
-      "attempts": {
-        "1": 19
-      },
-      "failures": 0,
-      "elapsed": 994.2353820023127,
-      "modes": {
-        "unconstrained": 19
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "fact": {
-      "calls": 50,
-      "attempts": {
-        "1": 50
-      },
-      "failures": 0,
-      "elapsed": 1425.6538201621734,
-      "modes": {
-        "unconstrained": 52
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 2,
-        "succeeded": 1,
-        "fidelity_failures": 0,
-        "schema_failures": 1
-      }
-    },
-    "fact_check": {
-      "calls": 15,
-      "attempts": {
-        "1": 15
-      },
-      "failures": 0,
-      "elapsed": 247.87708508502692,
-      "modes": {
-        "unconstrained": 15
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "review": {
-      "calls": 8,
-      "attempts": {
-        "1": 8
-      },
-      "failures": 0,
-      "elapsed": 550.309544458054,
-      "modes": {
-        "unconstrained": 8
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    },
-    "relations": {
-      "calls": 5,
-      "attempts": {
-        "1": 5
-      },
-      "failures": 0,
-      "elapsed": 148.47038291674107,
-      "modes": {
-        "unconstrained": 5
-      },
-      "placeholder_violations": 0,
-      "schema_echo": 0,
-      "conversions": {
-        "tried": 0,
-        "succeeded": 0,
-        "fidelity_failures": 0,
-        "schema_failures": 0
-      }
-    }
-  },
-  "finished_at": "2026-10-07T19:15:38+00:00",
+  "finished_at": "2026-10-11T13:00:33+00:00",
+  "structured": {},
   "stop_reason": "max_iterations",
-  "iterations": 12,
+  "iterations": 18,
   "counters": {
-    "generation_calls": 149,
-    "accepted": 5,
-    "rejected": 7,
+    "generation_calls": 429,
+    "accepted": 13,
+    "rejected": 5,
     "no_candidates": 0,
-    "rewrites": 42,
+    "rewrites": 71,
     "errors": 0
   },
   "quality_report": {

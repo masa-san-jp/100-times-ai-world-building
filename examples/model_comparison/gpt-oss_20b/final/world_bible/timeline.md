@@ -6,5 +6,11 @@
 
 ## 出来事
 
-- [古導水路争議](entities/e4.md)
-  - 現在に残る痕跡: [塩原盆地](entities/e1.md), [水源監督会](entities/e2.md), [塩原労働団体](entities/e3.md), [水道管理協議会](entities/e5.md)
+- [古代塩水協定](entities/e8.md)
+  - 現在に残る痕跡: [塩水盆地](entities/e1.md), [地下水配分証明書](entities/e11.md)
+
+## 時期を伴う事実
+
+- [塩雲乾塊](entities/e7.md): 塩雲小区倉庫の容量はvalue: 5 shgで、marker: "塩路"に沿って配置されている。
+- [塩霧倉庫](entities/e9.md): 塩霧倉庫の容量は10 shgで、塩路マーカーに沿って配置されている。
+- [塩雲乾貯](entities/e10.md): 塩雲乾貯は、marker: "塩暦" の塩路・乾井・水源マーカーに沿い、value: 5 shg の容量を維持するために水源監査委が年次監査を実施し、塩水調整会が水使用量を調整する。

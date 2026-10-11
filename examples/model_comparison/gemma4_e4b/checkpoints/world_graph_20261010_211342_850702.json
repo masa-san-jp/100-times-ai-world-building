@@ -1,0 +1,846 @@
+{
+  "contract_stage": {
+    "attempts": 19,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "the JSON object must be str, bytes or bytearray, not NoneType"
+        ],
+        "item": "calendar_name",
+        "slot": null
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: 水番潮 already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      },
+      {
+        "attempt": 2,
+        "errors": [
+          "duplicate: 導水干期 already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_marker": {
+          "attempts": {
+            "1": 2,
+            "3": 1
+          },
+          "calls": 10,
+          "failures": 0,
+          "reasons": {
+            "duplicate: 導水干期 already appears in calendar.markers": 1,
+            "duplicate: 水番潮 already appears in calendar.markers": 1
+          }
+        },
+        "calendar_name": {
+          "attempts": {
+            "2": 1
+          },
+          "calls": 3,
+          "failures": 0,
+          "reasons": {
+            "the JSON object must be str, bytes or bytearray, not NoneType": 1
+          }
+        },
+        "calendar_origin": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "capability": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "institution": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "society_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "technology_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "unit": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        }
+      }
+    },
+    "status": "success",
+    "steps": [
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 3,
+        "slot": null,
+        "step": "calendar_name",
+        "violations": [
+          [
+            {
+              "actual": null,
+              "expected": "valid JSON object",
+              "message": "the JSON object must be str, bytes or bytearray, not NoneType",
+              "path": "$"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "calendar_origin",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 3,
+        "calls": 6,
+        "slot": 2,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "水番潮",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 水番潮 already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          [
+            {
+              "actual": "導水干期",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: 導水干期 already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "technology_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "society_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      }
+    ]
+  },
+  "entities": [
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [],
+            "reason": "与えられた簡潔な記述に基づき、世界を構成する基本的な前提（地理、資源、対立構造）を特定したため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "採掘された塩の純度の測定値",
+          "text": "採掘された塩の純度の測定値は1塩石で、これは塩盆地における塩の採掘活動の基礎的な指標である。",
+          "unit": "塩石",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "乾水淵",
+          "provenance": {
+            "derived_from": [],
+            "reason": "与えられた簡潔な記述に基づき、世界を構成する基本的な前提（地理、資源、対立構造）を特定したため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "乾水淵における水の配分は、「水番血統評議会」の規範と「塩月暦」の「水番潮」に基づき決定される。"
+        }
+      ],
+      "id": "e1",
+      "name": "塩盆地",
+      "origin_operator": "premise",
+      "parent": null,
+      "provenance": {
+        "derived_from": [],
+        "reason": "与えられた簡潔な記述に基づき、世界を構成する基本的な前提（地理、資源、対立構造）を特定したため。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "塩盆地は、雨がほとんど降らない乾燥した内陸の盆地であり、経済活動は塩の採掘に依存している。生活用水は地下の古い導水路から供給され、その管理権を巡り、採掘組合と水番の家系が「導水路管理評議会」や「水番血統評議会」といった制度のもとで対立している。技術的には「塩石」や「水滴」を用いて資源管理が行われ、時間は「塩月暦」に基づいて計測される。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の概要記述に基づき、盆地の地理的特徴、水資源の制約、および主要な社会対立構造を網羅的に参照したため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "採掘された塩の純度",
+          "text": "塩月暦に基づく「水番潮」の基準点では、採掘された塩の純度は最低1塩石以上である必要がある。",
+          "unit": "塩石",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "水門石",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の概要記述に基づき、盆地の地理的特徴、水資源の制約、および主要な社会対立構造を網羅的に参照したため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩涸谷における水門石は、塩月暦の「水番潮」の基準に基づき、導水路管理評議会によって管理される。"
+        }
+      ],
+      "id": "e2",
+      "name": "塩涸谷",
+      "origin_operator": "zoom",
+      "parent": "e1",
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "e1の概要記述に基づき、盆地の地理的特徴、水資源の制約、および主要な社会対立構造を網羅的に参照したため。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "opposes"
+        },
+        {
+          "target": "e1",
+          "type": "uses"
+        }
+      ],
+      "scale": "region",
+      "scores": {
+        "reward": 0.921875
+      },
+      "summary": "塩涸谷は、雨がほとんど降らない乾燥した内陸盆地であり、経済活動は塩の採掘に依存している。生活用水は、塩月暦に基づき管理される地下の古い導水路から供給されている。この資源の管理権をめぐり、採掘組合と水番の家系が対立しており、「導水路管理評議会」や「水番血統評議会」といった制度が機能している。資源管理には、「塩石」や「水滴」といった単位が用いられる。",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "politics_power",
+        "resources_economy",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "e2のsummaryおよびfactsに基づき、s1, s2, s3の記述内容を包含しているため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "導水路から汲み上げられた水の体積",
+          "text": "塩月暦の「水番潮」の基準に基づくと、導水路から汲み上げられた水の体積は、最低1水滴の「水滴」が確保される必要がある。",
+          "unit": "水滴",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "北壁水門石周辺",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "e2のsummaryおよびfactsに基づき、s1, s2, s3の記述内容を包含しているため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "北壁水門石周辺の導水路の水位差は、塩月暦の「水番潮」の基準に基づき、「塩水尺」を用いて計測され、その管理は導水路管理評議会が行う。"
+        },
+        {
+          "kind": "object",
+          "object": "塩水尺",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "e2のsummaryおよびfactsに基づき、s1, s2, s3の記述内容を包含しているため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "塩の汲み場において、導水路の水位差は「塩水尺」を用いて計測され、この計測は「塩月暦」の「水番潮」の基準点と関連付けられている。"
+        }
+      ],
+      "id": "e3",
+      "name": "塩の汲み場",
+      "origin_operator": "zoom",
+      "parent": "e2",
+      "provenance": {
+        "derived_from": [
+          "e2"
+        ],
+        "reason": "e2のsummaryおよびfactsに基づき、s1, s2, s3の記述内容を包含しているため。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "opposes"
+        },
+        {
+          "target": "e1",
+          "type": "uses"
+        }
+      ],
+      "scale": "settlement",
+      "scores": {
+        "reward": 0.9342105263157895
+      },
+      "summary": "塩涸谷は、雨が極端に少ない内陸の盆地であり、経済活動の基盤は塩の採掘にあります。生活用水は、塩月暦に基づき管理される地下の導水路から供給されており、その資源配分をめぐり、「採掘組合」と「水番家系」が対立構造を維持しています。資源の管理には、「塩石」や「水滴」といった単位が用いられ、「導水路管理評議会」や「水番血統評議会」といった制度が機能しています。",
+      "type": "object"
+    },
+    {
+      "axes": [
+        "kinship_community",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "e3のsummaryおよびfactsに基づいて、基本的な世界観の要素（盆地の性質、水資源の出所、対立構造）を抽出したため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "導水路の水位差",
+          "text": "塩月暦の「水番潮」の基準に基づき、導水路の水位差は「塩水尺」を用いて1の測定値で計測される。",
+          "unit": "塩水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "石塩採掘坑口",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "e3のsummaryおよびfactsに基づいて、基本的な世界観の要素（盆地の性質、水資源の出所、対立構造）を抽出したため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "「石塩採掘坑口」は、塩門の関所において、塩月暦の「水番潮」の基準に基づき、導水路管理評議会が監視する主要な採掘地点である。"
+        },
+        {
+          "kind": "object",
+          "object": "水門石",
+          "provenance": {
+            "derived_from": [
+              "e3"
+            ],
+            "reason": "e3のsummaryおよびfactsに基づいて、基本的な世界観の要素（盆地の性質、水資源の出所、対立構造）を抽出したため。",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "「石塩採掘坑口」には、導水路管理評議会が監視する「水門石」が設置されており、この石は塩月暦の「水番潮」の基準に基づき、導水路の水位差を「塩水尺」を用いて計測する起点となる。"
+        }
+      ],
+      "id": "e4",
+      "name": "塩門の関所",
+      "origin_operator": "zoom",
+      "parent": "e3",
+      "provenance": {
+        "derived_from": [
+          "e3"
+        ],
+        "reason": "e3のsummaryおよびfactsに基づいて、基本的な世界観の要素（盆地の性質、水資源の出所、対立構造）を抽出したため。",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e3",
+          "type": "opposes"
+        },
+        {
+          "target": "e3",
+          "type": "uses"
+        }
+      ],
+      "scale": "district",
+      "scores": {
+        "reward": 0.9605263157894737
+      },
+      "summary": "塩涸谷は、塩の採掘に依存する内陸の盆地であり、生活用水は塩月暦に基づく地下の導水路から供給される。資源管理は「導水路管理評議会」と「水番血統評議会」という二つの制度によって規定され、水路の流量計測には「塩水尺」が用いられ、採掘された塩の純度は「塩石」単位で評価される。この資源配分を巡る対立構造が、地域の社会構造を形成している。",
+      "type": "object"
+    },
+    {
+      "axes": [
+        "kinship_community",
+        "politics_power",
+        "resources_economy"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の記述に含まれる対立構造に関する情報に基づいて、特定の集団（水番の家系）の立場から構造を記述したため。",
+            "statement_ids": [
+              "s3"
+            ]
+          },
+          "subject": "導水路の水位の差の計測",
+          "text": "「水番血統評議会」の規範に基づき、導水路管理評議会は、「塩月暦」の「水番潮」の基準点において、導水路の水位の差の計測を「塩水尺」を用いて1の単位で行う。",
+          "unit": "塩水尺",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "水番家系の導水路管理規定",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "e1の記述に含まれる対立構造に関する情報に基づいて、特定の集団（水番の家系）の立場から構造を記述したため。",
+            "statement_ids": [
+              "s3"
+            ]
+          },
+          "text": "水番家系の導水路管理規定では、導水路管理評議会が定める基準に基づき、「塩水尺」を用いた水位差の計測が「塩月暦」の「水番潮」の際に求められる。"
+        }
+      ],
+      "id": "e5",
+      "name": "水番家系の水利権主張",
+      "origin_operator": "perspective",
+      "parent": null,
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "e1の記述に含まれる対立構造に関する情報に基づいて、特定の集団（水番の家系）の立場から構造を記述したため。",
+        "statement_ids": [
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e3",
+          "type": "opposes"
+        },
+        {
+          "target": "e1",
+          "type": "related_to"
+        },
+        {
+          "target": "e3",
+          "type": "uses"
+        }
+      ],
+      "scale": "world",
+      "scores": {
+        "reward": 0.9375
+      },
+      "summary": "水番家系による資源管理の実践は、地下導水路という共有資源の利用権と安全管理に関する規範を定めることを目的とする。この実践は、「水番血統評議会」の権限に基づき、「塩月暦」の「水番潮」などの特定の基準点を参照し、水量の配分や導水路の維持管理に関わる判断を行う。具体的には、「塩水尺」を用いた水位の測定や、「水滴」単位での水量管理が伴い、採掘組合との権力構造における一方の立場を構成している。",
+      "type": "practice"
+    },
+    {
+      "id": "e6",
+      "type": "concept",
+      "name": "水番血統評議会の監視規定",
+      "axes": [
+        "law_norms",
+        "politics_power",
+        "resources_economy"
+      ],
+      "scale": "district",
+      "parent": "e3",
+      "relations": [
+        {
+          "type": "causes",
+          "target": "e4"
+        },
+        {
+          "type": "governs",
+          "target": "e3"
+        },
+        {
+          "type": "related_to",
+          "target": "e3"
+        },
+        {
+          "type": "uses",
+          "target": "e3"
+        }
+      ],
+      "summary": "塩門の関所は、内陸盆地における塩の採掘と生活用水の供給という二つの生命線が交差する地点に位置する。この関所の存在と機能は、地下導水路の水資源管理権を巡る「採掘組合」と「水番家系」の対立構造を物理的に固定化している。具体的には、地下導水路の水位差を「塩水尺」で計測する「水門石」が設置され、その基準値は「塩月暦」の「水番潮」の基準に強く結びついている。これは、資源の利用可能性を客観的な測定値に落とし込むことで、両者の権力闘争を制度化し、資源配分を規定する機構として機能している。",
+      "facts": [
+        {
+          "kind": "number",
+          "text": "塩水尺を用いた導水路の水位差の基準点（水門石）は、「塩月暦」の「水番潮」の基準に基づき、1の測定値が基準となる。",
+          "provenance": {
+            "statement_ids": [
+              "s3"
+            ],
+            "derived_from": [
+              "e3",
+              "e4"
+            ],
+            "reason": "e3が示す資源管理の構造的対立が、e4の特定の権力関係を形成したため。"
+          },
+          "subject": "導水路の水位差の基準点",
+          "value": 1,
+          "unit": "塩水尺"
+        },
+        {
+          "kind": "proper_noun",
+          "text": "塩水尺基準水門石の設置規定は、塩月暦の「水番潮」の基準に基づき、導水路管理評議会が監視し、水番血統評議会が規定する。",
+          "provenance": {
+            "statement_ids": [
+              "s3"
+            ],
+            "derived_from": [
+              "e3",
+              "e4"
+            ],
+            "reason": "e3が示す資源管理の構造的対立が、e4の特定の権力関係を形成したため。"
+          },
+          "name": "塩水尺基準水門石の設置規定"
+        },
+        {
+          "kind": "object",
+          "text": "「水門石」は、「塩水尺」を用いて導水路の水位差を計測する起点であり、その設置規定は「塩月暦」の「水番潮」の基準に基づき、「水番血統評議会」が定める。",
+          "provenance": {
+            "statement_ids": [
+              "s3"
+            ],
+            "derived_from": [
+              "e3",
+              "e4"
+            ],
+            "reason": "e3が示す資源管理の構造的対立が、e4の特定の権力関係を形成したため。"
+          },
+          "object": "水門石"
+        }
+      ],
+      "provenance": {
+        "statement_ids": [
+          "s3"
+        ],
+        "derived_from": [
+          "e3",
+          "e4"
+        ],
+        "reason": "e3が示す資源管理の構造的対立が、e4の特定の権力関係を形成したため。"
+      },
+      "scores": {
+        "reward": 0.9473684210526316
+      },
+      "origin_operator": "cause"
+    }
+  ],
+  "meta": {
+    "language": "ja",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "導水干期",
+          "水番潮",
+          "塩潮期"
+        ],
+        "name": "塩月暦",
+        "origin": "塩の採掘のサイクル、特に主要な導水路の水量変動と結びつけられた、古い記憶に基づく暦。"
+      },
+      "society": {
+        "description": "採掘組合と水番の家系が導水路の管理権をめぐり、権力と資源の分配に関する相互の義務を巡って緊張関係を保つ共同体。",
+        "institutions": [
+          {
+            "description": "水番と採掘組合の合意に基づき、導水路の利用と水量配分を決定する審議機関。",
+            "name": "導水路管理評議会"
+          },
+          {
+            "description": "水番家系が水の配分と導水路の安全管理に関する規範を定める権限を持つ。",
+            "name": "水番血統評議会"
+          },
+          {
+            "description": "採掘された塩滓から副産物資源を抽出し、共同体の経済基盤を支える作業場。",
+            "name": "塩滓精錬所"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "導水路流量計測",
+          "塩気深度測",
+          "塩滓精錬"
+        ],
+        "description": "塩の採掘に適応した単純な機械装置や、導水路の維持管理に必要な原始的な揚水・計測技術に限定される。",
+        "units": [
+          {
+            "quantity": "採掘された塩の純度を測る単位。",
+            "symbol": "塩石"
+          },
+          {
+            "quantity": "導水路から汲み上げられた水の体積。",
+            "symbol": "水滴"
+          },
+          {
+            "quantity": "導水路の水位の差を測るための、定規状の計測具。",
+            "symbol": "塩水尺"
+          }
+        ]
+      }
+    }
+  }
+}
