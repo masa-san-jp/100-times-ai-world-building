@@ -11,7 +11,7 @@
 
 | 項目 | 値 |
 |---|---|
-| 入力 | [`input/user_input.txt`](qwen3.8_27b/input/user_input.txt)（3 モデル共通、下記の 3 文） |
+| 入力 | [`input/smoke_input.txt`](qwen3.8_27b/input/smoke_input.txt)（3 モデル共通、下記の 3 文） |
 | 判定モデル | `qwen3.8:27b`（3 実行とも共通） |
 | コンテキスト長 | 16384 |
 | seed | 1 |
