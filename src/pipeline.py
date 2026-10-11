@@ -93,6 +93,7 @@ class Pipeline:
         backend: Optional[Union[str, LLMBackend]] = None,
         budget: Optional[Mapping[str, Any]] = None,
         judge_model: Optional[str] = None,
+        parallel_builds: Optional[int] = None,
     ) -> None:
         """
         Args:
@@ -122,6 +123,9 @@ class Pipeline:
             engine_cfg.get("backend_wait_max_seconds", BACKEND_WAIT_MAX_SECONDS))
         self.explore_config = load_explore_config(
             overrides=engine_cfg.get("explore") or {})
+        self.parallel_builds = (
+            parallel_builds if parallel_builds is not None
+            else int((self.explore_config.get("parallel") or {}).get("builds", 1)))
         self.operator_config = _operator_config(engine_cfg.get("operator") or {})
         self.generation_defaults = dict(self.config.get("generation") or {})
         explicit_budget = {
@@ -391,6 +395,7 @@ class Pipeline:
                 structured_max_conversions=self.structured_config["max_conversions"],
                 judge_backend=self.judge_client,
                 backend_wait_max_seconds=self.backend_wait_max_seconds,
+                parallel_builds=self.parallel_builds,
                 models={"generation": self.model, "judge": self.judge_model})
         finally:
             # The engine updates the manifest file through its own handle.

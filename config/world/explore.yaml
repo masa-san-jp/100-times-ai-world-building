@@ -16,6 +16,11 @@ selection:
   arm_by_axis: false        # also split arms by axis
   max_items_per_kind: 12    # frontier items kept per kind (most deficient first)
 
+# Entities built concurrently per batch; match what the backend can serve at once
+# (Ollama: OLLAMA_NUM_PARALLEL). 1 builds one entity at a time.
+parallel:
+  builds: 4
+
 build:
   max_step_attempts: 4
   review_rounds: 2

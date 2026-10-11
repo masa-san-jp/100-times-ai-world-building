@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import copy
 import json
 import math
 import random
+import threading
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -18,11 +20,11 @@ from loguru import logger
 
 from ..llm import BackendUnavailable
 from .graph import (
-    SCALE_RANK, SCALES, GraphStore, guess_language, local_context,
+    SCALE_RANK, SCALES, GraphStore, guess_language, local_context, next_entity_id,
 )
 from .structured import StructuredFailure, client_instance, metrics_markdown
 from .operators import OperatorConfig
-from .builder import EntityBuilder
+from .builder import EntityBuilder, recheck_against_graph
 from .premises import world_premises
 from .world_criteria import (
     axis_counts, axis_requirements, causal_entities, load_world_criteria_config,
@@ -507,14 +509,16 @@ class _CountingBackend:
         self._counters = counters
         self._parent = parent  # shares the parent's call budget
         self.limit: Optional[int] = None
+        self._lock = threading.Lock()
 
     def _tick(self) -> None:
         if self._parent is not None:
             self._parent._tick()
             return
-        if self.limit is not None and self._counters["generation_calls"] >= self.limit:
-            raise BudgetExhausted("generation-call budget exhausted")
-        self._counters["generation_calls"] += 1
+        with self._lock:
+            if self.limit is not None and self._counters["generation_calls"] >= self.limit:
+                raise BudgetExhausted("generation-call budget exhausted")
+            self._counters["generation_calls"] += 1
 
     def generate_schema(self, *args: Any, **kwargs: Any) -> Any:
         self._tick()
@@ -561,6 +565,24 @@ def _max_entity_n(graph: Mapping[str, Any]) -> int:
     return best
 
 
+def _merge_metrics(total: Dict[str, Any], part: Mapping[str, Any]) -> None:
+    """Add one EntityBuilder's metrics into the totals."""
+    for step, src in part["steps"].items():
+        dst = total["steps"].setdefault(step, {"calls": 0, "attempts": {}, "reasons": {}, "failures": 0})
+        dst["calls"] += src["calls"]
+        dst["failures"] += src["failures"]
+        for n, count in src["attempts"].items():
+            dst["attempts"][n] = dst["attempts"].get(n, 0) + count
+        for criterion, reasons in src["reasons"].items():
+            into = dst["reasons"].setdefault(criterion, {})
+            for reason, count in reasons.items():
+                into[reason] = into.get(reason, 0) + count
+    for key in ("accepted", "failed"):
+        total[key] += part[key]
+    for step, count in part["failures_by_step"].items():
+        total["failures_by_step"][step] = total["failures_by_step"].get(step, 0) + count
+
+
 class ExplorationLoop:
     def __init__(
         self, backend: Any, package_dir: Union[str, Path],
@@ -578,7 +600,11 @@ class ExplorationLoop:
         structured_max_conversions: int = 2,
         judge_backend: Any = None,
         backend_wait_max_seconds: float = BACKEND_WAIT_MAX_SECONDS,
+        parallel_builds: int = 1,
     ) -> None:
+        if isinstance(parallel_builds, bool) or not isinstance(parallel_builds, int) or parallel_builds < 1:
+            raise ValueError("parallel_builds must be a positive integer")
+        self.parallel_builds = parallel_builds
         self.backend_wait_max_seconds = float(backend_wait_max_seconds)
         self._wait_total = 0.0  # waiting since the last accepted iteration
         self.package_dir = Path(package_dir)
@@ -607,6 +633,7 @@ class ExplorationLoop:
             builder_cfg["operator"] = asdict(operator_config)
         self.judge_backend = (_CountingBackend(judge_backend, self.state["counters"], self.backend)
                               if judge_backend is not None else self.backend)
+        self._builder_cfg = builder_cfg
         self.builder = EntityBuilder(self.backend, builder_cfg, judge_backend=self.judge_backend)
         self.store = GraphStore(
             self.package_dir, self.checkpoints, self.axes, self.brief)
@@ -738,8 +765,14 @@ class ExplorationLoop:
             if reason is None:
                 started = self.clock()
                 rng_before = _rng_state(self.rng)
+                done, pending = 1, None
                 try:
-                    graph, progressed = self._iterate(graph)
+                    batch = self._batch_size(budget)
+                    if batch > 1:
+                        graph, done, pending = self._iterate_batch(graph, batch)
+                        progressed = done > 0
+                    else:
+                        graph, progressed = self._iterate(graph)
                 except BudgetExhausted:
                     _set_rng_state(self.rng, rng_before)
                     reason = "max_generation_calls"
@@ -754,9 +787,16 @@ class ExplorationLoop:
                     if not progressed:
                         reason = "frontier_exhausted"
                     else:
-                        self.state["iteration"] += 1
+                        self.state["iteration"] += done
                         self._save_state()
-                        continue
+                        if isinstance(pending, BudgetExhausted):
+                            reason = "max_generation_calls"
+                        elif pending is not None:
+                            # The judge failed while settling the batch: the rest is redone.
+                            self._wait_for_backend(pending)
+                            continue
+                        else:
+                            continue
             self.state["stop_reason"] = reason
             self._save_state()
             self._set_phase("completed")
@@ -828,19 +868,58 @@ class ExplorationLoop:
         arm = arm_key(operator, item, by_axis)
         target = item["target"]
         it = self.state["iteration"] + 1
-        context = (local_context(graph, target) if target else
-                   {"language": graph["meta"]["language"], "entity_count": len(graph["entities"])})
         result, error = None, None
-        records = []
         try:
             result = self._attempt(graph, operator, target, item)
-            records = [{"type": "step", "iteration": it, **asdict(r)} for r in result.steps]
         except (BudgetExhausted, BackendUnavailable):
             raise
         except Exception as exc:
-            error = {"class": type(exc).__name__, "message": str(exc)[:300]}
-            logger.warning("iteration {} ({}) failed: {}", it, arm, error)
+            error = self._error(it, arm, exc)
+        return self._settle(graph, it, arm, operator, target, item, result, error), True
+
+    def _error(self, it, arm, exc) -> Dict[str, str]:
+        error = {"class": type(exc).__name__, "message": str(exc)[:300]}
+        logger.warning("iteration {} ({}) failed: {}", it, arm, error)
+        return error
+
+    def _settle(self, graph, it, arm, operator, target, item, result, error,
+                new_entity_ids=None):
+        """Count, commit and log one finished candidate; return the new graph.
+
+        With new_entity_ids (a batch candidate after the first) the entity is re-checked
+        against the current graph first; a failed re-check discards it.
+        """
+        context = (local_context(graph, target) if target else
+                   {"language": graph["meta"]["language"], "entity_count": len(graph["entities"])})
+        records = []
+        failure = result.failure if result else None
+        if result is not None:
+            records = [{"type": "step", "iteration": it, **asdict(r)} for r in result.steps]
         accepted = result is not None and result.entity is not None
+        if accepted and new_entity_ids is not None:
+            failures = recheck_against_graph(
+                result.entity, graph, brief=self.brief, raw_input=self.raw_input,
+                contract=world_premises(graph), judge_backend=self.judge_backend,
+                language=graph["meta"]["language"], new_entity_ids=new_entity_ids,
+                structured_attempts=self.builder.structured_attempts,
+                structured_conversions=self.builder.structured_conversions,
+                metrics=self.builder.metrics)
+            if failures:
+                accepted = False
+                failure = {"step": "commit", "slot": None,
+                           "reason": "; ".join(f["reason"] for f in failures)}
+                # The worker counted this entity as accepted; move it to the
+                # failures so the metrics agree with the iteration counters.
+                metrics = self.builder.metrics
+                metrics["accepted"] -= 1
+                metrics["failed"] += 1
+                metrics["failures_by_step"]["commit"] = metrics["failures_by_step"].get("commit", 0) + 1
+                entry = metrics["steps"].setdefault(
+                    "commit", {"calls": 0, "attempts": {}, "reasons": {}, "failures": 0})
+                entry["failures"] += 1
+                for f in failures:
+                    reasons = entry["reasons"].setdefault("new_information", {})
+                    reasons[f["reason"]] = reasons.get(f["reason"], 0) + 1
         reward = 0.0
         if accepted:
             # Each generated slot can be remade max_step_attempts - 1 times;
@@ -853,6 +932,8 @@ class ExplorationLoop:
                            self.builder.max_step_attempts - 1 for step, slot in counts)
             reward = 1 - 0.5 * (extra / capacity if capacity else 0)
             result.entity.setdefault("scores", {})["reward"] = reward
+            if new_entity_ids is not None:
+                result.entity["id"] = next_entity_id(graph)
             graph = self._commit(graph, result.entity)
             self.state["counters"]["accepted"] += 1
         else:
@@ -874,14 +955,74 @@ class ExplorationLoop:
             "context": context, "outcome": "error" if error else "accepted" if accepted else "discarded",
             "accepted_id": result.entity["id"] if accepted else None,
             "arm_reward": round(reward, 4),
-            "failure": result.failure if result else None,
+            "failure": failure,
             "world_status": self._world_status(graph),
             **({"error": error} if error else {})})
         self.state["world_status"] = records[-1]["world_status"]
         self.bandit.update(arm, reward)
         self._append_log(records)
         self.state["max_entity_n"] = _max_entity_n(graph)
-        return graph, True
+        return graph
+
+    # -- parallel builds
+    def _batch_size(self, budget: Mapping[str, Any]) -> int:
+        mi = budget.get("max_iterations")
+        left = self.parallel_builds if mi is None else int(mi) - self.state["iteration"]
+        return max(1, min(self.parallel_builds, left))
+
+    def _iterate_batch(self, graph: Dict[str, Any], size: int):
+        """Build up to size entities concurrently, then settle them in selection order.
+
+        Returns (graph, iterations settled, exception raised while settling or None).
+        Budget or backend failure in any worker discards the whole batch (re-raised).
+        """
+        by_axis = bool(self.cfg["selection"].get("arm_by_axis", False))
+        pairs = candidate_pairs(evaluate_frontier(graph, self.axes, self.cfg), self.cfg)
+        chosen = []
+        while pairs and len(chosen) < size:
+            options = [(arm_key(op, item, by_axis), pair_prior(item, op, self.cfg))
+                       for item, op in pairs]
+            chosen.append(pairs.pop(self.bandit.select(options)))
+        if not chosen:
+            return graph, 0, None
+        contract = world_premises(graph)
+
+        def work(pair):
+            item, operator = pair
+            builder = EntityBuilder(self.backend, self._builder_cfg, prompts=self.builder.prompts,
+                                    rules=self.builder.rules, judge_backend=self.judge_backend)
+            try:
+                result = builder.build(
+                    copy.deepcopy(graph), operator, item["target"], brief=self.brief,
+                    raw_input=self.raw_input, axes=self.axes, contract=contract,
+                    frontier_axis=item["axis"] if item["kind"] == "axis_gap" else None)
+                return builder, result, None
+            except Exception as exc:
+                return builder, None, exc
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(chosen)) as pool:
+            outcomes = list(pool.map(work, [(item, op) for item, op in chosen]))
+        for _, _, exc in outcomes:
+            if isinstance(exc, (BudgetExhausted, BackendUnavailable)):
+                raise exc
+        for builder, _, _ in outcomes:
+            _merge_metrics(self.builder.metrics, builder.metrics)
+
+        committed, settled = [], 0
+        for (item, operator), (_, result, exc) in zip(chosen, outcomes):
+            arm = arm_key(operator, item, by_axis)
+            it = self.state["iteration"] + 1 + settled
+            error = self._error(it, arm, exc) if exc is not None else None
+            before = len(graph["entities"])
+            try:
+                graph = self._settle(graph, it, arm, operator, item["target"], item, result, error,
+                                     new_entity_ids=list(committed) if settled else None)
+            except (BudgetExhausted, BackendUnavailable) as stop:
+                return graph, settled, stop
+            if len(graph["entities"]) > before:
+                committed.append(graph["entities"][-1]["id"])
+            settled += 1
+        return graph, settled, None
 
     def _attempt(self, graph, operator, target, item):
         return self.builder.build(graph, operator, target, brief=self.brief, raw_input=self.raw_input,
@@ -945,6 +1086,7 @@ def run_world_engine(
     judge_backend: Any = None,
     models: Optional[Mapping[str, Any]] = None,
     backend_wait_max_seconds: float = BACKEND_WAIT_MAX_SECONDS,
+    parallel_builds: Optional[int] = None,
 ) -> ExplorationResult:
     """Input brief -> axes -> graph -> exploration loop, with no human input.
 
@@ -983,6 +1125,10 @@ def run_world_engine(
         if client is not None:
             client_instance(client)._structured_metrics = metrics
     manifest.set_status("running")
+    if parallel_builds is None:
+        parallel_builds = int(((config if config is not None else load_explore_config())
+                               .get("parallel") or {}).get("builds", 1))
+    manifest.update(parallel_builds=parallel_builds)
     try:
         brief_path = root / "input" / "input_brief.json"
         axes_path = root / "world" / "world_axes.json"
@@ -1016,7 +1162,8 @@ def run_world_engine(
             structured_max_attempts=structured_max_attempts,
             structured_max_conversions=structured_max_conversions,
             judge_backend=judge_backend,
-            backend_wait_max_seconds=backend_wait_max_seconds)
+            backend_wait_max_seconds=backend_wait_max_seconds,
+            parallel_builds=parallel_builds)
         from .contract import establish_contract
         graph = loop.store.load_or_create(lang)
         try:

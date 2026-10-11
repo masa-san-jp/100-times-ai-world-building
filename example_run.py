@@ -77,6 +77,7 @@ def make_pipeline(args, run_id=None, output_dir=None, backend=None) -> Pipeline:
         "vision_model": args.vision_model,
         "judge_model": getattr(args, "judge_model", None),
         "budget": budget_from_args(args),
+        "parallel_builds": getattr(args, "parallel_builds", None),
     }
     chosen = backend if backend is not None else getattr(args, "backend", None)
     if chosen is not None:
@@ -326,6 +327,10 @@ def parse_args(argv=None):
     parser.add_argument(
         "--max-calls", type=int,
         help="Budget: generation calls (default: unlimited)",
+    )
+    parser.add_argument(
+        "--parallel-builds", type=int, metavar="N",
+        help="Entities built concurrently per batch (default: config/world/explore.yaml)",
     )
     parser.add_argument(
         "--yes", action="store_true",

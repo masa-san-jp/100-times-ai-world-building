@@ -147,6 +147,9 @@ python example_run.py --context-file path/to/your_input.yaml --yes \
 | `--max-iterations` | 探索の反復回数 | `config/world/explore.yaml` の `budget` |
 | `--max-minutes` | 探索の経過時間（分） | 無制限 |
 | `--max-calls` | モデルの生成呼び出し回数 | 無制限 |
+| `--parallel-builds` | 並列に作るエンティティ数 | `config/world/explore.yaml` の `parallel.builds`（4） |
+
+`--parallel-builds` は、バックエンドが同時に処理できる数（Ollama なら `OLLAMA_NUM_PARALLEL`）に合わせてください。1 にすると 1 件ずつ作ります。
 
 そのほかの主な引数：`--model`（生成モデル）、`--vision-model`（`--image` 用）、`--backend ollama|anthropic`、
 `--seed`、`--output-dir`、`--runs N`（同じ入力から N 個の独立した世界を作る）、`--run-id`、`--choice 2`（再開）。
@@ -382,6 +385,9 @@ python example_run.py --context-file path/to/your_input.yaml --yes \
 | `--max-iterations` | Exploration iterations | `budget` in `config/world/explore.yaml` |
 | `--max-minutes` | Wall-clock minutes of exploration | unlimited |
 | `--max-calls` | Model generation calls | unlimited |
+| `--parallel-builds` | Entities built concurrently | `parallel.builds` in `config/world/explore.yaml` (4) |
+
+Set `--parallel-builds` to the number of requests the backend can serve at once (for Ollama, `OLLAMA_NUM_PARALLEL`). `1` builds one entity at a time.
 
 Other arguments: `--model` (generation model), `--vision-model` (for `--image`), `--backend ollama|anthropic`,
 `--seed`, `--output-dir`, `--runs N` (N independent worlds from the same input), `--run-id`, `--choice 2` (resume).
