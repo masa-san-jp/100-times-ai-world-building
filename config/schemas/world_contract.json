@@ -9,7 +9,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 20,
-          "pattern": "^[^\\s()（）:：,、;；。]+$"
+          "pattern": "^[^ \t\n\r\u3000()（）:：,、;；。]+$"
         },
         "origin": {
           "type": "string",
@@ -21,7 +21,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 12,
-            "pattern": "^[^\\s()（）:：,、;；。]+$"
+            "pattern": "^[^ \t\n\r\u3000()（）:：,、;；。]+$"
           },
           "maxItems": 4,
           "minItems": 1
@@ -58,7 +58,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 12,
-                "pattern": "^[^\\s()（）:：,、;；]+$"
+                "pattern": "^[^ \t\n\r\u3000()（）:：,、;；]+$"
               },
               "quantity": {
                 "type": "string",
@@ -96,7 +96,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 30,
-                "pattern": "^[^\\s()（）:：,、;；。]+$"
+                "pattern": "^[^ \t\n\r\u3000()（）:：,、;；。]+$"
               },
               "description": {
                 "type": "string",

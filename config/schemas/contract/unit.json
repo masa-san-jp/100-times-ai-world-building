@@ -6,7 +6,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 12,
-      "pattern": "^[^\\s()（）:：,、;；]+$"
+      "pattern": "^[^ \t\n\r\u3000()（）:：,、;；]+$"
     },
     "quantity": {
       "type": "string",
