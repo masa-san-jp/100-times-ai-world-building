@@ -593,10 +593,7 @@ def _merge_metrics(total: Dict[str, Any], part: Mapping[str, Any]) -> None:
             into = dst["reasons"].setdefault(criterion, {})
             for reason, count in reasons.items():
                 into[reason] = into.get(reason, 0) + count
-    for key in ("accepted", "failed"):
-        total[key] += part[key]
-    for step, count in part["failures_by_step"].items():
-        total["failures_by_step"][step] = total["failures_by_step"].get(step, 0) + count
+    # accepted / failed / failures_by_step are counted by _settle, not summed here.
 
 
 class ExplorationLoop:
@@ -622,6 +619,7 @@ class ExplorationLoop:
             raise ValueError("parallel_builds must be a positive integer")
         self.parallel_builds = parallel_builds
         self.backend_wait_max_seconds = float(backend_wait_max_seconds)
+        self._last_settled: Optional[float] = None  # clock at the last settled candidate
         self._wait_total = 0.0  # waiting since the last accepted iteration
         self.package_dir = Path(package_dir)
         raw_path = self.package_dir / "input" / "user_input.txt"
@@ -795,8 +793,16 @@ class ExplorationLoop:
                 except BackendUnavailable as exc:
                     # Nothing of the failed iteration was committed: redo it.
                     _set_rng_state(self.rng, rng_before)
-                    self._wait_for_backend(exc)
-                    continue
+                    # The failed generation took time too: it counts against
+                    # the wall budget and against the allowance without progress.
+                    spent = max(0.0, self.clock() - started)
+                    self.state["elapsed_seconds"] += spent
+                    self._wait_total += spent
+                    if self._wall_exceeded(budget) \
+                            or not self._wait_for_backend(exc, budget):
+                        reason = "max_wall_seconds"
+                    else:
+                        continue
                 else:
                     self._wait_total = 0.0
                     self.state["elapsed_seconds"] += max(0.0, self.clock() - started)
@@ -809,8 +815,12 @@ class ExplorationLoop:
                             reason = "max_generation_calls"
                         elif pending is not None:
                             # The judge failed while settling the batch: the rest is redone.
-                            self._wait_for_backend(pending)
-                            continue
+                            # The time since the last settled candidate is progress-free.
+                            if self._last_settled is not None:
+                                self._wait_total = max(0.0, self.clock() - self._last_settled)
+                            if self._wait_for_backend(pending, budget):
+                                continue
+                            reason = "max_wall_seconds"
                         else:
                             continue
             self.state["stop_reason"] = reason
@@ -838,35 +848,62 @@ class ExplorationLoop:
                   or self.package_dir.name.removeprefix("world_"))
         return run_id, f"--choice 2 --run-id {run_id}"
 
-    def _wait_for_backend(self, exc: BackendUnavailable) -> None:
-        """Checkpoint, then poll until the backend answers or the allowance runs out."""
+    def _wall_exceeded(self, budget: Mapping[str, Any]) -> bool:
+        mw = budget.get("max_wall_seconds")
+        return mw is not None and self.state["elapsed_seconds"] >= float(mw)
+
+    def _wait_for_backend(self, exc: BackendUnavailable,
+                          budget: Mapping[str, Any]) -> bool:
+        """Checkpoint, then poll until the backend answers or the allowance runs out.
+
+        Returns True when the iteration should be redone, False when the
+        wall-time budget ran out while waiting.  Time spent sleeping and
+        probing counts against the wall budget and the allowance.
+        """
         waits = self.state["backend_waits"]
         self._save_state()
         waits["started"] += 1
         logger.warning("バックエンド応答なし、待機開始: {}", exc)
         step = 0
         while True:
-            interval = BACKEND_WAIT_INTERVALS[min(step, len(BACKEND_WAIT_INTERVALS) - 1)]
-            step += 1
-            time.sleep(interval)
-            self._wait_total += interval
-            waits["total_seconds"] += interval
-            if self._backend_alive():
-                waits["recovered"] += 1
-                logger.warning("バックエンド応答が回復、反復をやり直す (待機 {:.0f} 秒)",
-                               self._wait_total)
+            if self._wall_exceeded(budget):
                 self._save_state()
-                return
+                return False
             if self._wait_total > self.backend_wait_max_seconds:
+                # No iteration settled for longer than the allowance, whether
+                # or not the liveness probe answers.
                 waits["abandoned"] += 1
                 self._save_state()
                 run_id, args = self._resume_command()
                 command = f"python example_run.py {args}"
-                logger.error("バックエンド応答なしのまま待機上限 {:.0f} 秒を超えた、終了する。"
+                logger.error("反復が確定しないまま上限 {:.0f} 秒を超えた、終了する。"
                              "再開コマンド: {}", self.backend_wait_max_seconds, command)
                 raise BackendWaitExhausted(
-                    f"backend did not recover within {self.backend_wait_max_seconds:.0f}s "
-                    f"of waiting; resume with: {command}", run_id, command) from exc
+                    f"no iteration settled within {self.backend_wait_max_seconds:.0f}s "
+                    f"of backend failures; resume with: {command}", run_id, command) from exc
+            interval = BACKEND_WAIT_INTERVALS[min(step, len(BACKEND_WAIT_INTERVALS) - 1)]
+            step += 1
+            slept_from = self.clock()
+            time.sleep(interval)
+            slept = max(interval, self.clock() - slept_from)
+            self._wait_total += slept
+            self.state["elapsed_seconds"] += slept
+            waits["total_seconds"] += slept
+            if self._wait_total > self.backend_wait_max_seconds \
+                    or self._wall_exceeded(budget):
+                continue
+            probe_from = self.clock()
+            alive = self._backend_alive()
+            probed = max(0.0, self.clock() - probe_from)
+            self._wait_total += probed
+            self.state["elapsed_seconds"] += probed
+            if alive and self._wait_total <= self.backend_wait_max_seconds \
+                    and not self._wall_exceeded(budget):
+                waits["recovered"] += 1
+                logger.warning("バックエンド応答が回復、反復をやり直す (待機 {:.0f} 秒)",
+                               self._wait_total)
+                self._save_state()
+                return True
 
     def _set_phase(self, status: str) -> None:
         if self.manifest is not None:
@@ -912,11 +949,13 @@ class ExplorationLoop:
         return error
 
     def _settle(self, graph, it, arm, operator, target, item, result, error,
-                new_entity_ids=None):
+                new_entity_ids=None, count_build=False):
         """Count, commit and log one finished candidate; return the new graph.
 
         With new_entity_ids (a batch candidate after the first) the entity is re-checked
         against the current graph first; a failed re-check discards it.
+        With count_build (batch workers, whose metrics are merged without the
+        accepted / failed tallies) the build outcome is tallied here.
         """
         context = (local_context(graph, target) if target else
                    {"language": graph["meta"]["language"], "entity_count": len(graph["entities"])})
@@ -937,10 +976,7 @@ class ExplorationLoop:
                 accepted = False
                 failure = {"step": "commit", "slot": None,
                            "reason": "; ".join(f["reason"] for f in failures)}
-                # The worker counted this entity as accepted; move it to the
-                # failures so the metrics agree with the iteration counters.
                 metrics = self.builder.metrics
-                metrics["accepted"] -= 1
                 metrics["failed"] += 1
                 metrics["failures_by_step"]["commit"] = metrics["failures_by_step"].get("commit", 0) + 1
                 entry = metrics["steps"].setdefault(
@@ -949,6 +985,14 @@ class ExplorationLoop:
                 for f in failures:
                     reasons = entry["reasons"].setdefault("new_information", {})
                     reasons[f["reason"]] = reasons.get(f["reason"], 0) + 1
+        if count_build and result is not None:
+            metrics = self.builder.metrics
+            if accepted:
+                metrics["accepted"] += 1
+            elif result.entity is None:
+                metrics["failed"] += 1
+                step = result.failure["step"]
+                metrics["failures_by_step"][step] = metrics["failures_by_step"].get(step, 0) + 1
         reward = 0.0
         if accepted:
             # Each generated slot can be remade max_step_attempts - 1 times;
@@ -1016,11 +1060,18 @@ class ExplorationLoop:
             ids = {id(i) for i in focused}
             groups.append(candidate_pairs(
                 [i for i in items if id(i) not in ids], self.cfg))
+        def generation_input(pair):
+            return pair[1], pair[0]["target"], pair[0].get("axis")
+
         for pairs in groups:
             while pairs and len(chosen) < size:
                 options = [(arm_key(op, item, by_axis), pair_prior(item, op, self.cfg))
                            for item, op in pairs]
-                chosen.append(pairs.pop(self.bandit.select(options)))
+                picked = pairs.pop(self.bandit.select(options))
+                chosen.append(picked)
+                # The same (operator, target, axis) would repeat the same generation input.
+                for rest in groups:
+                    rest[:] = [p for p in rest if generation_input(p) != generation_input(picked)]
         if not chosen:
             return graph, 0, None
         contract = world_premises(graph)
@@ -1054,12 +1105,14 @@ class ExplorationLoop:
             before = len(graph["entities"])
             try:
                 graph = self._settle(graph, it, arm, operator, item["target"], item, result, error,
-                                     new_entity_ids=list(committed) if settled else None)
+                                     new_entity_ids=list(committed) if settled else None,
+                                     count_build=True)
             except (BudgetExhausted, BackendUnavailable) as stop:
                 return graph, settled, stop
             if len(graph["entities"]) > before:
                 committed.append(graph["entities"][-1]["id"])
             settled += 1
+            self._last_settled = self.clock()
         return graph, settled, None
 
     def _attempt(self, graph, operator, target, item):
@@ -1213,6 +1266,11 @@ def run_world_engine(
             loop.store.save(graph)
             if "contract_stage" in graph:
                 manifest.update(world_contract=copy.deepcopy(graph["contract_stage"]))
+        # A stored "unlimited" (None) must override the configured default too.
+        loop.cfg["budget"] = {
+            **(loop.cfg.get("budget") or {}),
+            **{k: v for k, v in (budget or {}).items()
+               if k in ("max_iterations", "max_wall_seconds", "max_generation_calls")}}
         result = loop.run(
             max_iterations=(budget or {}).get("max_iterations"),
             max_wall_seconds=(budget or {}).get("max_wall_seconds"),

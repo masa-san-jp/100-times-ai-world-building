@@ -235,10 +235,13 @@ class Pipeline:
             self.budget_requested = {
                 k: v for k, v in stored_budget["requested"].items()
                 if k in BUDGET_KEYS and v is not None}
+            # The stored effective budget is the base, so earlier resume
+            # overrides carry over; the config defaults are not re-applied.
+            base = stored_budget.get("effective")
+            if not isinstance(base, dict):
+                base = self.budget_requested
             self.budget = {
-                **{k: self.explore_config["budget"].get(k)
-                   for k in BUDGET_KEYS},
-                **self.budget_requested, **explicit_budget}
+                **{k: base.get(k) for k in BUDGET_KEYS}, **explicit_budget}
             if explicit_budget:
                 resume_overrides.append(
                     {"at": utc_now(), "overrides": dict(explicit_budget)})

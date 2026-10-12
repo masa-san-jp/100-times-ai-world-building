@@ -454,7 +454,7 @@ def recheck_against_graph(entity, graph, *, brief, raw_input, contract, judge_ba
     existing = [f["text"] for e in entities for f in e.get("facts", [])]
     for fact in entity.get("facts", []):
         if fact.get("kind") == "proper_noun" and not new_name(
-                fact.get("name", ""), raw_input, brief, [], entities, contract):
+                fact.get("name", ""), raw_input, brief, entities, entities, contract):
             fail(f"new_information: name must be new in the input, context and contract; "
                  f"already present: {fact.get('name')!r}")
         if fact.get("kind") == "number" and measurement_present(

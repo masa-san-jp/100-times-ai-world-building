@@ -68,8 +68,9 @@ def test_merge_metrics_adds_every_field():
     b = copy.deepcopy(a)
     b["failed"], b["failures_by_step"] = 1, {"name": 1}
     _merge_metrics(a, b)
+    # accepted / failed / failures_by_step are tallied by _settle, not merged.
     assert a == {"steps": {"name": {"calls": 4, "attempts": {"1": 2}, "reasons": {"x": {"r": 2}}, "failures": 2}},
-                 "accepted": 2, "failed": 1, "failures_by_step": {"name": 1}}
+                 "accepted": 1, "failed": 0, "failures_by_step": {}}
 
 
 def test_budget_exhausted_in_a_worker_discards_the_whole_batch(tmp_path):

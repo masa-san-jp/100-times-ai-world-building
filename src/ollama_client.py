@@ -5,6 +5,7 @@ Handles all interactions with Ollama API
 
 import base64
 import json
+import threading
 import time
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
@@ -50,9 +51,18 @@ class OllamaClient(LLMBackend):
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.call_deadline_seconds = float(call_deadline_seconds)
-        self.last_response_meta: Dict[str, Any] = {}
+        self._local = threading.local()
 
         logger.info(f"Initialized OllamaClient: {self.base_url}, model: {self.model}")
+
+    @property
+    def last_response_meta(self) -> Dict[str, Any]:
+        """Metadata of the last response received by the calling thread."""
+        return getattr(self._local, "meta", {})
+
+    @last_response_meta.setter
+    def last_response_meta(self, value: Dict[str, Any]) -> None:
+        self._local.meta = value
 
     def check_server(self) -> bool:
         """
@@ -75,10 +85,12 @@ class OllamaClient(LLMBackend):
             logger.error(f"Error checking Ollama server: {e}")
             return False
 
-    def is_alive(self) -> bool:
+    def is_alive(self, timeout: Optional[float] = None) -> bool:
         """Return whether the server answers ``GET /api/tags`` at all."""
+        limit = LIVENESS_TIMEOUT_SECONDS if timeout is None else min(
+            LIVENESS_TIMEOUT_SECONDS, timeout)
         try:
-            requests.get(f"{self.base_url}/api/tags", timeout=LIVENESS_TIMEOUT_SECONDS)
+            requests.get(f"{self.base_url}/api/tags", timeout=limit)
             return True
         except requests.exceptions.RequestException:
             return False
@@ -241,18 +253,32 @@ class OllamaClient(LLMBackend):
             payload["think"] = think
 
         call_started = time.monotonic()
+        deadline = call_started + self.call_deadline_seconds
         for attempt in range(1 if single_attempt else self.max_retries):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise BackendUnavailable(
+                    f"generation call exceeded {self.call_deadline_seconds:g}s "
+                    "before the request could be sent")
             try:
                 logger.debug(f"Generating (attempt {attempt + 1}/{self.max_retries})")
 
                 response = requests.post(
                     f"{self.base_url}/api/generate",
                     json=payload,
-                    timeout=self.timeout,
+                    timeout=min(self.timeout, remaining),
                 )
+                if time.monotonic() > deadline:
+                    raise BackendUnavailable(
+                        f"generation call exceeded {self.call_deadline_seconds:g}s "
+                        "(response arrived after the deadline)")
                 response.raise_for_status()
 
                 data = response.json()
+                if time.monotonic() > deadline:
+                    raise BackendUnavailable(
+                        f"generation call exceeded {self.call_deadline_seconds:g}s "
+                        "(response arrived after the deadline)")
                 generated_text = data.get("response", "")
                 self.last_response_meta = data
 
@@ -264,9 +290,16 @@ class OllamaClient(LLMBackend):
                 if single_attempt:
                     return generated_text
 
+            except BackendUnavailable:
+                raise
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
                 logger.warning(f"Request timeout or connection error (attempt {attempt + 1}): {e}")
-                if not self.is_alive():
+                left = deadline - time.monotonic()
+                if left <= 0:
+                    raise BackendUnavailable(
+                        f"generation call exceeded {self.call_deadline_seconds:g}s "
+                        "before the liveness check")
+                if not self.is_alive(timeout=left):
                     raise BackendUnavailable(
                         f"Ollama at {self.base_url} does not respond to /api/tags") from e
             except requests.exceptions.RequestException as e:
@@ -292,8 +325,9 @@ class OllamaClient(LLMBackend):
 
             # Wait before retry
             if not single_attempt and attempt < self.max_retries - 1:
-                logger.info(f"Retrying in {self.retry_delay} seconds...")
-                time.sleep(self.retry_delay)
+                delay = min(self.retry_delay, max(0.0, deadline - time.monotonic()))
+                logger.info(f"Retrying in {delay:g} seconds...")
+                time.sleep(delay)
 
         logger.error("All retry attempts failed")
         return None
