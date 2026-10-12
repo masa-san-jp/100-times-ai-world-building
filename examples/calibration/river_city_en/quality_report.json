@@ -1,0 +1,247 @@
+{
+  "world_dir": ".",
+  "status": "pass",
+  "overall_status": "pass",
+  "config": {
+    "near_duplicate_threshold": 0.8,
+    "min_axis_entities": 1,
+    "min_depth_scale": "detail",
+    "min_entities_per_scale": 1,
+    "min_reward": 0.6,
+    "low_reward_threshold": 0.5,
+    "max_low_reward_share": 0.3,
+    "genericity_threshold": 0.5,
+    "max_generic_share": 0.2,
+    "max_unscored_share": 0.0,
+    "cross_world_overlap_warn": 0.5
+  },
+  "checks": {
+    "graph": {
+      "status": "pass",
+      "entity_count": 25,
+      "errors": [],
+      "error_count": 0
+    },
+    "axis_coverage": {
+      "status": "pass",
+      "axis_count": 16,
+      "min_axis_entities": 1,
+      "uncovered_axes": [],
+      "axes": [
+        {
+          "id": "geography_climate",
+          "name": "Geography and climate",
+          "weight": 1.0,
+          "weight_share": 0.1053,
+          "entities": 6,
+          "entity_share": 0.0811
+        },
+        {
+          "id": "ecology",
+          "name": "Ecology",
+          "weight": 0.6,
+          "weight_share": 0.0632,
+          "entities": 3,
+          "entity_share": 0.0405
+        },
+        {
+          "id": "laws_of_nature",
+          "name": "Physical and extra-natural laws",
+          "weight": 0.5,
+          "weight_share": 0.0526,
+          "entities": 2,
+          "entity_share": 0.027
+        },
+        {
+          "id": "technology_tools",
+          "name": "Technology and tools",
+          "weight": 0.8,
+          "weight_share": 0.0842,
+          "entities": 10,
+          "entity_share": 0.1351
+        },
+        {
+          "id": "resources_economy",
+          "name": "Resources and economy",
+          "weight": 0.7,
+          "weight_share": 0.0737,
+          "entities": 3,
+          "entity_share": 0.0405
+        },
+        {
+          "id": "politics_power",
+          "name": "Politics and power",
+          "weight": 0.9,
+          "weight_share": 0.0947,
+          "entities": 3,
+          "entity_share": 0.0405
+        },
+        {
+          "id": "law_norms",
+          "name": "Law and norms",
+          "weight": 0.8,
+          "weight_share": 0.0842,
+          "entities": 10,
+          "entity_share": 0.1351
+        },
+        {
+          "id": "belief_thought",
+          "name": "Belief and thought",
+          "weight": 0.2,
+          "weight_share": 0.0211,
+          "entities": 1,
+          "entity_share": 0.0135
+        },
+        {
+          "id": "language_writing",
+          "name": "Language and writing",
+          "weight": 0.9,
+          "weight_share": 0.0947,
+          "entities": 10,
+          "entity_share": 0.1351
+        },
+        {
+          "id": "kinship_community",
+          "name": "Kinship and community",
+          "weight": 0.5,
+          "weight_share": 0.0526,
+          "entities": 2,
+          "entity_share": 0.027
+        },
+        {
+          "id": "daily_life",
+          "name": "Daily life",
+          "weight": 0.7,
+          "weight_share": 0.0737,
+          "entities": 3,
+          "entity_share": 0.0405
+        },
+        {
+          "id": "occupations_labor",
+          "name": "Occupations and labor",
+          "weight": 0.8,
+          "weight_share": 0.0842,
+          "entities": 16,
+          "entity_share": 0.2162
+        },
+        {
+          "id": "education_knowledge",
+          "name": "Education and knowledge",
+          "weight": 0.6,
+          "weight_share": 0.0632,
+          "entities": 2,
+          "entity_share": 0.027
+        },
+        {
+          "id": "arts_media",
+          "name": "Arts, entertainment, and media",
+          "weight": 0.1,
+          "weight_share": 0.0105,
+          "entities": 1,
+          "entity_share": 0.0135
+        },
+        {
+          "id": "history",
+          "name": "History",
+          "weight": 0.3,
+          "weight_share": 0.0316,
+          "entities": 1,
+          "entity_share": 0.0135
+        },
+        {
+          "id": "external_relations",
+          "name": "External relations",
+          "weight": 0.1,
+          "weight_share": 0.0105,
+          "entities": 1,
+          "entity_share": 0.0135
+        }
+      ]
+    },
+    "scale_depth": {
+      "status": "pass",
+      "counts": {
+        "world": 11,
+        "region": 5,
+        "settlement": 2,
+        "district": 2,
+        "site": 4,
+        "detail": 1
+      },
+      "deepest_scale": "detail",
+      "target_scale": "detail",
+      "min_entities_per_scale": 1,
+      "missing_scales": []
+    },
+    "reward_distribution": {
+      "status": "pass",
+      "reward": {
+        "count": 25,
+        "mean": 0.9733,
+        "min": 0.7969,
+        "max": 1.0
+      },
+      "histogram": [
+        0,
+        0,
+        0,
+        1,
+        24
+      ],
+      "low_reward_entities": [],
+      "unscored_entities": [],
+      "verifiers": {},
+      "warnings": []
+    },
+    "genericity": {
+      "status": "pass",
+      "genericity": {
+        "count": 0,
+        "mean": null,
+        "min": null,
+        "max": null
+      },
+      "threshold": 0.5,
+      "generic_entities": [],
+      "candidates_rejected_as_generic": 0,
+      "warnings": []
+    },
+    "provenance": {
+      "status": "pass",
+      "ungrounded_entities": []
+    },
+    "duplicates": {
+      "status": "pass",
+      "threshold": 0.8,
+      "entities": {
+        "item_count": 25,
+        "exact_duplicate_count": 0,
+        "normalized_duplicate_count": 0,
+        "near_duplicate_pair_count": 0
+      },
+      "names": {
+        "item_count": 25,
+        "exact_duplicate_count": 0,
+        "normalized_duplicate_count": 0,
+        "near_duplicate_pair_count": 1
+      }
+    },
+    "exploration": {
+      "status": "pass",
+      "run_status": "completed",
+      "stop_reason": "coverage_met",
+      "iterations": 33,
+      "counters": {
+        "generation_calls": 682,
+        "accepted": 25,
+        "rejected": 8,
+        "no_candidates": 0,
+        "rewrites": 78,
+        "errors": 0
+      },
+      "logged_iterations": 33,
+      "accepted_iterations": 25,
+      "notes": []
+    }
+  }
+}

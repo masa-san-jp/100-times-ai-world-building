@@ -1,0 +1,988 @@
+{
+  "schema_version": 2,
+  "layout_version": 3,
+  "artifact_type": "world_output",
+  "engine": "world",
+  "run_id": "calib_c",
+  "backend": "ollama",
+  "model": "qwen3.8:27b",
+  "models": {
+    "generation": "qwen3.8:27b",
+    "vision": "llava:latest"
+  },
+  "judge_model": "qwen3.8:27b",
+  "run_seed": 1,
+  "seed_source": "argument",
+  "config": {
+    "path": "<work>/issue100/ollama_config_ctx16k.yaml",
+    "sha256": "7b6f61da2ec5ef54f9b819ef3e51b2eaa8b484281d00d51fd618cd4147fdb261"
+  },
+  "engine_config": {
+    "explore": {
+      "selection": {
+        "strategy": "ucb1",
+        "exploration": 0.6,
+        "epsilon": 0.05,
+        "prior_mean": 0.5,
+        "prior_strength": 1.0,
+        "item_prior_weight": 0.3,
+        "deficit_weight": 0.7,
+        "axis_weight": 0.3,
+        "depth_weight": 1.0,
+        "breadth_weight": 0.8,
+        "arm_by_axis": false,
+        "focus_unmet": true,
+        "max_items_per_kind": 12
+      },
+      "parallel": {
+        "builds": 4
+      },
+      "build": {
+        "max_step_attempts": 4,
+        "review_rounds": 2
+      },
+      "operators": {
+        "empty": [
+          "premise"
+        ],
+        "unexpanded": [
+          "zoom",
+          "expand"
+        ],
+        "uncaused": [
+          "cause"
+        ],
+        "thin": [
+          "history",
+          "document",
+          "perspective"
+        ],
+        "axis_gap": [
+          "zoom",
+          "perspective",
+          "cause"
+        ],
+        "low_score": [
+          "expand",
+          "cause"
+        ]
+      },
+      "breadth": {
+        "enabled": true,
+        "operators": [
+          "expand",
+          "perspective",
+          "cause",
+          "history",
+          "document"
+        ],
+        "min_entities_per_operator": 1
+      },
+      "frontier": {
+        "min_facts": 3,
+        "low_score_threshold": 0.5,
+        "low_score_verifiers": [
+          "genericity",
+          "specificity"
+        ]
+      },
+      "budget": {
+        "max_iterations": 200,
+        "max_wall_seconds": null,
+        "max_generation_calls": null,
+        "max_consecutive_failures": 5
+      },
+      "coverage": {
+        "enabled": true
+      }
+    },
+    "operator": {},
+    "generation": {
+      "max_tokens": 8192,
+      "num_ctx": 16384,
+      "think": false,
+      "temperature": null
+    },
+    "structured": {
+      "max_attempts": 3,
+      "max_conversions": 2
+    }
+  },
+  "files": {
+    "config/prompts/input_brief.yaml": "25524633ff740891ca78ff279157a56b3eaed44548563a947308cb9bfc395b46",
+    "config/prompts/world/contract_items.yaml": "7f4f1c8f0b71387e80fe6db20d70fb0825c2bad42c29b00885b773115b0d2fac",
+    "config/prompts/world/operators.yaml": "9880c90a1ecf5a7cb2022f6db6ad941845f1e87ae2d258b7cec09322896cea80",
+    "config/prompts/world/real_world_check.yaml": "86bd5dd97693c29d5cbe12f2a9abc5a3d892f1b0ca7bc2dabd0d59b09bc62fb3",
+    "config/prompts/world/restatement_check.yaml": "3d21bdab14d0ea91a3336d0fa0334ca532256a62763e2cc9d40ed07609486657",
+    "config/prompts/world/steps.yaml": "dea899b8d1eb0953ec423f4656a3e17e8847d42704197470bd1871a1e8d09c8e",
+    "config/prompts/world_axes.yaml": "e6a3443148d5f6ada97daa06aaec0e30f189a7a3e1ddc14657bfe4ad39211e55",
+    "config/schemas/image_description.json": "e7dfda4d5d92a41cfd3d3ea2059ef3267602109fb5fa864e44dcad3759dc0791",
+    "config/schemas/input_brief.json": "6740c1dbf9f064a5d7a0895f71793bc8ea78c117b51c3b8c30b6cad28af708b7",
+    "config/schemas/steps/axes.json": "3ec6eb61bf6c2741d1ee537d1d8868c46a91b625d7b38bfb6f9537ee7c655ca5",
+    "config/schemas/steps/fact_element.json": "84d2b97612ab693e84a4bf8b9870cbf30602fd669f90b7c7dee0fd88d1769bd6",
+    "config/schemas/steps/fact_text.json": "7c81bd84c93748901012e927e263e9c0c699ea0dd4bfe27dd1a30a9fbf9d923a",
+    "config/schemas/steps/grounding.json": "8729109bd691a2db909ea05fe0481b4be8ec939d6b6bb7e2719e8b7a7d48a7eb",
+    "config/schemas/steps/name.json": "f10757aa050a745a5bcd8c4d7b3372eefd993b22f06587bd139a2e1c549264d2",
+    "config/schemas/steps/real_world_check.json": "6f71154ce6a5832ce8b35440a949f0bd645a81b84974b1d0c2825ee634949904",
+    "config/schemas/steps/relations.json": "11df31f3d19573bf355cfaa27025de75ee1427f4c69ab838472a6f97d29708b7",
+    "config/schemas/steps/restatement_check.json": "a08b1c52ac1b200bb484700b95376108f59660cf977a8b3745f49280034978ef",
+    "config/schemas/steps/review.json": "ac2ce3ce0bc5f808a5e2c7a9c252f46226652b19c93ccb56b2f315bdc581c72d",
+    "config/schemas/steps/summary.json": "587e86b0b9bb906b32a4551f8df8819bbd3e5e55a88c666ab8377d7f3f7c8df1",
+    "config/schemas/steps/type.json": "c32aaaf81bcc4523f392b3685937a902010b07f679b341003ca9c803da042489",
+    "config/schemas/world_axes.json": "d3908416634d7ee04f2a3bb0f51a660545bdc7cb1ec1a12cc4188364923030e1",
+    "config/schemas/world_contract.json": "2b17c56a51cd04226cf1410b30e441e6c20a3cf856c16f695ebef4ad0546105c",
+    "config/world/contract.yaml": "050a25b6dd6735d1bf426f5705801dccb2ce01d054a634b924951d878f73564b",
+    "config/world/criteria.yaml": "f875fa72ea8e5ffe6e85715b1114b273e877f30e0141f6a2ac71a52e7d70fbf8",
+    "config/world/domains.yaml": "b5650ae80af6b396e40b5ce22a782cc64a4e73e4afe17a2d2b0ddf576a4168eb",
+    "config/world/explore.yaml": "0fc825e6eb5b4c81961d440fd191ced70130c3833d361fcddeb9d8dabceb9c19",
+    "config/world/language_rules.yaml": "c5122a7e8612566ac04cba5b8fd1547688be8057bc57ddf0db5839b931f76391",
+    "config/world/languages.yaml": "d13991e024990f241f4c6fe10262a76a243698812ff42e8c3299b1049bcda4f7",
+    "config/world/quality.yaml": "d7864814a22eeb9cc2096277d18934a85d3d4377453a6ea3c02cc4f880732e25",
+    "config/world/render_labels.yaml": "2d0776cd3a28d88a911073202b4fce580b9e4b3e63125de36f474f92e06effa9",
+    "config/world/reward.yaml": "6fd31943470478daecc23f7fd40bb6cb2f50374374ab86a06ebd6a742b0ed2c8",
+    "config/world/world_criteria.yaml": "a93fc575af6be6328a0bc6e90e306f1bd9d280d48de8b22b5617aab74915275b"
+  },
+  "paths": {
+    "input": "input",
+    "world": "world",
+    "checkpoints": "checkpoints",
+    "final": "final"
+  },
+  "created_at": "2026-10-11T20:45:27+00:00",
+  "status": "completed",
+  "updated_at": "2026-10-12T11:11:37+00:00",
+  "budget": {
+    "requested": {
+      "max_iterations": 40
+    },
+    "effective": {
+      "max_iterations": 40,
+      "max_wall_seconds": null,
+      "max_generation_calls": null
+    }
+  },
+  "input": {
+    "raw_file": "calib_input_c.txt",
+    "sha256": "00cb6ac39807cd137fbce3001c66aab2376a537085ff64816744e8857955da5c",
+    "characters": 170,
+    "images": []
+  },
+  "started_at": "2026-10-11T20:45:27+00:00",
+  "pid": 11046,
+  "parallel_builds": 1,
+  "world_contract": {
+    "attempts": 20,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: Flw already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 1
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: Drn already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      },
+      {
+        "attempt": 2,
+        "errors": [
+          "duplicate: Flw already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      },
+      {
+        "attempt": 3,
+        "errors": [
+          "duplicate: Drn already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_marker": {
+          "attempts": {
+            "1": 1,
+            "2": 1,
+            "4": 1
+          },
+          "calls": 14,
+          "failures": 0,
+          "reasons": {
+            "duplicate: Drn already appears in calendar.markers": 2,
+            "duplicate: Flw already appears in calendar.markers": 2
+          }
+        },
+        "calendar_name": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 2,
+          "failures": 0,
+          "reasons": {}
+        },
+        "calendar_origin": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "capability": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "institution": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "society_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "technology_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "unit": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        }
+      }
+    },
+    "status": "success",
+    "steps": [
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": null,
+        "step": "calendar_name",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "calendar_origin",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 1,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "Flw",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: Flw already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 4,
+        "calls": 8,
+        "slot": 2,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "Drn",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: Drn already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          [
+            {
+              "actual": "Flw",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: Flw already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          [
+            {
+              "actual": "Drn",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: Drn already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "technology_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "society_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      }
+    ]
+  },
+  "phases": {
+    "world_explore": {
+      "status": "completed",
+      "started_at": "2026-10-11T21:02:43+00:00",
+      "finished_at": "2026-10-12T11:11:36+00:00"
+    }
+  },
+  "build": {
+    "steps": {
+      "type": {
+        "calls": 33,
+        "attempts": {
+          "1": 33
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "grounding": {
+        "calls": 34,
+        "attempts": {
+          "1": 33
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "name": {
+        "calls": 35,
+        "attempts": {
+          "1": 31,
+          "2": 2
+        },
+        "reasons": {
+          "new_information": {
+            "name must differ from existing names after normalization": 2
+          }
+        },
+        "failures": 0
+      },
+      "real_world_check": {
+        "calls": 67,
+        "attempts": {
+          "1": 67
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "axes": {
+        "calls": 33,
+        "attempts": {
+          "1": 33
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "summary": {
+        "calls": 33,
+        "attempts": {
+          "1": 33
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "fact_element": {
+        "calls": 108,
+        "attempts": {
+          "1": 61,
+          "2": 18,
+          "3": 1,
+          "4": 2
+        },
+        "reasons": {
+          "new_information": {
+            "(value, unit) pair (120, DdgL) with a near subject ('Annual sediment removal quota per DredgeTriumvirate member') already appears in an existing fact": 3,
+            "(value, unit) pair (120, DdgL) with a near subject ('Annual sediment removal quota per DredgeTriumvirate member in Verdant') already appears in an existing fact": 1,
+            "(value, unit) pair (120, DdgL) with a near subject ('Sediment removal quota per guild member') already appears in an existing fact": 1,
+            "(value, unit) pair (120, DdgL) with a near subject ('Sediment removal quota per guild member per FlwYr') already appears in an existing fact": 1,
+            "(value, unit) pair (3, FlwCrd) with a near subject ('Standard record cord segment length') already appears in an existing fact": 1,
+            "(value, unit) pair (120, DdgL) with a near subject ('Sediment removal quota per KnotBound laborer per cycle') already appears in an existing fact": 1
+          }
+        },
+        "failures": 0
+      },
+      "fact_text": {
+        "calls": 131,
+        "attempts": {
+          "1": 62,
+          "2": 10,
+          "3": 4,
+          "8": 2,
+          "6": 1,
+          "5": 3
+        },
+        "reasons": {
+          "new_information": {
+            "fact text restates an existing fact: 'Annual sediment removal quota per DredgeTriumvirate member is 120 DdgL.'": 4,
+            "fact text restates an existing fact: 'Verdant is the eastern channel district of Thalassia, managed by the DredgeTriumvirate to maintain 120 DdgL sediment removal per FlwYr.'": 1,
+            "fact text restates an existing fact: 'The standard length of a record cord segment used in Verdant is 3 FlwCrd.'": 2,
+            "fact text duplicates an existing fact: 'The Sediment removal quota per guild member per FlwYr at Gullspire is 120 DdgL.'": 1,
+            "fact text restates an existing fact: 'CordQuotaGuild encodes the 120 DdgL Sediment removal quota per guild member at Gullspire into CrdKnot records each FlwYr.'": 1,
+            "fact text restates an existing fact: 'QuotaDeck is the designated platform within PilingBench District where DredgeScoop instruments measure 120 DdgL sediment removal per FlwYr for the DredgeTriumvirate.'": 1,
+            "fact text restates an existing fact: 'Sediment removal quota per CordWright per FlwYr is 120 DdgL.'": 1,
+            "fact text duplicates an existing fact: 'CordShelf is the vertical storage unit within KnotVault that holds FlwCrdCord segments for CrdKnot records.'": 1,
+            "fact text restates an existing fact: 'The standard record cord segment length in the CordLoft archive is 3 FlwCrd.'": 1,
+            "fact text restates an existing fact: 'The Maximum archive cord length per CordKeeper is 3 FlwCrd.'": 1,
+            "fact text restates an existing fact: 'KnotLedger is the designated registry within CordShelf for logging CrdKnot entries.'": 1,
+            "fact text restates an existing fact: 'CordTender Ties 3 FlwCrd knot on FlwCrdCord at KnottingBench during the Drn phase of each FloodCount cycle.'": 1,
+            "fact text duplicates an existing fact: 'KnotPin is the designated fastening element on CordHook for securing FlwCrdCord segments.'": 1,
+            "fact text restates an existing fact: 'KnotPin is the designated fastening element on CordHook for securing FlwCrdCord segments.'": 1,
+            "fact text duplicates an existing fact: 'CordTender ties 3 FlwCrd knot on FlwCrdCord at KnottingBench.'": 3
+          },
+          "no_outside_premises": {
+            "units and calendar markers must belong to the contract": 31
+          },
+          "detail": {
+            "number requires its value and non-time measurement unit in the fact text": 3,
+            "period requires its calendar marker and value in the fact text": 1,
+            "fact text must contain actor and action": 2
+          }
+        },
+        "failures": 5
+      },
+      "restatement_check": {
+        "calls": 152,
+        "attempts": {
+          "1": 152
+        },
+        "reasons": {
+          "new_information": {
+            "fact text restates an existing fact: 'Annual sediment removal quota per DredgeTriumvirate member is 120 DdgL.'": 4,
+            "fact text restates an existing fact: 'Verdant is the eastern channel district of Thalassia, managed by the DredgeTriumvirate to maintain 120 DdgL sediment removal per FlwYr.'": 1,
+            "fact text restates an existing fact: 'The standard length of a record cord segment used in Verdant is 3 FlwCrd.'": 2,
+            "fact text restates an existing fact: 'The Sediment removal quota per guild member per FlwYr at Gullspire is 120 DdgL.'": 1,
+            "fact text restates an existing fact: 'CordQuotaGuild encodes the 120 DdgL Sediment removal quota per guild member at Gullspire into CrdKnot records each FlwYr.'": 1,
+            "fact text restates an existing fact: 'QuotaDeck is the designated platform within PilingBench District where DredgeScoop instruments measure 120 DdgL sediment removal per FlwYr for the DredgeTriumvirate.'": 1,
+            "fact text restates an existing fact: 'Sediment removal quota per CordWright per FlwYr is 120 DdgL.'": 1,
+            "fact text restates an existing fact: 'CordKeeper ties 3 FlwCrd knot on FlwCrdCord at CordShelf.'": 1,
+            "fact text restates an existing fact: 'The standard record cord segment length in the CordLoft archive is 3 FlwCrd.'": 1,
+            "fact text restates an existing fact: 'The Maximum archive cord length per CordKeeper is 3 FlwCrd.'": 1,
+            "fact text restates an existing fact: 'KnotLedger is the designated registry within CordShelf for logging CrdKnot entries.'": 1,
+            "fact text restates an existing fact: 'CordTender Ties 3 FlwCrd knot on FlwCrdCord at KnottingBench during the Drn phase of each FloodCount cycle.'": 1,
+            "fact text restates an existing fact: 'KnotPin is the designated fastening element on CordHook for securing FlwCrdCord segments.'": 1
+          }
+        },
+        "failures": 17
+      },
+      "review": {
+        "calls": 29,
+        "attempts": {
+          "1": 27,
+          "2": 1
+        },
+        "reasons": {
+          "consistent": {
+            "The fact states 'Kestrel is the primary dredging vessel,' but the world contract defines technology capabilities as 'DredgeRight' and does not list any specific vessel names or types. Introducing a specific named vessel 'Kestrel' is not supported by the provided input or contract, which only defines the general capability and units. Furthermore, the local context lists 'DredgeTriumvirate' as the institution, but no specific assets are named, making the introduction of a proper noun for a vessel an unsupported premise not derived from the input facts s1-s5.": 1
+          }
+        },
+        "failures": 0
+      },
+      "relations": {
+        "calls": 27,
+        "attempts": {
+          "1": 27
+        },
+        "reasons": {},
+        "failures": 0
+      },
+      "commit": {
+        "calls": 0,
+        "attempts": {},
+        "reasons": {
+          "new_information": {
+            "new_information: name must differ from existing names after normalization": 1,
+            "new_information: fact text restates an existing fact: 'The Sediment removal quota per guild member per FlwYr at Gullspire is 120 DdgL.'": 1,
+            "new_information: name must be new in the input, context and contract; already present: 'CordShelf'": 1,
+            "new_information: fact text restates an existing fact: 'CordKeeper ties 3 FlwCrd knot on FlwCrdCord at CordShelf.'": 1
+          }
+        },
+        "failures": 3
+      }
+    },
+    "accepted": 25,
+    "failed": 8,
+    "failures_by_step": {
+      "fact_text": 5,
+      "commit": 3
+    }
+  },
+  "world_explore": {
+    "iteration": 33,
+    "counters": {
+      "generation_calls": 682,
+      "accepted": 25,
+      "rejected": 8,
+      "no_candidates": 0,
+      "rewrites": 78,
+      "errors": 0
+    },
+    "stop_reason": "coverage_met",
+    "backend_waits": {
+      "started": 0,
+      "recovered": 0,
+      "abandoned": 0,
+      "total_seconds": 0.0
+    },
+    "world_status": {
+      "criteria": {
+        "faithful": {
+          "value": 1.0,
+          "threshold": 1.0,
+          "met": true
+        },
+        "breadth.axes": {
+          "value": 1.0,
+          "threshold": 1.0,
+          "met": true
+        },
+        "breadth.perspective": {
+          "value": 14,
+          "threshold": 1,
+          "met": true
+        },
+        "depth.relations": {
+          "value": 0.42857142857142855,
+          "threshold": 0.3,
+          "met": true
+        },
+        "depth.history": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.world": {
+          "value": 11,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.region": {
+          "value": 5,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.settlement": {
+          "value": 2,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.district": {
+          "value": 2,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.site": {
+          "value": 4,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.detail": {
+          "value": 1,
+          "threshold": 1,
+          "met": true
+        },
+        "scale.chain": {
+          "value": true,
+          "threshold": true,
+          "met": true
+        }
+      },
+      "met": true
+    },
+    "elapsed_seconds": 17361.24
+  },
+  "finished_at": "2026-10-12T11:11:37+00:00",
+  "structured": {
+    "type": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 592.7396442908794,
+      "modes": {
+        "constrained": 12
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "grounding": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 615.2764673754573,
+      "modes": {
+        "constrained": 12
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "name": {
+      "calls": 14,
+      "attempts": {
+        "1": 14
+      },
+      "failures": 0,
+      "elapsed": 352.4948084154166,
+      "modes": {
+        "constrained": 14
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "real_world_check": {
+      "calls": 26,
+      "attempts": {
+        "1": 26
+      },
+      "failures": 0,
+      "elapsed": 598.8589446651749,
+      "modes": {
+        "constrained": 26
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "axes": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 342.92383116623387,
+      "modes": {
+        "constrained": 12
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "summary": {
+      "calls": 12,
+      "attempts": {
+        "1": 12
+      },
+      "failures": 0,
+      "elapsed": 617.5891510839574,
+      "modes": {
+        "constrained": 12
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "fact_element": {
+      "calls": 36,
+      "attempts": {
+        "1": 36
+      },
+      "failures": 0,
+      "elapsed": 1042.2504564123228,
+      "modes": {
+        "constrained": 36
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "fact_text": {
+      "calls": 44,
+      "attempts": {
+        "1": 44
+      },
+      "failures": 0,
+      "elapsed": 1156.4672544202767,
+      "modes": {
+        "constrained": 44
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "restatement_check": {
+      "calls": 40,
+      "attempts": {
+        "1": 40
+      },
+      "failures": 0,
+      "elapsed": 821.2295951591805,
+      "modes": {
+        "constrained": 40
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "relations": {
+      "calls": 11,
+      "attempts": {
+        "1": 11
+      },
+      "failures": 0,
+      "elapsed": 416.5336299180053,
+      "modes": {
+        "constrained": 11
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    },
+    "review": {
+      "calls": 11,
+      "attempts": {
+        "1": 11
+      },
+      "failures": 0,
+      "elapsed": 366.2454571672715,
+      "modes": {
+        "constrained": 11
+      },
+      "model": "qwen3.8:27b",
+      "placeholder_violations": 0,
+      "schema_echo": 0,
+      "conversions": {
+        "tried": 0,
+        "succeeded": 0,
+        "fidelity_failures": 0,
+        "schema_failures": 0
+      }
+    }
+  },
+  "stop_reason": "coverage_met",
+  "iterations": 33,
+  "counters": {
+    "generation_calls": 682,
+    "accepted": 25,
+    "rejected": 8,
+    "no_candidates": 0,
+    "rewrites": 78,
+    "errors": 0
+  },
+  "quality_report": {
+    "json": "quality_report.json",
+    "markdown": "quality_report.md"
+  }
+}

@@ -1,0 +1,766 @@
+{
+  "contract_stage": {
+    "attempts": 20,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: Flw already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 1
+      },
+      {
+        "attempt": 1,
+        "errors": [
+          "duplicate: Drn already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      },
+      {
+        "attempt": 2,
+        "errors": [
+          "duplicate: Flw already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      },
+      {
+        "attempt": 3,
+        "errors": [
+          "duplicate: Drn already appears in calendar.markers"
+        ],
+        "item": "calendar_marker",
+        "slot": 2
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_marker": {
+          "attempts": {
+            "1": 1,
+            "2": 1,
+            "4": 1
+          },
+          "calls": 14,
+          "failures": 0,
+          "reasons": {
+            "duplicate: Drn already appears in calendar.markers": 2,
+            "duplicate: Flw already appears in calendar.markers": 2
+          }
+        },
+        "calendar_name": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 2,
+          "failures": 0,
+          "reasons": {}
+        },
+        "calendar_origin": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "capability": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "institution": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        },
+        "society_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "technology_description": {
+          "attempts": {
+            "1": 1
+          },
+          "calls": 1,
+          "failures": 0,
+          "reasons": {}
+        },
+        "unit": {
+          "attempts": {
+            "1": 3
+          },
+          "calls": 6,
+          "failures": 0,
+          "reasons": {}
+        }
+      }
+    },
+    "status": "success",
+    "steps": [
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": null,
+        "step": "calendar_name",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "calendar_origin",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "calendar_marker",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 2,
+        "calls": 4,
+        "slot": 1,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "Flw",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: Flw already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 4,
+        "calls": 8,
+        "slot": 2,
+        "step": "calendar_marker",
+        "violations": [
+          [
+            {
+              "actual": "Drn",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: Drn already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          [
+            {
+              "actual": "Flw",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: Flw already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          [
+            {
+              "actual": "Drn",
+              "expected": "unique entry in this contract list",
+              "message": "duplicate: Drn already appears in calendar.markers",
+              "path": "$[\"marker\"]"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "technology_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "capability",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "unit",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 1,
+        "slot": null,
+        "step": "society_description",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 0,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 1,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      },
+      {
+        "accepted": true,
+        "attempts": 1,
+        "calls": 2,
+        "slot": 2,
+        "step": "institution",
+        "violations": [
+          []
+        ]
+      }
+    ]
+  },
+  "entities": [
+    {
+      "axes": [
+        "ecology",
+        "geography_climate",
+        "laws_of_nature"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [],
+            "reason": "The entity is grounded in the brief statements describing a river city on stilts above a delta that floods annually, which defines the core geographic and climatic constraints of the world.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "Annual sediment removal quota per DredgeTriumvirate member",
+          "text": "Annual sediment removal quota per DredgeTriumvirate member is 120 DdgL.",
+          "unit": "DdgL",
+          "value": 120
+        },
+        {
+          "kind": "proper_noun",
+          "name": "Verdant",
+          "provenance": {
+            "derived_from": [],
+            "reason": "The entity is grounded in the brief statements describing a river city on stilts above a delta that floods annually, which defines the core geographic and climatic constraints of the world.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "Verdant is the eastern channel district of Thalassia, managed by the DredgeTriumvirate to maintain 120 DdgL sediment removal per FlwYr."
+        }
+      ],
+      "id": "e1",
+      "name": "Thalassia",
+      "origin_operator": "premise",
+      "parent": null,
+      "provenance": {
+        "derived_from": [],
+        "reason": "The entity is grounded in the brief statements describing a river city on stilts above a delta that floods annually, which defines the core geographic and climatic constraints of the world.",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [],
+      "scale": "world",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "Thalassia is a stilt-built river city situated above a delta subject to annual flooding. The physical layout dictates that infrastructure must withstand seasonal water rise, constraining construction and labor cycles. The city's hydraulic rhythm is measured in FlwYr units, with specific markers Flw, Drn, and Slt tracking the flood phases. This geographic reality underpins the DredgeTriumvirate, CordKeepers, and StiltWard, who manage the necessary channel maintenance and structural integrity against the recurring environmental pressure.",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "ecology",
+        "geography_climate",
+        "language_writing"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "The entity e2 is a region within e1 (Thalassia), defined by the stilt city structure and the delta location described in s1 and s2, which dictates the physical geography and flood constraints in s3.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "Length of standard record cord segment",
+          "text": "The standard length of a record cord segment used in Verdant is 3 FlwCrd.",
+          "unit": "FlwCrd",
+          "value": 3
+        },
+        {
+          "kind": "proper_noun",
+          "name": "Gullspire",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "The entity e2 is a region within e1 (Thalassia), defined by the stilt city structure and the delta location described in s1 and s2, which dictates the physical geography and flood constraints in s3.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "Gullspire is the central stilt platform of Verdant, maintained by the StiltWard during FlwYr."
+        }
+      ],
+      "id": "e2",
+      "name": "Verdant",
+      "origin_operator": "zoom",
+      "parent": "e1",
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "The entity e2 is a region within e1 (Thalassia), defined by the stilt city structure and the delta location described in s1 and s2, which dictates the physical geography and flood constraints in s3.",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "part_of"
+        }
+      ],
+      "scale": "region",
+      "scores": {
+        "reward": 0.890625
+      },
+      "summary": "Verdant is the eastern channel district of Thalassia, situated above the delta where annual flooding dictates infrastructure limits. Managed by the DredgeTriumvirate, it enforces a 120 DdgL sediment removal quota per FlwYr. Records are maintained on knotted cords, with the StiltWard overseeing structural integrity and the CordKeepers managing archive access. FloodCount cycles structure labor rotations and hydraulic maintenance routines within this region.",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "ecology",
+        "geography_climate",
+        "law_norms"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "The region entity is a child of the world-scale city e1, specifically identifying the delta and stilt structure described in the brief statements.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "subject": "Duration of one annual delta flood cycle",
+          "text": "The Duration of one annual delta flood cycle is 1 FlwYr.",
+          "unit": "FlwYr",
+          "value": 1
+        },
+        {
+          "kind": "proper_noun",
+          "name": "Piligrade",
+          "provenance": {
+            "derived_from": [
+              "e1"
+            ],
+            "reason": "The region entity is a child of the world-scale city e1, specifically identifying the delta and stilt structure described in the brief statements.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s3"
+            ]
+          },
+          "text": "Piligrade is the primary stilt anchoring point in the Delta Stilt Region, securing the structure against annual FlwYr cycles."
+        }
+      ],
+      "id": "e3",
+      "name": "Delta Stilt Region",
+      "origin_operator": "zoom",
+      "parent": "e1",
+      "provenance": {
+        "derived_from": [
+          "e1"
+        ],
+        "reason": "The region entity is a child of the world-scale city e1, specifically identifying the delta and stilt structure described in the brief statements.",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e1",
+          "type": "governs"
+        },
+        {
+          "target": "e1",
+          "type": "part_of"
+        }
+      ],
+      "scale": "region",
+      "scores": {
+        "reward": 0.96875
+      },
+      "summary": "The Delta Stilt Region is the hydrological and structural foundation of Thalassia, characterized by a network of vertical pilings anchored in sedimentary soil. This region operates under the annual FlwYr cycle, where rising water levels necessitate the maintenance of channel integrity by the DredgeTriumvirate. Local regulations limit sediment extraction to 120 DdgL per cycle to prevent destabilizing the stilt base. The physical layout dictates that all infrastructure must accommodate seasonal water rise, with the CordKeepers managing records on FlwCrd to track hydraulic performance and labor分配",
+      "type": "place"
+    },
+    {
+      "axes": [
+        "geography_climate",
+        "occupations_labor",
+        "technology_tools"
+      ],
+      "facts": [
+        {
+          "kind": "number",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "The settlement e4 is a specific instance of the stilt construction described in s1, located within the eastern channel district of e2, which is part of the delta described in s2. The presence of the DredgeTriumvirate (s4) within this region necessitates a settlement scale structure to house the guild labor and infrastructure required for the 120 DdgL quota.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s4"
+            ]
+          },
+          "subject": "Sediment removal quota per guild member per FlwYr",
+          "text": "The Sediment removal quota per guild member per FlwYr at Gullspire is 120 DdgL.",
+          "unit": "DdgL",
+          "value": 120
+        },
+        {
+          "kind": "proper_noun",
+          "name": "PilingBench",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "The settlement e4 is a specific instance of the stilt construction described in s1, located within the eastern channel district of e2, which is part of the delta described in s2. The presence of the DredgeTriumvirate (s4) within this region necessitates a settlement scale structure to house the guild labor and infrastructure required for the 120 DdgL quota.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s4"
+            ]
+          },
+          "text": "PilingBench is the primary stilt anchoring point at Gullspire, securing the structure against annual FlwYr cycles."
+        },
+        {
+          "kind": "object",
+          "object": "DredgeScoop",
+          "provenance": {
+            "derived_from": [
+              "e2"
+            ],
+            "reason": "The settlement e4 is a specific instance of the stilt construction described in s1, located within the eastern channel district of e2, which is part of the delta described in s2. The presence of the DredgeTriumvirate (s4) within this region necessitates a settlement scale structure to house the guild labor and infrastructure required for the 120 DdgL quota.",
+            "statement_ids": [
+              "s1",
+              "s2",
+              "s4"
+            ]
+          },
+          "text": "DredgeScoop is the standard tool used at Gullspire to measure 120 DdgL sediment removal per FlwYr."
+        }
+      ],
+      "id": "e4",
+      "name": "Gullspire",
+      "origin_operator": "zoom",
+      "parent": "e2",
+      "provenance": {
+        "derived_from": [
+          "e2"
+        ],
+        "reason": "The settlement e4 is a specific instance of the stilt construction described in s1, located within the eastern channel district of e2, which is part of the delta described in s2. The presence of the DredgeTriumvirate (s4) within this region necessitates a settlement scale structure to house the guild labor and infrastructure required for the 120 DdgL quota.",
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s4"
+        ]
+      },
+      "relations": [
+        {
+          "target": "e3",
+          "type": "located_in"
+        },
+        {
+          "target": "e2",
+          "type": "part_of"
+        },
+        {
+          "target": "e2",
+          "type": "uses"
+        }
+      ],
+      "scale": "settlement",
+      "scores": {
+        "reward": 1.0
+      },
+      "summary": "Gullspire is the central stilt platform within Verdant, serving as the operational hub for the DredgeTriumvirate. The structure is anchored by vertical pilings in delta sediment, designed to withstand the annual FlwYr flood cycle. Guild laborers execute the 120 DdgL sediment removal quota using standard tools, while the StiltWard monitors structural integrity. Records of these operations are maintained by the CordKeepers using knotted cords, with each segment measuring 3 FlwCrd. The platform's elevation ensures habitability during the Flw marker period, while the Drn and Slt markers dictate m",
+      "type": "place"
+    },
+    {
+      "id": "e5",
+      "type": "group",
+      "name": "CordWrights",
+      "axes": [
+        "language_writing",
+        "law_norms",
+        "occupations_labor"
+      ],
+      "scale": "region",
+      "parent": "e1",
+      "relations": [
+        {
+          "type": "located_in",
+          "target": "e2"
+        },
+        {
+          "type": "member_of",
+          "target": "e1"
+        },
+        {
+          "type": "related_to",
+          "target": "e2"
+        },
+        {
+          "type": "uses",
+          "target": "e3"
+        }
+      ],
+      "summary": "CordWrights are the laborers within the DredgeTriumvirate who execute the 120 DdgL sediment removal quota per FlwYr in Verdant. Their work is governed by law_norms that bind CrdKnot obligations, requiring them to physically knot record cords in 3 FlwCrd segments to log DdgL volumes. This practice links their physical labor in the delta channels directly to the administrative archive, ensuring that the physical act of dredging is mirrored in the linguistic system of knotted records. Their role is distinct from the StiltWard, focusing on channel maintenance rather than structural integrity.",
+      "facts": [
+        {
+          "kind": "number",
+          "text": "Sediment removal quota per CordWright per FlwYr is 120 DdgL.",
+          "provenance": {
+            "statement_ids": [
+              "s3",
+              "s4",
+              "s5"
+            ],
+            "derived_from": [
+              "e2",
+              "e1"
+            ],
+            "reason": "The group is derived from the DredgeTriumvirate institutions within Verdant (e2) and Thalassia (e1), specifically focusing on the laborers who execute the 120 DdgL quota and interact with the knotted cord records (s5) during the annual flood (s3)."
+          },
+          "subject": "Sediment removal quota per CordWright per FlwYr",
+          "value": 120,
+          "unit": "DdgL"
+        },
+        {
+          "kind": "proper_noun",
+          "text": "KnotWeavers are the laborers within the DredgeTriumvirate who execute the 120 DdgL sediment removal quota per FlwYr in Verdant.",
+          "provenance": {
+            "statement_ids": [
+              "s3",
+              "s4",
+              "s5"
+            ],
+            "derived_from": [
+              "e2",
+              "e1"
+            ],
+            "reason": "The group is derived from the DredgeTriumvirate institutions within Verdant (e2) and Thalassia (e1), specifically focusing on the laborers who execute the 120 DdgL quota and interact with the knotted cord records (s5) during the annual flood (s3)."
+          },
+          "name": "KnotWeavers"
+        }
+      ],
+      "provenance": {
+        "statement_ids": [
+          "s3",
+          "s4",
+          "s5"
+        ],
+        "derived_from": [
+          "e2",
+          "e1"
+        ],
+        "reason": "The group is derived from the DredgeTriumvirate institutions within Verdant (e2) and Thalassia (e1), specifically focusing on the laborers who execute the 120 DdgL quota and interact with the knotted cord records (s5) during the annual flood (s3)."
+      },
+      "scores": {
+        "reward": 1.0
+      },
+      "origin_operator": "perspective"
+    }
+  ],
+  "meta": {
+    "language": "en",
+    "schema_version": 1
+  },
+  "world_contract": {
+    "id": "world_contract",
+    "provenance": {
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes",
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5"
+      ]
+    },
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "markers": [
+          "Flw",
+          "Drn",
+          "Slt"
+        ],
+        "name": "FloodCount",
+        "origin": "Counting begins at the first documented annual delta flood, establishing a baseline for FloodCount cycles tied to the stilt city's hydraulic rhythm."
+      },
+      "society": {
+        "description": "Three guilds hold shared DredgeRight, binding labor and record-keeping via CrdKnot. Obligations rotate by FlwYr; authority limits sediment removal to DdgL per c",
+        "institutions": [
+          {
+            "description": "Three guilds sharing channel rights with rotating labor and shared knotted cord.",
+            "name": "DredgeTriumvirate"
+          },
+          {
+            "description": "Guild managing knotted cord records and archive integrity.",
+            "name": "CordKeepers"
+          },
+          {
+            "description": "Maintains stilt integrity during FlwYr; limits CrdKnot archive access.",
+            "name": "StiltWard"
+          }
+        ]
+      },
+      "technology": {
+        "capabilities": [
+          "DredgeRight",
+          "FlwRead",
+          "CrdKnot"
+        ],
+        "description": "Stilt construction and channel dredging tools. No extra-natural physics. Knotted cords serve as records. Limits: annual flooding constrains infrastructure.",
+        "units": [
+          {
+            "quantity": "Length of knotted cord used for records",
+            "symbol": "FlwCrd"
+          },
+          {
+            "quantity": "Volume of sediment removed from channels",
+            "symbol": "DdgL"
+          },
+          {
+            "quantity": "Duration of one annual delta flood cycle",
+            "symbol": "FlwYr"
+          }
+        ]
+      }
+    }
+  }
+}

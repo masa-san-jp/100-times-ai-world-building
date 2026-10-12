@@ -1,0 +1,69 @@
+{
+  "statements": [
+    {
+      "id": "s1",
+      "text": "The city is a river city built on stilts.",
+      "quote": "A river city built on stilts"
+    },
+    {
+      "id": "s2",
+      "text": "The city is located above a delta.",
+      "quote": "above a delta"
+    },
+    {
+      "id": "s3",
+      "text": "The delta floods every year.",
+      "quote": "that floods every year"
+    },
+    {
+      "id": "s4",
+      "text": "Three guilds share the right to dredge the channels.",
+      "quote": "Three guilds share the right to dredge the channels"
+    },
+    {
+      "id": "s5",
+      "text": "The city's records are kept on knotted cords.",
+      "quote": "the city's records are kept on knotted cords"
+    }
+  ],
+  "open_questions": [
+    {
+      "id": "q1",
+      "text": "What is the name of the city?"
+    },
+    {
+      "id": "q2",
+      "text": "Who are the specific three guilds?"
+    },
+    {
+      "id": "q3",
+      "text": "What is the process for maintaining the knotted cord records?"
+    },
+    {
+      "id": "q4",
+      "text": "What happens during the annual flooding?"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "c1",
+      "text": "The city is built on stilts."
+    },
+    {
+      "id": "c2",
+      "text": "The city is located above a delta."
+    },
+    {
+      "id": "c3",
+      "text": "The delta floods every year."
+    },
+    {
+      "id": "c4",
+      "text": "Three guilds share the right to dredge the channels."
+    },
+    {
+      "id": "c5",
+      "text": "The city's records are kept on knotted cords."
+    }
+  ]
+}
