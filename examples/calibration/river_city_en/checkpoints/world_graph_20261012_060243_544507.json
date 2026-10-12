@@ -1,0 +1,379 @@
+{
+  "meta": {
+    "schema_version": 1,
+    "language": "en"
+  },
+  "entities": [],
+  "world_contract": {
+    "id": "world_contract",
+    "scale": "world",
+    "world_premises": {
+      "calendar": {
+        "name": "FloodCount",
+        "origin": "Counting begins at the first documented annual delta flood, establishing a baseline for FloodCount cycles tied to the stilt city's hydraulic rhythm.",
+        "markers": [
+          "Flw",
+          "Drn",
+          "Slt"
+        ]
+      },
+      "technology": {
+        "description": "Stilt construction and channel dredging tools. No extra-natural physics. Knotted cords serve as records. Limits: annual flooding constrains infrastructure.",
+        "capabilities": [
+          "DredgeRight",
+          "FlwRead",
+          "CrdKnot"
+        ],
+        "units": [
+          {
+            "symbol": "FlwCrd",
+            "quantity": "Length of knotted cord used for records"
+          },
+          {
+            "symbol": "DdgL",
+            "quantity": "Volume of sediment removed from channels"
+          },
+          {
+            "symbol": "FlwYr",
+            "quantity": "Duration of one annual delta flood cycle"
+          }
+        ]
+      },
+      "society": {
+        "description": "Three guilds hold shared DredgeRight, binding labor and record-keeping via CrdKnot. Obligations rotate by FlwYr; authority limits sediment removal to DdgL per c",
+        "institutions": [
+          {
+            "name": "DredgeTriumvirate",
+            "description": "Three guilds sharing channel rights with rotating labor and shared knotted cord."
+          },
+          {
+            "name": "CordKeepers",
+            "description": "Guild managing knotted cord records and archive integrity."
+          },
+          {
+            "name": "StiltWard",
+            "description": "Maintains stilt integrity during FlwYr; limits CrdKnot archive access."
+          }
+        ]
+      }
+    },
+    "provenance": {
+      "statement_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5"
+      ],
+      "derived_from": [],
+      "reason": "Contract derived from input brief and world axes"
+    }
+  },
+  "contract_stage": {
+    "status": "success",
+    "attempts": 20,
+    "checks_enabled": true,
+    "disabled_checks": [],
+    "errors": [
+      {
+        "item": "calendar_marker",
+        "slot": 1,
+        "attempt": 1,
+        "errors": [
+          "duplicate: Flw already appears in calendar.markers"
+        ]
+      },
+      {
+        "item": "calendar_marker",
+        "slot": 2,
+        "attempt": 1,
+        "errors": [
+          "duplicate: Drn already appears in calendar.markers"
+        ]
+      },
+      {
+        "item": "calendar_marker",
+        "slot": 2,
+        "attempt": 2,
+        "errors": [
+          "duplicate: Flw already appears in calendar.markers"
+        ]
+      },
+      {
+        "item": "calendar_marker",
+        "slot": 2,
+        "attempt": 3,
+        "errors": [
+          "duplicate: Drn already appears in calendar.markers"
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "step": "calendar_name",
+        "slot": null,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_origin",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 1,
+        "attempts": 2,
+        "calls": 4,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "Flw",
+              "message": "duplicate: Flw already appears in calendar.markers"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "calendar_marker",
+        "slot": 2,
+        "attempts": 4,
+        "calls": 8,
+        "accepted": true,
+        "violations": [
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "Drn",
+              "message": "duplicate: Drn already appears in calendar.markers"
+            }
+          ],
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "Flw",
+              "message": "duplicate: Flw already appears in calendar.markers"
+            }
+          ],
+          [
+            {
+              "path": "$[\"marker\"]",
+              "expected": "unique entry in this contract list",
+              "actual": "Drn",
+              "message": "duplicate: Drn already appears in calendar.markers"
+            }
+          ],
+          []
+        ]
+      },
+      {
+        "step": "technology_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "capability",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "unit",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "society_description",
+        "slot": null,
+        "attempts": 1,
+        "calls": 1,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 0,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 1,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      },
+      {
+        "step": "institution",
+        "slot": 2,
+        "attempts": 1,
+        "calls": 2,
+        "accepted": true,
+        "violations": [
+          []
+        ]
+      }
+    ],
+    "metrics": {
+      "steps": {
+        "calendar_name": {
+          "calls": 2,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "calendar_origin": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "calendar_marker": {
+          "calls": 14,
+          "attempts": {
+            "1": 1,
+            "2": 1,
+            "4": 1
+          },
+          "reasons": {
+            "duplicate: Flw already appears in calendar.markers": 2,
+            "duplicate: Drn already appears in calendar.markers": 2
+          },
+          "failures": 0
+        },
+        "technology_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "capability": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "unit": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "society_description": {
+          "calls": 1,
+          "attempts": {
+            "1": 1
+          },
+          "reasons": {},
+          "failures": 0
+        },
+        "institution": {
+          "calls": 6,
+          "attempts": {
+            "1": 3
+          },
+          "reasons": {},
+          "failures": 0
+        }
+      }
+    }
+  }
+}

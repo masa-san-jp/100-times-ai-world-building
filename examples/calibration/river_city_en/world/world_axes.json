@@ -1,0 +1,216 @@
+{
+  "axes": [
+    {
+      "id": "geography_climate",
+      "name": "Geography and climate",
+      "meaning": "The physical layout of the river city built on stilts above a delta that experiences annual flooding.",
+      "weight": 1.0,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "ecology",
+      "name": "Ecology",
+      "meaning": "The biological environment of the delta and river channels that the city occupies and maintains.",
+      "weight": 0.6,
+      "grounds": {
+        "statement_ids": [
+          "s2",
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "laws_of_nature",
+      "name": "Physical and extra-natural laws",
+      "meaning": "The physical laws governing the annual flooding and the behavior of the river delta.",
+      "weight": 0.5,
+      "grounds": {
+        "statement_ids": [
+          "s3"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "technology_tools",
+      "name": "Technology and tools",
+      "meaning": "The engineering solutions for building on stilts and the tools used by guilds to dredge channels.",
+      "weight": 0.8,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "resources_economy",
+      "name": "Resources and economy",
+      "meaning": "The economic value and resource management associated with the shared right to dredge channels.",
+      "weight": 0.7,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "politics_power",
+      "name": "Politics and power",
+      "meaning": "The political structure defined by the three guilds sharing the right to dredge channels.",
+      "weight": 0.9,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "law_norms",
+      "name": "Law and norms",
+      "meaning": "The legal norms governing the shared rights and responsibilities of the three dredging guilds.",
+      "weight": 0.8,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "belief_thought",
+      "name": "Belief and thought",
+      "meaning": "The cultural or spiritual significance potentially attached to the use of knotted cords for records.",
+      "weight": 0.2,
+      "grounds": {
+        "statement_ids": [
+          "s5"
+        ],
+        "reason": "The brief mentions the medium of records but not the beliefs behind them, so this is a low-weight inference for world consistency."
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "language_writing",
+      "name": "Language and writing",
+      "meaning": "The system of recording information using knotted cords instead of traditional writing.",
+      "weight": 0.9,
+      "grounds": {
+        "statement_ids": [
+          "s5"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "kinship_community",
+      "name": "Kinship and community",
+      "meaning": "The social structures formed around the three guilds that manage the city's infrastructure.",
+      "weight": 0.5,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "daily_life",
+      "name": "Daily life",
+      "meaning": "The routine aspects of life in a city built on stilts above a flooding delta.",
+      "weight": 0.7,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s3"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "occupations_labor",
+      "name": "Occupations and labor",
+      "meaning": "The specific jobs and labor involved in the channel dredging managed by the guilds.",
+      "weight": 0.8,
+      "grounds": {
+        "statement_ids": [
+          "s4"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "education_knowledge",
+      "name": "Education and knowledge",
+      "meaning": "The methods of preserving and transmitting knowledge through knotted cord records.",
+      "weight": 0.6,
+      "grounds": {
+        "statement_ids": [
+          "s5"
+        ],
+        "reason": ""
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "arts_media",
+      "name": "Arts, entertainment, and media",
+      "meaning": "The artistic or decorative aspects of the knotted cord records and stilt architecture.",
+      "weight": 0.1,
+      "grounds": {
+        "statement_ids": [
+          "s5"
+        ],
+        "reason": "The brief focuses on utility, so artistic expression is a minimal, low-weight aspect."
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "history",
+      "name": "History",
+      "meaning": "The historical development of the city on stilts and the establishment of guild rights.",
+      "weight": 0.3,
+      "grounds": {
+        "statement_ids": [
+          "s1",
+          "s4"
+        ],
+        "reason": "The brief describes the current state, implying a history of establishment, but does not detail it."
+      },
+      "origin": "catalog"
+    },
+    {
+      "id": "external_relations",
+      "name": "External relations",
+      "meaning": "The city's interactions with the outside world, potentially via the river delta.",
+      "weight": 0.1,
+      "grounds": {
+        "statement_ids": [],
+        "reason": "The brief is self-contained but a city likely has external relations; however, no specific facts are provided, so weight is minimal."
+      },
+      "origin": "catalog"
+    }
+  ]
+}
