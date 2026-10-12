@@ -58,7 +58,7 @@ EntityBuilder（builder.py）：型 → 由来 → 名前 → 軸 → 説明
 
 - 原本はグラフの `world_contract` に保存します。
 - 成功・失敗、試行回数、違反内容はグラフの `contract_stage` と manifest の `world_contract` に記録します。
-- 構造化出力の規定回数で準拠しなければ `StructuredFailure` で実行を失敗にします。
+- 契約は項目ごとに生成し、`config/world/contract.yaml` の `max_item_attempts`（既定 4）回で準拠しなければ `StructuredFailure` で実行を失敗にします（`engine.structured.max_attempts` は契約内の判定呼び出しに使います）。
 - 再開では保存済みの結果を使い、失敗済みなら再び失敗として報告します。旧形式の契約も再利用できます。
 - 入力・軸・契約の生成は探索の呼び出し予算の外で、構造化出力の試行上限で制限します。
 
@@ -105,30 +105,50 @@ Anthropic は強制した tool use による拘束を維持します。この学
 事実の計画は測定値と固有名詞から始め、物・手順・期間を順に加えます。
 件数は `max(2, min_concrete_facts[scale] + 1)` で、既定は世界2、地域2、集落3、地区3、施設4、細部5です。
 1件ずつ種類を指定し、測定値は本文内の値・非時間の測定単位、期間は暦の標識と値を検査します。
-それ以外の種類は `fact_check` の小さな確認タスクを使います。
+測定値・期間を含む全5種類とも、`fact_element` で種類別の要素を生成し、`fact_text` で本文を生成します。固有名詞は `name`、物は `object`、手順は `actor` と `action` が本文に含まれることを決定的に検査します。
 
-各ステップは検査が通るまで既定4試行以内で作り直し、不合格の変更は戻します。
-最後の `review` は組み立てた全体の整合性・客観性・物語の語り口の不在・世界との適合を4つの合否と問題一覧で返します。
+各ステップは検査が通るまで既定4試行以内で作り直し、不合格の変更は戻します。ただし事実本文の試行を使い切ったとき、または `restatement_check` が言い換えと判定したとき（残りの本文試行は続けず直ちに）、その事実を一度だけ要素から作り直し、`fact_element`・`fact_text` に追加の試行枠を与えます（既定では同じ事実の各ステップが合計最大8試行）。
+最後の `review` は組み立てた全体について `consistent`・`objective`・`no_outside_premises` の3つの合否と問題一覧を返します。物語の語り口の不在は `objective` に含まれます。
 問題のある名前・説明・事実だけを再生成して再審査します。全体審査後の修正は既定2巡です。
 問題を特定しない不合格判定や、合格判定と矛盾する問題一覧は採用しません。
 
 ## 7. 採用基準
 
-[config/world/criteria.yaml](config/world/criteria.yaml) の8基準をステップの検査と全体審査で満たした場合だけ採用します。
+このリポジトリはエージェントハーネスです。出力の形式（`config/schemas/` の JSON Schema）と採否の基準を
+リポジトリが決め、どのモデルにも同じものを守らせます。モデルの違いは、採用された量・深さ・時間の差として表れます。
 
-| 基準 | 現在の検査 |
-|---|---|
-| `grounded` | 入力事項または局所エンティティが由来。エンティティからの導出理由は10文字以上 |
-| `consistent` | 出力スキーマ、既存数値との矛盾、自己参照、全体審査 |
-| `objective` | 名前の文字種が出力言語に合う。説明の客観性検査と全体審査 |
-| `no_story` | 説明の引用・一人称・二人称などの検査と全体審査 |
-| `specific` | 測定値・期間の決定的検査、他の種類の `fact_check` |
-| `informative` | 説明・事実の文字3-gramの重複率が入力・局所文脈に対して0.6以下。事実は他の事実も比較対象 |
-| `distinct` | 正規化した名前が既存名と異なり、同一エンティティの事実が重複しない |
-| `fits_world` | 単位とその組合せ・暦の標識が契約に属する。全体が入力と世界に適合するかの審査 |
+### 7.1 項目ごとの基準
+
+[config/world/criteria.yaml](config/world/criteria.yaml) の基準のうち、適用される項目検査と審査に合格したエンティティを採用します。`breadth`・`depth`・`scale` は世界全体の基準で、未達でも探索を続け、すべて達成すると `coverage_met` で停止します。
+`level` は適用先、`method` は主な検査の方式です。
+
+| 基準 | level / method | 内容 |
+|---|---|---|
+| `faithful` | both / structure | 入力の事項か局所エンティティに由来し、導出の理由がある。世界が入力に忠実である |
+| `no_outside_premises` | entity / judge | 単位と暦の標識が契約に従う。現実世界の体系と固有名詞は、元の入力で指定された場合だけ許す |
+| `breadth` | world / structure | 世界が入力から導いた領域に広がっている |
+| `depth` | world / structure | 世界が根本の原因と仕組みを説明している |
+| `scale` | world / structure | 世界がスケールの階層をまたいで事実をつないでいる |
+| `detail` | entity / structure | 事実が種類ごとの必須項目を持つ。固有名詞は新しく、測定値は値と時間以外の単位、期間は暦の標識と値を持つ |
+| `objective` | entity / judge | 名前が出力言語の文字種で、説明が客観的な参照の文体である |
+| `consistent` | both / judge | スキーマ、数値の矛盾、自己参照、エンティティ内の矛盾 |
+| `new_information` | entity / rule | 既存の事実にない情報を加える。固有名詞は入力・ブリーフ・局所文脈・既存の名前・契約の用語にもない。本文は既存の事実と同一・ほぼ同一（文字3-gram の Jaccard が `duplicate_jaccard`＝0.8 以上）でなく、言い換えでもない |
 
 決定的な客観性・整合性検査は `src/world/verify.py`、言語規則は `config/world/language_rules.yaml`、
 単位照合は `src/world/quantities.py` を使います。内容の意味審査はモデルの判定に依存します。
+
+### 7.2 判定モデル
+
+`real_world_check`・`review`・`restatement_check` の判定は、`engine.judge_model`（`--judge-model`）で生成モデルと別のモデルに固定できます。
+空なら生成モデルと同じです。言い換えの判定は、文字3-gram の Jaccard が大きい既存の事実（最大 `restatement_candidates`＝5 件）と比べます。
+精度は `scripts/validate_judges.py` と `tests/fixtures/judge_cases/` で測ります（CI では実行しません）。
+
+### 7.3 世界全体の基準
+
+[config/world/world_criteria.yaml](config/world/world_criteria.yaml) の基準（`faithful`・`breadth.axes`・`breadth.perspective`・
+`depth.relations`・`depth.history`・`scale.<スケール>`・`scale.chain`）をすべて満たすと、探索は `coverage_met` で止まります。
+測定は `src/world/world_criteria.py` が決定的に行います。
+`selection.focus_unmet`（既定 true）が有効なあいだは、未達の基準を埋める候補を優先して選びます。
 
 ## 8. 探索・採用・再開（`src/world/explore.py`）
 
@@ -141,9 +161,18 @@ Anthropic は強制した tool use による拘束を維持します。この学
 5. ステップと反復のログ、グラフ・バンディット・乱数・計測のチェックポイントを保存します。
 
 停止条件は `coverage_met`、`max_iterations`、`max_wall_seconds`、`max_generation_calls`、
-`frontier_exhausted`、`too_many_failures` です。被覆条件には軸ごとの最低件数、指定スケールまでの最低件数、
-保存されたバンディット更新値の平均が含まれます。探索中の生成・再試行・変換・審査を呼び出し予算に数えます。
-予算途中で組み立てが中断されたエンティティは採用しません。
+`frontier_exhausted`、`too_many_failures` です。`coverage_met` の条件は世界全体の基準（7.3）です。
+探索中の生成・再試行・変換・審査を呼び出し予算に数えます。予算途中で組み立てが中断されたエンティティは採用しません。
+
+`parallel.builds`（既定 4。単独生成・再開では `--parallel-builds` で上書きでき、`--runs 2` 以上のバッチは設定ファイルの値を使う）の件数を並列に作り、選んだ順に確定します。2 件目以降は確定の前に、
+その間に確定した内容との重複などを確かめ直し（`recheck_against_graph`）、不合格なら不採用にします。
+Ollama がモデルによって同時に 1 件しか処理しない場合（サーバーログの `n_seq_max`）は 1 にします。
+
+バックエンドが応答しないときは、Ollama の生存確認（`GET /api/tags`）、`server.call_deadline_seconds`（Ollama の 1 回の呼び出しの上限。Anthropic には適用されない）、
+探索中のチェックポイント保存と待機（60・120・240・480・600 秒の間隔で生存確認）で扱います。反復が確定しないまま
+`engine.backend_wait_max_seconds` を超えると、単独生成・再開では終了コード 75 で止まり、再開コマンドをログに出します。
+`--runs 2` 以上のバッチでは、この例外を失敗として記録して次の世界へ進み、バッチ終了時の終了コードは 1 です。
+再開（`--choice 2 --run-id <id>`）は開始時の予算（実効値）を引き継ぎ、明示した引数だけを上書きして `budget.resume_overrides` に記録します。
 
 グラフは `src/world/graph.py` の `GraphStore` が参照と親子・スケールを検証して原子的に保存します。
 階層は `world → region → settlement → district → site → detail` です。
@@ -190,12 +219,17 @@ manifest は設定のハッシュと設定・プロンプト・スキーマの�
 
 ## 11. 実機検証と限界
 
-Ollama上の3モデルを同じ入力・seed 1・各12反復で比較しています。
-gemma4:e4b は5件採用・地区まで・約14分、gpt-oss:20b は5件採用・世界のみ・約79分、
-qwen3.8:27b は9件採用・施設まで・約116分です。構造化出力の呼び出しはそれぞれ168・149・183回でした。
-3モデルとも形式に準拠できずに失敗したタスクはなく、内容の不合格には言い換えや契約にない単位がありました。
-条件・資料は [モデル比較の作例](examples/model_comparison/README.md) を参照してください。
+Ollama上で2つの作例を実行しています。
 
-入力・seedは各1つで、全入力での性能や長時間実行の品質を示す比較ではありません。時間は並行処理の影響も受けます。
-文字3-gramの重複検査は意味の同一性を完全には検出せず、種類の確認と全体審査はモデルの能力に依存します。
+- [モデル比較](examples/model_comparison/README.md)：同じ入力・設定・基準・seed 1、判定モデル `qwen3.8:27b` で3モデルを比較。
+  gemma4:e4b は12反復・6件採用・世界→地区・約2.3時間、gpt-oss:20b は18反復・13件採用・世界→細部・約8.6時間、
+  qwen3.8:27b は31反復・28件採用・世界→細部・約8.1時間で、世界全体の基準をすべて満たしました。
+- [合格ラインの確認](examples/calibration/README.md)：性質の違う英語の入力で、`qwen3.8:27b` が33反復・25件採用で
+  `coverage_met` に達しました（約4.8時間）。
+
+ローカルモデルでは1回の実行に数時間かかります。macOS の低電力モードでは GPU が大きく制限されるので、長い実行は
+電源につないで低電力モードを切ってください。
+
+入力・seedは各1つで、全入力での性能を示す比較ではありません。モデル比較の時間は、3本の並列実行と別プロジェクトとのOllama共用の影響も受けます。
+文字3-gramの重複検査は意味の同一性を完全には検出せず、種類別の検査は、全5種類でスキーマと必須要素の本文への包含を決定的に確認します（種類確認用のモデル呼び出しは使いません）。内容の意味の妥当性と全体審査はモデルの能力に依存します。
 Anthropicとバッチの実機エンドツーエンド検証は未実施です。
