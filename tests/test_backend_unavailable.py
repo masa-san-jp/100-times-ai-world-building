@@ -66,11 +66,18 @@ def test_live_server_exhausting_retries_still_returns_none():
 
 
 def test_call_deadline_stops_retrying_even_when_server_answers_tags():
-    with patch("requests.post", side_effect=requests.exceptions.Timeout) as post, \
+    now = [0.0]
+
+    def slow_timeout(*args, **kwargs):
+        now[0] += 2
+        raise requests.exceptions.Timeout
+
+    with patch("requests.post", side_effect=slow_timeout) as post, \
             patch("requests.get", return_value=Mock(status_code=200)), \
-            patch("src.ollama_client.time.sleep"):
+            patch("src.ollama_client.time.sleep"), \
+            patch("src.ollama_client.time.monotonic", lambda: now[0]):
         with pytest.raises(BackendUnavailable, match="exceeded"):
-            client(max_retries=5, call_deadline_seconds=-1).generate("p")
+            client(max_retries=5, call_deadline_seconds=1).generate("p")
     assert post.call_count == 1
 
 

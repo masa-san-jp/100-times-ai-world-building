@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+import threading
 import time
 import unicodedata
 from dataclasses import dataclass
@@ -13,7 +14,8 @@ import yaml
 from jsonschema import Draft202012Validator
 from loguru import logger
 
-CONVERT_PROMPT_PATH = Path(__file__).resolve().parents[2] / "config/prompts/structured/convert.yaml"
+_METRICS_LOCK = threading.Lock()
+CONVERT_PROMPT_PATH =Path(__file__).resolve().parents[2] / "config/prompts/structured/convert.yaml"
 
 
 @dataclass
@@ -255,28 +257,29 @@ def generate_structured(backend, prompt, schema, *, task, system_prompt=None,
                    + json.dumps(history[-1], ensure_ascii=False) + "\nPREVIOUS OUTPUT:\n" + (raw or "(empty)"))
     result = StructuredResult(data, attempt, history, time.monotonic() - start, mode,
                               converted, conversions["tried"])
-    if "_structured_metrics" not in vars(client):
-        client._structured_metrics = {}
-    metrics = client._structured_metrics
-    if isinstance(metrics, dict):
-        entry = metrics.setdefault(task, {"calls": 0, "attempts": {}, "failures": 0,
-                                          "elapsed": 0.0, "modes": {}})
-        entry["calls"] += 1
-        if getattr(client, "model", None):
-            entry["model"] = str(client.model)
-        if data is None:
-            entry["failures"] += 1
-        else:
-            count = str(attempt)
-            entry["attempts"][count] = entry["attempts"].get(count, 0) + 1
-        entry["elapsed"] += result.elapsed
-        for name, count in content_counts.items():
-            entry[name] = entry.get(name, 0) + count
-        counts = entry.setdefault("conversions", {name: 0 for name in conversions})
-        for name, count in conversions.items():
-            counts[name] += count
-        for used in modes:
-            entry["modes"][used] = entry["modes"].get(used, 0) + 1
+    with _METRICS_LOCK:
+        if "_structured_metrics" not in vars(client):
+            client._structured_metrics = {}
+        metrics = client._structured_metrics
+        if isinstance(metrics, dict):
+            entry = metrics.setdefault(task, {"calls": 0, "attempts": {}, "failures": 0,
+                                              "elapsed": 0.0, "modes": {}})
+            entry["calls"] += 1
+            if getattr(client, "model", None):
+                entry["model"] = str(client.model)
+            if data is None:
+                entry["failures"] += 1
+            else:
+                count = str(attempt)
+                entry["attempts"][count] = entry["attempts"].get(count, 0) + 1
+            entry["elapsed"] += result.elapsed
+            for name, count in content_counts.items():
+                entry[name] = entry.get(name, 0) + count
+            counts = entry.setdefault("conversions", {name: 0 for name in conversions})
+            for name, count in conversions.items():
+                counts[name] += count
+            for used in modes:
+                entry["modes"][used] = entry["modes"].get(used, 0) + 1
     return result
 
 

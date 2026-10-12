@@ -43,6 +43,8 @@ def new_name(name, raw_input, brief, views, entities, contract):
     sources = [raw_input, *descriptions(brief),
         *(e.get("name", "") for e in views),
         *(f.get("text", "") for e in views for f in e.get("facts", [])),
+        *(f.get("name", "") for e in views for f in e.get("facts", [])
+          if f.get("kind") == "proper_noun"),
         *(e.get("name", "") for e in entities), *contract_terms(contract)]
     return bool(key) and not any(key in normalize_term(source) for source in sources)
 

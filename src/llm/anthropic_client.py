@@ -146,7 +146,7 @@ class AnthropicClient:
             request["system"] = system_prompt
         try:
             message = self._stream_message(request)
-            if self.last_response_meta.get("stop_reason") in {"max_tokens", "refusal"}:
+            if self._value(message, "stop_reason") in {"max_tokens", "refusal"}:
                 return None
             for block in self._value(message, "content", []) or []:
                 if self._value(block, "type") == "tool_use" and self._value(block, "name") == "structured_output":
@@ -213,7 +213,7 @@ class AnthropicClient:
         return message
 
     def _message_text(self, message: Any) -> Optional[str]:
-        if self.last_response_meta.get("stop_reason") == "refusal":
+        if self._value(message, "stop_reason") == "refusal":
             return None
         parts = []
         for block in self._value(message, "content", []) or []:
