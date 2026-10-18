@@ -4,7 +4,7 @@
 
 [日本語](#日本語) | [English](#english)
 
-📖 **プロジェクトの背景と旧版の制作手順を読む：** [100 TIMES AI WORLD BUILDING - note版](https://note.com/masa_san_jp/n/n26ddda02e0d2)（第3章まで無料公開）
+📖 **プロジェクトの背景と旧版の制作手順を読む：** [100 TIMES AI WORLD BUILDING - note版](https://note.com/masa_san_jp/n/n26ddda02e0d2)
 
 📖 **Read about the project's background and the original workflow:** [100 TIMES AI WORLD BUILDING on note (Japanese)](https://note.com/masa_san_jp/n/n26ddda02e0d2).
 
