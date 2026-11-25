@@ -378,6 +378,9 @@ def _documents_page(ctx: _Ctx) -> str:
         if issuers:
             out.append(f"- {L('document_issuer')}: "
                        + ", ".join(ctx.link(i, "bible") for i in issuers))
+        if e.get("issuer_standpoint"):
+            out.append(f"- {L('document_standpoint')}: "
+                       + _one_line(e["issuer_standpoint"]))
         targets = [r["target"] for r in e.get("relations", [])
                    if r["type"] == "related_to"]
         if targets:

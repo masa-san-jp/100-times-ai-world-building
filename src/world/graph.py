@@ -271,6 +271,10 @@ def validate_graph(
             errors.extend(f"{w}: {err}" for err in usage_errors(e["premise_usage"]))
         if e.get("type") not in ENTITY_TYPES:
             errors.append(f"{w}: invalid type {e.get('type')!r}")
+        if "issuer_standpoint" in e and (
+                e.get("type") != "document" or not isinstance(e["issuer_standpoint"], str)
+                or not e["issuer_standpoint"].strip()):
+            errors.append(f"{w}: issuer_standpoint must be a non-empty string on a document")
         if not isinstance(e.get("name"), str) or not e["name"].strip():
             errors.append(f"{w}: name is required")
         if not isinstance(e.get("summary"), str):
@@ -447,6 +451,8 @@ def _brief_view(e: Mapping[str, Any], lim: Mapping[str, int]) -> Dict[str, Any]:
         "scale": e.get("scale"),
         "summary": _clip(e.get("summary"), lim["max_summary_chars"]),
         "facts": facts,
+        **({"issuer_standpoint": e["issuer_standpoint"]}
+           if e.get("issuer_standpoint") else {}),
     }
 
 

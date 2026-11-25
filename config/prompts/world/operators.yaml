@@ -39,3 +39,10 @@ operators:
     its date or period, its identifiers, and quote its actual wording in
     facts. The summary describes what the document is and what it regulates
     or records. It is an artifact, not an account.
+    If LOCAL CONTEXT already holds a document about the same TARGET, issue
+    this one from an issuer whose standpoint differs from theirs (for
+    example a tax office, a district guild, a settlers' mutual-aid society),
+    and let its claims, evaluation or reasoning about the target differ from
+    theirs. Numbers, units, calendar markers, periods and names of the world
+    stay identical to the existing documents. When stating this document's
+    own issue date, include its own identifier.

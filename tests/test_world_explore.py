@@ -120,6 +120,8 @@ def make_backend(generic_ops=(), always_generic=False, fail_after=None):
             ids = props["statement_ids"]["items"]
             return {"statement_ids": ids["enum"][:1] if ids else [], "derived_from": [],
                     "reason": "Quota agreements determine record cycles and recording methods"}
+        if step == "standpoint":
+            return {"issuer_standpoint": " ".join(words[3:5])}
         if step == "name":
             return {"name": " ".join(w.title() for w in words[:2])}
         if step == "axes":
