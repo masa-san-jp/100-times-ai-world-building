@@ -64,6 +64,7 @@ en:
   documents_intro: Documents that exist in the world, presented as artifacts.
   documents_empty: No documents were recorded.
   document_issuer: Issuer
+  document_standpoint: Issuer standpoint
   document_target: Concerns
   document_facts: Details
   report_title: Exploration Report
@@ -217,6 +218,7 @@ ja:
   documents_intro: 世界に実在する文物としての文書。
   documents_empty: 文書は記録されていません。
   document_issuer: 発行主体
+  document_standpoint: 発行者の立場
   document_target: 対象
   document_facts: 詳細
   report_title: 探索レポート

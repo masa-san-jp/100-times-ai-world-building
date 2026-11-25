@@ -22,7 +22,7 @@ from .criteria import (duplicate_fact, measurement_present, new_name, outside_te
 from .schemas import step_schema
 from .structured import generate_structured
 from .textsim import normalize_item
-from .verify import verify_consistency, verify_objectivity
+from .verify import document_conflicts, same_event_documents, verify_consistency, verify_objectivity
 
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 ALLOWED_TYPES = {
@@ -184,6 +184,11 @@ class EntityBuilder:
                 return [check("faithful", bool(prov["statement_ids"] or prov["derived_from"]), "at least one source is required"),
                         check("faithful", not prov["derived_from"] or len(prov["reason"].strip()) >= 10,
                               "derived_from requires a reason of at least 10 characters")]
+            if step == "standpoint":
+                taken = [d["issuer_standpoint"] for d in same_event_documents(entity, graph, target_id)
+                         if d.get("issuer_standpoint")]
+                return [check("new_information", standpoint_is_new(entity["issuer_standpoint"], taken),
+                              f"issuer standpoint must differ from the documents of the same event: {taken!r}")]
             if step == "name":
                 name = entity["name"]
                 checks = [check("new_information", bool(normalize_item(name)) and all(normalize_item(name) != normalize_item(e["name"]) for e in graph["entities"]),
@@ -371,6 +376,8 @@ class EntityBuilder:
                     axes=entity["axes"], parent=entity["parent"], relations=entity.get("relations", []),
                     summary=entity["summary"], facts=entity["facts"], provenance=entity["provenance"])
                 built["origin_operator"] = operator
+                if "issuer_standpoint" in entity:
+                    built["issuer_standpoint"] = entity["issuer_standpoint"]
                 if operator in _TARGET_RELATION:
                     rel = {"type": _TARGET_RELATION[operator], "target": target_id}
                     if rel not in built["relations"]:
@@ -387,7 +394,9 @@ class EntityBuilder:
             entity["type"] = ALLOWED_TYPES[operator][0]
         elif not run_step("type"):
             return finish(False)
-        for step in ("grounding", "name", "axes", "summary"):
+        steps = ("grounding", "standpoint", "name", "axes", "summary") if operator == "document" \
+            else ("grounding", "name", "axes", "summary")
+        for step in steps:
             if not run_step(step):
                 return finish(False)
         for slot in range(len(plan)):
@@ -434,6 +443,11 @@ class EntityBuilder:
         return finish(False)
 
 
+def standpoint_is_new(standpoint, taken):
+    """True when standpoint is not equal or nearly equal to any standpoint in taken."""
+    return duplicate_fact(standpoint, taken) is None
+
+
 def recheck_against_graph(entity, graph, *, brief, raw_input, contract, judge_backend, language,
                           new_entity_ids=(), structured_attempts=3, structured_conversions=2,
                           metrics=None):
@@ -464,6 +478,13 @@ def recheck_against_graph(entity, graph, *, brief, raw_input, contract, judge_ba
         repeated = duplicate_fact(fact["text"], existing)
         if repeated is not None:
             fail(f"new_information: fact text duplicates an existing fact: {repeated!r}")
+    if entity.get("issuer_standpoint"):
+        taken = [d["issuer_standpoint"] for d in same_event_documents(entity, graph)
+                 if d.get("issuer_standpoint")]
+        if not standpoint_is_new(entity["issuer_standpoint"], taken):
+            fail(f"new_information: issuer standpoint must differ from the documents of the same event: {taken!r}")
+    for _, message in document_conflicts(entity, graph):
+        fail("consistent: " + message)
     fresh = [f["text"] for e in entities if e["id"] in set(new_entity_ids) for f in e.get("facts", [])]
     for fact in entity.get("facts", []):
         candidates = restatement_candidates(fact["text"], fresh)

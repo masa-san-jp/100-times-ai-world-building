@@ -471,6 +471,63 @@ def _labelled_numbers(entity: Mapping[str, Any]) -> Dict[str, set]:
     return out
 
 
+def same_event_documents(
+    entity: Mapping[str, Any], graph: Mapping[str, Any], target: Optional[str] = None,
+) -> List[Mapping[str, Any]]:
+    """Other documents that record the same target (a shared related_to target).
+
+    ``target`` is the build target of a document still being assembled, whose
+    target relation is added only after its facts.
+    """
+    if entity.get("type") != "document":
+        return []
+
+    def targets(e: Mapping[str, Any]) -> set:
+        return {r.get("target") for r in e.get("relations") or []
+                if isinstance(r, Mapping) and r.get("type") == "related_to"}
+
+    mine = targets(entity) | ({target} if target else set())
+    return [e for e in graph.get("entities", [])
+            if e.get("type") == "document" and e.get("id") != entity.get("id")
+            and mine & targets(e)]
+
+
+def document_conflicts(
+    entity: Mapping[str, Any], graph: Mapping[str, Any], target: Optional[str] = None,
+) -> List[Tuple[str, str]]:
+    """Return (other id, message) for numbers or periods that contradict a same-event document.
+
+    Documents of the same event may differ in claims, evaluation and reasoning,
+    never in the world's numbers, calendar markers or periods.  A number fact
+    conflicts when unit and subject match (subject as in new_information) and the
+    value differs; any fact conflicts when its leading label equals another
+    document's label and the values that follow share nothing.
+    """
+    from .criteria import duplicate_jaccard, nearly_same
+    others = same_event_documents(entity, graph, target)
+    if not others:
+        return []
+    threshold = duplicate_jaccard()
+    out: List[Tuple[str, str]] = []
+    mine = _labelled_numbers(entity)
+    numbers = [f for f in entity.get("facts") or [] if isinstance(f, Mapping)
+               and f.get("kind") == "number" and all(k in f for k in ("subject", "value", "unit"))]
+    for other in others:
+        for f in numbers:
+            for g in other.get("facts") or []:
+                if (isinstance(g, Mapping) and g.get("kind") == "number"
+                        and all(k in g for k in ("subject", "value", "unit"))
+                        and g["unit"] == f["unit"] and g["value"] != f["value"]
+                        and nearly_same(f["subject"], g["subject"], threshold)):
+                    out.append((other["id"], f"{f['subject']!r} is {f['value']} {f['unit']} but "
+                                f"{g['value']} {g['unit']} in document {other['id']} of the same event"))
+        for label, vals in _labelled_numbers(other).items():
+            if label in mine and not (mine[label] & vals):
+                out.append((other["id"], f"{label!r} has {sorted(mine[label])} but {sorted(vals)} "
+                            f"in document {other['id']} of the same event"))
+    return out
+
+
 def verify_consistency(
     candidate: Mapping[str, Any], graph: Mapping[str, Any],
     axes: Optional[Sequence[Mapping[str, Any]]] = None,
@@ -584,6 +641,8 @@ def verify_consistency(
                     add("facts", "number_conflict",
                         f"{label!r} differs from existing {other['id']}",
                         entity=other["id"])
+    for other_id, message in document_conflicts(entity, graph, candidate.get("target")):
+        add("facts", "number_conflict", message, entity=other_id)
     return VerifierResult("consistency", _score(d), d)
 
 

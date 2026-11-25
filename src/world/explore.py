@@ -983,7 +983,9 @@ class ExplorationLoop:
                     "commit", {"calls": 0, "attempts": {}, "reasons": {}, "failures": 0})
                 entry["failures"] += 1
                 for f in failures:
-                    reasons = entry["reasons"].setdefault("new_information", {})
+                    criterion = f["reason"].split(":", 1)[0]
+                    reasons = entry["reasons"].setdefault(
+                        criterion if criterion == "consistent" else "new_information", {})
                     reasons[f["reason"]] = reasons.get(f["reason"], 0) + 1
         if count_build and result is not None:
             metrics = self.builder.metrics

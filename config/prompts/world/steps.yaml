@@ -32,6 +32,7 @@ common:
 steps:
   type: Choose one of the allowed entity types.
   grounding: Give the statement ids or local entity ids supporting this entity and explain the derivation. If derived_from is nonempty, give a reason of at least 10 characters.
+  standpoint: Give the standpoint of this document's issuer, 2 to 40 characters, as an objective description of its role or position in the world (for example a tax office, a district guild, a settlers' mutual-aid society), not a quotation. It differs from the issuer_standpoint of every document about the same TARGET in LOCAL CONTEXT.
   name: Give this entity one specific name in the output language, different from all existing entity names.
   axes: Choose one to three supplied axis ids for this entity.
   summary: Give one objective explanation of this entity, 40 to 600 characters, adding information beyond the brief and local context.
